@@ -1,6 +1,6 @@
 //
 //  ImageZoomView.swift
-//  FullscreenZoom
+//  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2020-09-20.
 //

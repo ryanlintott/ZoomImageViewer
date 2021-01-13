@@ -1,7 +1,7 @@
 import XCTest
 
-import MyLibraryTests
+import ZoomImageViewerTests
 
 var tests = [XCTestCaseEntry]()
-tests += MyLibraryTests.allTests()
+tests += ZoomImageViewerTests.allTests()
 XCTMain(tests)

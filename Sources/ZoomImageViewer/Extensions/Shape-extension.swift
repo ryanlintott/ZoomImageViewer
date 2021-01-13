@@ -1,6 +1,6 @@
 //
 //  Shape-extension.swift
-//  FullscreenZoom
+//  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2021-01-11.
 //

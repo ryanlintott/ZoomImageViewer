@@ -1,6 +1,6 @@
 //
 //  RotationMatchingOrientationViewModifier.swift
-//  OptionalRotation
+//  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2020-12-31.
 //
