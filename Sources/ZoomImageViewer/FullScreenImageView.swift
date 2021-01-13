@@ -116,7 +116,7 @@ struct FullScreenImageView: View {
     func onDragEnded(predictedEndTranslation: CGSize) {
         if predictedEndTranslation.magnitude > dismissThreshold {
             withAnimation(Animation.linear(duration: animationSpeed)) {
-                offset = max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
+                offset = .max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
                 backgroundOpacity = .zero
             }
             withAnimation(Animation.linear(duration: 0.1).delay(animationSpeed)) {

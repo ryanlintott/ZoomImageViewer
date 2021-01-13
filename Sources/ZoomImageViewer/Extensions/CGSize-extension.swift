@@ -79,7 +79,7 @@ extension CGSize {
     }
 }
 
-extension CGSize: Comparable {
+extension CGSize {
     // Vector magnitude (length)
     var magnitude: CGFloat {
         return sqrt(width * width + height * height)
@@ -90,8 +90,8 @@ extension CGSize: Comparable {
         return CGSize(width: width / magnitude, height: height / magnitude)
     }
     
-    public static func < (lhs: CGSize, rhs: CGSize) -> Bool {
-        lhs.magnitude < rhs.magnitude
+    public static func max(_ x: CGSize, _ y: CGSize) -> CGSize {
+        x.magnitude > y.magnitude ? x : y
     }
 }
 

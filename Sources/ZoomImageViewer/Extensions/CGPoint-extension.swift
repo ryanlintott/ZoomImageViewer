@@ -61,7 +61,7 @@ extension CGPoint {
     }
 }
 
-extension CGPoint: Comparable {
+extension CGPoint {
     // Vector magnitude (length)
     var magnitude: CGFloat {
         return sqrt(x * x + y * y)
@@ -70,10 +70,6 @@ extension CGPoint: Comparable {
     // Vector normalization
     var normalized: CGPoint {
         return CGPoint(x: x / magnitude, y: y / magnitude)
-    }
-    
-    public static func < (lhs: CGPoint, rhs: CGPoint) -> Bool {
-        lhs.magnitude < rhs.magnitude
     }
 }
 
