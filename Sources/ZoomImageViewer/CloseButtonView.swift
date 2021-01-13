@@ -15,7 +15,7 @@ public struct CloseButton: View {
     let blendMode: BlendMode
     let paddingAmount: CGFloat
     
-    init(image: Image = defaultImage, size: CGSize = defaultSize, color: Color = defaultColor, blendmode: BlendMode = defaultBlendMode, paddingAmount: CGFloat = defaultPaddingAmount) {
+    public init(image: Image = defaultImage, size: CGSize = defaultSize, color: Color = defaultColor, blendmode: BlendMode = defaultBlendMode, paddingAmount: CGFloat = defaultPaddingAmount) {
         self.image = image
         self.size = size
         self.color = color
@@ -34,10 +34,10 @@ public struct CloseButton: View {
             .contentShape(Rectangle())
     }
     
-    static let defaultImage = Image(systemName: "xmark")
-    static let defaultSize = CGSize(width: 20, height: 20)
-    static let defaultColor = Color.white
-    static let defaultBlendMode = BlendMode.difference
-    static let defaultPaddingAmount: CGFloat = 10
+    public static let defaultImage = Image(systemName: "xmark")
+    public static let defaultSize = CGSize(width: 20, height: 20)
+    public static let defaultColor = Color.white
+    public static let defaultBlendMode = BlendMode.difference
+    public static let defaultPaddingAmount: CGFloat = 10
 }
 #endif

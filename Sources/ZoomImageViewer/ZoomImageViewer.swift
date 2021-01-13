@@ -12,7 +12,7 @@ public struct ZoomImageViewer: View {
     @Binding private var uiImage: UIImage?
     let closeButton: CloseButton?
     
-    init(uiImage: Binding<UIImage?>, closeButton: CloseButton? = nil) {
+    public init(uiImage: Binding<UIImage?>, closeButton: CloseButton? = nil) {
         self._uiImage = uiImage
         self.closeButton = closeButton
     }
