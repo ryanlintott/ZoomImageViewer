@@ -18,7 +18,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     let allowedOrientations: Set<UIDeviceOrientation>
     let animation: Animation?
     
-    init(isOn: Bool? = nil, allowedOrientations: Set<UIDeviceOrientation>? = nil, withAnimation animation: Animation? = nil) {
+    public init(isOn: Bool? = nil, allowedOrientations: Set<UIDeviceOrientation>? = nil, withAnimation animation: Animation? = nil) {
         self.isOn = isOn ?? true
         self.allowedOrientations = (allowedOrientations ?? [.landscapeLeft, .landscapeRight]).union([.portrait])
         self.animation = animation
@@ -80,18 +80,9 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
 }
 
 extension View {
-    func rotationMatchingOrientation(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
+    public func rotationMatchingOrientation(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
         self
             .modifier(RotationMatchingOrientationViewModifier(isOn: isOn, allowedOrientations: allowedOrientations, withAnimation: animation))
-    }
-}
-
-struct OrientationMatchingView_Previews: PreviewProvider {
-    static var previews: some View {
-        Image(systemName: "photo")
-            .resizable()
-            .scaledToFit()
-            .rotationMatchingOrientation()
     }
 }
 #endif
