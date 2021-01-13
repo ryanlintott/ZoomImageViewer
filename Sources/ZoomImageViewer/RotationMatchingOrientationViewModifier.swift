@@ -8,7 +8,7 @@
 import SwiftUI
 
 #if canImport(UIKit)
-struct RotationMatchingOrientationViewModifier: ViewModifier {
+public struct RotationMatchingOrientationViewModifier: ViewModifier {
     @Environment(\.verticalSizeClass) var verticalSizeClass: UserInterfaceSizeClass?
     @Environment(\.horizontalSizeClass) var horizontalSizeClass: UserInterfaceSizeClass?
     
@@ -64,7 +64,7 @@ struct RotationMatchingOrientationViewModifier: ViewModifier {
         }
     }
     
-    func body(content: Content) -> some View {
+    public func body(content: Content) -> some View {
         GeometryReader { proxy in
             content
                 .frame(width: isLandscape ? proxy.size.height : proxy.size.width, height: isLandscape ? proxy.size.width : proxy.size.height)

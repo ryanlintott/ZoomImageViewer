@@ -8,46 +8,13 @@
 #if os(iOS)
 import SwiftUI
 
-struct CloseButton: View {
-    let image: Image
-    let size: CGSize
-    let color: Color
-    let blendMode: BlendMode
-    let paddingAmount: CGFloat
-    
-    init(image: Image = defaultImage, size: CGSize = defaultSize, color: Color = defaultColor, blendmode: BlendMode = defaultBlendMode, paddingAmount: CGFloat = defaultPaddingAmount) {
-        self.image = image
-        self.size = size
-        self.color = color
-        self.blendMode = blendmode
-        self.paddingAmount = paddingAmount
-    }
-    
-    var body: some View {
-        image
-            .resizable()
-            .scaledToFit()
-            .frame(width: size.width, height: size.height)
-            .foregroundColor(color)
-            .blendMode(blendMode)
-            .padding(paddingAmount)
-            .contentShape(Rectangle())
-    }
-    
-    static let defaultImage = Image(systemName: "xmark")
-    static let defaultSize = CGSize(width: 20, height: 20)
-    static let defaultColor = Color.white
-    static let defaultBlendMode = BlendMode.difference
-    static let defaultPaddingAmount: CGFloat = 10
-}
-
 struct FullScreenImageView: View {
     @Binding var uiImage: UIImage?
     let closeButton: CloseButton
     
-    init(uiImage: Binding<UIImage?>, closeButton: CloseButton = CloseButton()) {
+    init(uiImage: Binding<UIImage?>, closeButton: CloseButton? = nil) {
         self._uiImage = uiImage
-        self.closeButton = closeButton
+        self.closeButton = closeButton ?? CloseButton()
     }
     
     @State private var isInteractive: Bool = true
@@ -162,12 +129,6 @@ struct FullScreenImageView: View {
                 offset = .zero
             }
         }
-    }
-}
-
-struct FullscreenImageView_Previews: PreviewProvider {
-    static var previews: some View {
-        FullScreenImageView(uiImage: .constant(UIImage(named: "testImage")))
     }
 }
 #endif
