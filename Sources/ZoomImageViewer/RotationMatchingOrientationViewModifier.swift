@@ -75,6 +75,9 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
         .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
             changeOrientation()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            changeOrientation()
+        }
         .onAppear(perform: changeOrientation)
     }
 }
