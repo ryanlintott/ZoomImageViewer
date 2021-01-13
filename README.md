@@ -1,3 +1,4 @@
-# MyLibrary
+# ZoomImageViewer
 
-A description of this package.
+An easy to use fullscreen image viewer.
+
