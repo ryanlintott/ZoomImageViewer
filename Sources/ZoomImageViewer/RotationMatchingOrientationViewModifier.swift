@@ -56,7 +56,12 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
         }
     }
     
-    func changeOrientation() {
+    func changeOrientation(frameSize: CGSize) {
+        // check that visible frame matches screen frame (it won't if app is in slide over or side by side
+        guard (frameSize.aspectRatio > 1 && UIScreen.main.bounds.size.aspectRatio > 1) || (frameSize.aspectRatio < 1 && UIScreen.main.bounds.size.aspectRatio < 1) else {
+            return
+        }
+        
         if allowedOrientations.contains(UIDevice.current.orientation) {
             withAnimation(animation) {
                 self.orientation = UIDevice.current.orientation
@@ -70,15 +75,16 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
                 .frame(width: isLandscape ? proxy.size.height : proxy.size.width, height: isLandscape ? proxy.size.width : proxy.size.height)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
                 .rotationEffect(rotation)
-                
+                .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
+                    changeOrientation(frameSize: proxy.size)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    changeOrientation(frameSize: proxy.size)
+                }
+                .onAppear {
+                    changeOrientation(frameSize: proxy.size)
+                }
         }
-        .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
-            changeOrientation()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            changeOrientation()
-        }
-        .onAppear(perform: changeOrientation)
     }
 }
 
