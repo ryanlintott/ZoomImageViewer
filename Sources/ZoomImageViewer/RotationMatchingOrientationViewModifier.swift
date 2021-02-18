@@ -58,7 +58,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     
     func changeOrientation(frameSize: CGSize) {
         // check that visible frame matches screen frame (it won't if app is in slide over or side by side
-        guard (frameSize.aspectRatio > 1 && UIScreen.main.bounds.size.aspectRatio > 1) || (frameSize.aspectRatio < 1 && UIScreen.main.bounds.size.aspectRatio < 1) else {
+        guard (frameSize.aspectRatio > 1 && UIScreen.main.nativeBounds.size.aspectRatio > 1) || (frameSize.aspectRatio < 1 && UIScreen.main.nativeBounds.size.aspectRatio < 1) else {
             return
         }
         
