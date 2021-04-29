@@ -70,9 +70,6 @@ struct ImageZoomView: UIViewRepresentable {
             uiScrollView.minimumZoomScale = minimumZoomScale
             uiScrollView.maximumZoomScale = maximumZoomScale
 
-//            print("zoomScale: \(uiScrollView.zoomScale)")
-//            print("minimumZoomScale: \(minimumZoomScale)")
-//            print("maximumZoomScale: \(maximumZoomScale)")
             switch zoomState {
             case .min:
                 uiScrollView.setZoomScale(minimumZoomScale, animated: false)
@@ -130,7 +127,6 @@ struct ImageZoomView: UIViewRepresentable {
                 parent.zoomState = .min
             default:
                 if let imageView = gestureRecognizer.view {
-//                    print("\(gestureRecognizer.location(in: imageView).x)")
                     parent.zoomState = .max(center: gestureRecognizer.location(in: imageView))
                 }
             }
