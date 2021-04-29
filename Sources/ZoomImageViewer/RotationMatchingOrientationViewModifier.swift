@@ -9,6 +9,8 @@ import SwiftUI
 
 #if canImport(UIKit)
 public struct RotationMatchingOrientationViewModifier: ViewModifier {
+    static let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+    
     @Environment(\.verticalSizeClass) var verticalSizeClass: UserInterfaceSizeClass?
     @Environment(\.horizontalSizeClass) var horizontalSizeClass: UserInterfaceSizeClass?
     
@@ -24,14 +26,11 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
         self.animation = animation
     }
     
-    var compatibleSizeClass: Bool {
-        horizontalSizeClass == .compact && verticalSizeClass == .regular
+    var isRotatable: Bool {
+        Self.isPhone && isOn && horizontalSizeClass == .compact && verticalSizeClass == .regular
     }
 
     var rotation: Angle {
-        guard isOn && compatibleSizeClass else {
-            return .degrees(0)
-        }
         switch orientation {
         case .landscapeLeft:
             return .degrees(90)
@@ -45,9 +44,6 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     }
     
     var isLandscape: Bool {
-        guard isOn && compatibleSizeClass else {
-            return false
-        }
         switch orientation {
         case .landscapeLeft, .landscapeRight:
             return true
@@ -56,12 +52,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
         }
     }
     
-    func changeOrientation(frameSize: CGSize) {
-        // only change orientation on phones
-        guard UIDevice.current.userInterfaceIdiom == .phone else {
-            return
-        }
-        
+    func changeOrientation() {
         if allowedOrientations.contains(UIDevice.current.orientation) {
             withAnimation(animation) {
                 self.orientation = UIDevice.current.orientation
@@ -70,26 +61,31 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     }
     
     public func body(content: Content) -> some View {
-        GeometryReader { proxy in
+        if isRotatable {
+            GeometryReader { proxy in
+                content
+                    .frame(width: isLandscape ? proxy.size.height : proxy.size.width, height: isLandscape ? proxy.size.width : proxy.size.height)
+                    .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            }
+            .rotationEffect(rotation)
+            .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
+                changeOrientation()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                changeOrientation()
+            }
+            .onAppear {
+                changeOrientation()
+            }
+        } else {
             content
-                .frame(width: isLandscape ? proxy.size.height : proxy.size.width, height: isLandscape ? proxy.size.width : proxy.size.height)
-                .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
-                .rotationEffect(rotation)
-                .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
-                    changeOrientation(frameSize: proxy.size)
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                    changeOrientation(frameSize: proxy.size)
-                }
-                .onAppear {
-                    changeOrientation(frameSize: proxy.size)
-                }
         }
+        
     }
 }
 
 extension View {
-    public func rotationMatchingOrientation(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
+    public func rotationMatchingOrientationLocal(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
         self
             .modifier(RotationMatchingOrientationViewModifier(isOn: isOn, allowedOrientations: allowedOrientations, withAnimation: animation))
     }
