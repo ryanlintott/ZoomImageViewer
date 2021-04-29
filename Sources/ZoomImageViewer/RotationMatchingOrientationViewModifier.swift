@@ -85,7 +85,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
 }
 
 extension View {
-    public func rotationMatchingOrientationLocal(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
+    public func rotationMatchingOrientation(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
         self
             .modifier(RotationMatchingOrientationViewModifier(isOn: isOn, allowedOrientations: allowedOrientations, withAnimation: animation))
     }
