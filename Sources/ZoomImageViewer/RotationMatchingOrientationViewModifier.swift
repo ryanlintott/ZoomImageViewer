@@ -78,8 +78,6 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
             changeDeviceOrientation()
             changeContentOrientation()
         }
-        print("contentOrientation: \(contentOrientation?.string ?? "nil")")
-        print("deviceOrientation: \(deviceOrientation?.string ?? "nil")")
     }
     
     public func body(content: Content) -> some View {
