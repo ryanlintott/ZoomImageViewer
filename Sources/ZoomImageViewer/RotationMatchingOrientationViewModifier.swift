@@ -7,14 +7,9 @@
 
 import SwiftUI
 
-#if canImport(UIKit)
 public struct RotationMatchingOrientationViewModifier: ViewModifier {
-    static let isPhone = UIDevice.current.userInterfaceIdiom == .phone
-    
-    @Environment(\.verticalSizeClass) var verticalSizeClass: UserInterfaceSizeClass?
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass: UserInterfaceSizeClass?
-    
-    @State private var orientation: UIDeviceOrientation? = nil
+    @State private var contentOrientation: UIDeviceOrientation? = nil
+    @State private var deviceOrientation: UIDeviceOrientation? = nil
         
     let isOn: Bool
     let allowedOrientations: Set<UIDeviceOrientation>
@@ -27,67 +22,93 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     }
     
     var isRotatable: Bool {
-        Self.isPhone && isOn && horizontalSizeClass == .compact && verticalSizeClass == .regular
+        // Check if rotation is on and if there are any allowed orientations that are outisde of the supported orientations
+        isOn && !allowedOrientations.isSubset(of: InfoDictionary.supportedOrientations)
     }
 
     var rotation: Angle {
-        switch orientation {
-        case .landscapeLeft:
+        switch (deviceOrientation, contentOrientation) {
+        case (.portrait, .landscapeLeft), (.landscapeLeft, .portraitUpsideDown), (.portraitUpsideDown, .landscapeRight), (.landscapeRight, .portrait):
             return .degrees(90)
-        case .landscapeRight:
+        case (.portrait, .landscapeRight), (.landscapeRight, .portraitUpsideDown), (.portraitUpsideDown, .landscapeLeft), (.landscapeLeft, .portrait):
             return .degrees(-90)
-        case .portraitUpsideDown:
+        case (.portrait, .portraitUpsideDown), (.landscapeRight, .landscapeLeft), (.portraitUpsideDown, .portrait), (.landscapeLeft, .landscapeRight):
             return .degrees(180)
         default:
-            return .degrees(0)
+            return .zero
         }
     }
     
     var isLandscape: Bool {
-        switch orientation {
-        case .landscapeLeft, .landscapeRight:
+        switch (deviceOrientation, contentOrientation) {
+        case (.portrait, .landscapeLeft), (.portrait, .landscapeRight), (.portraitUpsideDown, .landscapeLeft), (.portraitUpsideDown, .landscapeRight):
             return true
         default:
             return false
         }
     }
     
-    func changeOrientation() {
+    func changeContentOrientation() {
         if allowedOrientations.contains(UIDevice.current.orientation) {
-            withAnimation(animation) {
-                self.orientation = UIDevice.current.orientation
-            }
+            contentOrientation = UIDevice.current.orientation
         }
+        
+        if contentOrientation == nil {
+            contentOrientation = .portrait
+        }
+    }
+    
+    func changeDeviceOrientation() {
+        let newOrientation = UIDevice.current.orientation
+
+        guard deviceOrientation != newOrientation else {
+            if deviceOrientation == nil {
+                deviceOrientation = .portrait
+            }
+            return
+        }
+        
+        if InfoDictionary.supportedOrientations.contains(newOrientation) {
+            deviceOrientation = newOrientation
+        }
+    }
+    
+    func changeOrientations() {
+        withAnimation(animation) {
+            changeDeviceOrientation()
+            changeContentOrientation()
+        }
+        print("contentOrientation: \(contentOrientation?.string ?? "nil")")
+        print("deviceOrientation: \(deviceOrientation?.string ?? "nil")")
     }
     
     public func body(content: Content) -> some View {
         if isRotatable {
             GeometryReader { proxy in
                 content
+                    .rotationEffect(rotation)
                     .frame(width: isLandscape ? proxy.size.height : proxy.size.width, height: isLandscape ? proxy.size.width : proxy.size.height)
                     .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+//                    .offset(x: (proxy.size.width / 2) - proxy.frame(in: .local).midX, y: (proxy.size.height / 2) - proxy.frame(in: .local).midY)
+//                    .frame(width: max(proxy.size.height, proxy.size.width), height: max(proxy.size.height, proxy.size.width))
             }
-            .rotationEffect(rotation)
-            .onReceive(NotificationCenter.Publisher(center: .default, name: UIDevice.orientationDidChangeNotification)) { _ in
-                changeOrientation()
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                changeOrientations()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                changeOrientation()
+                changeOrientations()
             }
             .onAppear {
-                changeOrientation()
+                changeOrientations()
             }
         } else {
             content
         }
-        
     }
 }
 
 extension View {
     public func rotationMatchingOrientation(_ allowedOrientations: Set<UIDeviceOrientation>? = nil, isOn: Bool? = nil, withAnimation animation: Animation? = nil) -> some View {
-        self
-            .modifier(RotationMatchingOrientationViewModifier(isOn: isOn, allowedOrientations: allowedOrientations, withAnimation: animation))
+        self.modifier(RotationMatchingOrientationViewModifier(isOn: self is EmptyView ? false : isOn, allowedOrientations: allowedOrientations, withAnimation: animation))
     }
 }
-#endif

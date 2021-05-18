@@ -5,7 +5,6 @@
 //  Created by Ryan Lintott on 2021-01-13.
 //
 
-#if os(iOS)
 import SwiftUI
 
 public struct CloseButton: View {
@@ -40,4 +39,3 @@ public struct CloseButton: View {
     public static let defaultBlendMode = BlendMode.difference
     public static let defaultPaddingAmount: CGFloat = 10
 }
-#endif

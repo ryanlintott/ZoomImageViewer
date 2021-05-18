@@ -5,7 +5,6 @@
 //  Created by Ryan Lintott on 2021-01-13.
 //
 
-#if os(iOS)
 import SwiftUI
 
 public struct ZoomImageViewer: View {
@@ -21,9 +20,6 @@ public struct ZoomImageViewer: View {
     public var body: some View {
         if uiImage != nil {
             FullScreenImageView(uiImage: $uiImage, closeButton: closeButton)
-        } else {
-            EmptyView()
         }
     }
 }
-#endif

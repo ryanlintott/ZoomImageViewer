@@ -5,7 +5,6 @@
 //  Created by Ryan Lintott on 2020-09-21.
 //
 
-#if os(iOS)
 import SwiftUI
 
 struct FullScreenImageView: View {
@@ -131,4 +130,3 @@ struct FullScreenImageView: View {
         }
     }
 }
-#endif

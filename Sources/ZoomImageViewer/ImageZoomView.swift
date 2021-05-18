@@ -5,7 +5,6 @@
 //  Created by Ryan Lintott on 2020-09-20.
 //
 
-#if os(iOS)
 import SwiftUI
 
 enum ZoomState: Comparable {
@@ -152,4 +151,3 @@ struct ImageZoomView: UIViewRepresentable {
         }
     }
 }
-#endif
