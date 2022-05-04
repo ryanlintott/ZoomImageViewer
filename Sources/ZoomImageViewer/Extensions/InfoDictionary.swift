@@ -5,7 +5,7 @@
 //  Created by Ryan Lintott on 2021-05-11.
 //
 
-import UIKit
+import SwiftUI
 
 struct InfoDictionary {
     static let supportedOrientations: Set<UIDeviceOrientation> = {

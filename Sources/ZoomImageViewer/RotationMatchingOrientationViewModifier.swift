@@ -17,13 +17,8 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     
     public init(isOn: Bool? = nil, allowedOrientations: Set<UIDeviceOrientation>? = nil, withAnimation animation: Animation? = nil) {
         self.isOn = isOn ?? true
-        self.allowedOrientations = (allowedOrientations ?? [.landscapeLeft, .landscapeRight]).union([.portrait])
+        self.allowedOrientations = allowedOrientations ?? [.portrait, .landscapeLeft, .landscapeRight]
         self.animation = animation
-    }
-    
-    var isRotatable: Bool {
-        // Check if rotation is on and if there are any allowed orientations that are outisde of the supported orientations
-        isOn && !allowedOrientations.isSubset(of: InfoDictionary.supportedOrientations)
     }
 
     var rotation: Angle {
@@ -54,7 +49,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
         }
         
         if contentOrientation == nil {
-            contentOrientation = .portrait
+            contentOrientation = allowedOrientations.first
         }
     }
     
@@ -81,7 +76,7 @@ public struct RotationMatchingOrientationViewModifier: ViewModifier {
     }
     
     public func body(content: Content) -> some View {
-        if isRotatable {
+        if isOn {
             GeometryReader { proxy in
                 content
                     .rotationEffect(rotation)
