@@ -4,3 +4,7 @@ A fullscreen image viewer with smooth and bouncy pinch-zooming, scrolling, doubl
 
 Close button is customizable
 
+## *Pre-release*
+
+Proper docs, SPM, etc coming soon...
+
