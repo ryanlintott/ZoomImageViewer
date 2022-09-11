@@ -7,24 +7,35 @@
 
 import SwiftUI
 
-public struct ZoomImageViewer: View {
+/// A view for displaying fullscreen images that supports zooming, panning, and dismissing a zoomed-out image with a drag gesture.
+///
+/// Close button style is customizable.
+public struct ZoomImageViewer<CloseButtonStyle: ButtonStyle>: View {
     @Binding private var uiImage: UIImage?
-    let closeButton: CloseButton?
+    let closeButtonStyle: CloseButtonStyle
     
-    public init(uiImage: Binding<UIImage?>, closeButton: CloseButton? = nil) {
+    /// Creates a view with a zoomable image and a close button.
+    /// - Parameters:
+    ///   - uiImage: Image to present.
+    ///   - closeButtonStyle: Button style to use for close button.
+    public init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle) {
         self._uiImage = uiImage
-        self.closeButton = closeButton
+        self.closeButtonStyle = closeButtonStyle
     }
     
     public var body: some View {
-        #warning("Don't need this as FrameUp has fixed this issue.")
-        /// This is added to prevent view offset on dismiss when using with rotationMatchingOrientation
-        Color.clear.overlay(
-            ZStack {
-                if uiImage != nil {
-                    FullScreenImageView(uiImage: $uiImage, closeButton: closeButton)
-                }
-            }
-        )
+        if uiImage != nil {
+            FullScreenImageView(uiImage: $uiImage, closeButtonStyle: closeButtonStyle)
+        }
+    }
+}
+
+public extension ZoomImageViewer<ZoomImageCloseButtonStyle> {
+    /// Creates a view with a zoomable image and a default close button.
+    /// - Parameters:
+    ///   - uiImage: Image to present.
+    init(uiImage: Binding<UIImage?>) {
+        self._uiImage = uiImage
+        self.closeButtonStyle = ZoomImageCloseButtonStyle()
     }
 }

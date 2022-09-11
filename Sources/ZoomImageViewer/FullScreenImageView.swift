@@ -7,13 +7,13 @@
 
 import SwiftUI
 
-struct FullScreenImageView: View {
+struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
-    let closeButton: CloseButton
+    let closeButtonStyle: CloseButtonStyle
     
-    init(uiImage: Binding<UIImage?>, closeButton: CloseButton? = nil) {
+    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle) {
         self._uiImage = uiImage
-        self.closeButton = closeButton ?? CloseButton()
+        self.closeButtonStyle = closeButtonStyle
     }
     
     @State private var isInteractive: Bool = true
@@ -45,57 +45,65 @@ struct FullScreenImageView: View {
     }
     
     var body: some View {
-        GeometryReader { proxy in
-            if let uiImage = uiImage {
-                ImageZoomView(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
-                    .offset(offset)
-                    /// For testing contentShape
-//                    .overlay(
-//                        Rectangle()
-//                            .scaleToFit(CGSize(width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom), aspectRatio: uiImage.size.aspectRatio)
-//                            .fill(Color.red.opacity(0.5))
-//                            .allowsHitTesting(false)
-//                    )
-                    .contentShape(
-                        Rectangle()
-                            .scaleToFit(
-                                CGSize(
-                                    width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
-                                    height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
-                                ),
-                                aspectRatio: uiImage.size.aspectRatio
-                            )
-                    )
-                    .gesture(zoomState == ZoomState.min ? dragImageGesture : nil)
-                    .onChange(of: isDragging, perform: { isDragging in
-                        if !isDragging {
-                            onDragEnded(predictedEndTranslation: predictedOffset)
-                        }
-                    })
-                    .edgesIgnoringSafeArea(.all)
-                    .background(
-                        Color.black.padding(-.maximum(proxy.size.height, proxy.size.width)).edgesIgnoringSafeArea(.all)
-                            .opacity(backgroundOpacity)
-                    )
-                    .overlay(
-                        closeButton
-                            .opacity(backgroundOpacity)
-                            .onTapGesture {
+        /// This helps center animated rotations
+        Color.clear.overlay(
+            GeometryReader { proxy in
+                if let uiImage = uiImage {
+                    ImageZoomView(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
+                        .offset(offset)
+                        /// For testing contentShape
+//                        .overlay(
+//                            Rectangle()
+//                                .scaleToFit(CGSize(width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom), aspectRatio: uiImage.size.aspectRatio)
+//                                .fill(Color.red.opacity(0.5))
+//                                .allowsHitTesting(false)
+//                        )
+                        .contentShape(
+                            Rectangle()
+                                .scaleToFit(
+                                    CGSize(
+                                        width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
+                                        height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+                                    ),
+                                    aspectRatio: uiImage.size.aspectRatio
+                                )
+                        )
+                        .gesture(zoomState == ZoomState.min ? dragImageGesture : nil)
+                        .onChange(of: isDragging, perform: { isDragging in
+                            if !isDragging {
+                                onDragEnded(predictedEndTranslation: predictedOffset)
+                            }
+                        })
+                        .edgesIgnoringSafeArea(.all)
+                        .background(
+                            Color.black.padding(-.maximum(proxy.size.height, proxy.size.width)).edgesIgnoringSafeArea(.all)
+                                .opacity(backgroundOpacity)
+                        )
+                        .overlay(
+                            Button {
                                 withAnimation(.easeOut(duration: animationSpeed)) {
                                     self.uiImage = nil
                                 }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.title)
+                                    .accessibilityLabel("Close")
+                                    .contentShape(Rectangle())
                             }
-                        , alignment: .topLeading
-                    )
-                    .opacity(imageOpacity)
-                    .onAppear(perform: onAppear)
-                    .onDisappear(perform: onDisappear)
+                                .buttonStyle(closeButtonStyle)
+                                .opacity(backgroundOpacity)
+                            , alignment: .topLeading
+                        )
+                        .opacity(imageOpacity)
+                        .onAppear(perform: onAppear)
+                        .onDisappear(perform: onDisappear)
+                }
             }
-        }
-        .onChange(of: uiImage) { uiImage in
-            /// Included to prevent errors when image is dismissed and clicked quickly again
-            uiImage == nil ? onDisappear() : onAppear()
-        }
+                .onChange(of: uiImage) { uiImage in
+                    /// Included to prevent errors when image is dismissed and clicked quickly again
+                    uiImage == nil ? onDisappear() : onAppear()
+                }
+        )
     }
     
     func onAppear() {
