@@ -16,10 +16,15 @@ public struct ZoomImageViewer: View {
         self.closeButton = closeButton
     }
     
-    @ViewBuilder
     public var body: some View {
-        if uiImage != nil {
-            FullScreenImageView(uiImage: $uiImage, closeButton: closeButton)
-        }
+        #warning("Don't need this as FrameUp has fixed this issue.")
+        /// This is added to prevent view offset on dismiss when using with rotationMatchingOrientation
+        Color.clear.overlay(
+            ZStack {
+                if uiImage != nil {
+                    FullScreenImageView(uiImage: $uiImage, closeButton: closeButton)
+                }
+            }
+        )
     }
 }

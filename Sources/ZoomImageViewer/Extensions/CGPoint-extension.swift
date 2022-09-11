@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension CGPoint {
+internal extension CGPoint {
     // Vector negation
     static prefix func - (cgPoint: CGPoint) -> CGPoint {
         return CGPoint(x: -cgPoint.x, y: -cgPoint.y)
@@ -32,9 +32,7 @@ extension CGPoint {
     static func -= (lhs: inout CGPoint, rhs: CGPoint) {
         lhs = lhs - rhs
     }
-}
-
-extension CGPoint {
+    
     // Scalar-vector multiplication
     static func * (lhs: CGFloat, rhs: CGPoint) -> CGPoint {
         return CGPoint(x: lhs * rhs.x, y: lhs * rhs.y)
@@ -59,9 +57,7 @@ extension CGPoint {
     static func *= (lhs: inout CGPoint, rhs: CGFloat) {
         lhs = lhs * rhs
     }
-}
-
-extension CGPoint {
+    
     // Vector magnitude (length)
     var magnitude: CGFloat {
         return sqrt(x * x + y * y)
@@ -71,9 +67,7 @@ extension CGPoint {
     var normalized: CGPoint {
         return CGPoint(x: x / magnitude, y: y / magnitude)
     }
-}
-
-extension CGPoint {
+    
     var aspectRatio: CGFloat {
         x / y
     }

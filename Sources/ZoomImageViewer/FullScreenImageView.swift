@@ -49,7 +49,7 @@ struct FullScreenImageView: View {
             if let uiImage = uiImage {
                 ImageZoomView(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
                     .offset(offset)
-                    // For testing contentShape
+                    /// For testing contentShape
 //                    .overlay(
 //                        Rectangle()
 //                            .scaleToFit(CGSize(width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom), aspectRatio: uiImage.size.aspectRatio)
@@ -58,7 +58,13 @@ struct FullScreenImageView: View {
 //                    )
                     .contentShape(
                         Rectangle()
-                            .scaleToFit(CGSize(width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom), aspectRatio: uiImage.size.aspectRatio)
+                            .scaleToFit(
+                                CGSize(
+                                    width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
+                                    height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+                                ),
+                                aspectRatio: uiImage.size.aspectRatio
+                            )
                     )
                     .gesture(zoomState == ZoomState.min ? dragImageGesture : nil)
                     .onChange(of: isDragging, perform: { isDragging in
@@ -66,8 +72,7 @@ struct FullScreenImageView: View {
                             onDragEnded(predictedEndTranslation: predictedOffset)
                         }
                     })
-    //                 Extra padding instead of edgesIgnoringSafeArea(.all) is for compatibility with RotationMatchingOrientation modifier
-                    .edgesIgnoringSafeArea(.all)    
+                    .edgesIgnoringSafeArea(.all)
                     .background(
                         Color.black.padding(-.maximum(proxy.size.height, proxy.size.width)).edgesIgnoringSafeArea(.all)
                             .opacity(backgroundOpacity)
@@ -88,7 +93,7 @@ struct FullScreenImageView: View {
             }
         }
         .onChange(of: uiImage) { uiImage in
-            // Included to prevent errors when image is dismissed and clicked quickly again
+            /// Included to prevent errors when image is dismissed and clicked quickly again
             uiImage == nil ? onDisappear() : onAppear()
         }
     }

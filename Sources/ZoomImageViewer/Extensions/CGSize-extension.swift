@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension CGSize {
+internal extension CGSize {
     // Vector negation
     static prefix func - (cgSize: CGSize) -> CGSize {
         return CGSize(width: -cgSize.width, height: -cgSize.height)
@@ -32,9 +32,7 @@ extension CGSize {
     static func -= (lhs: inout CGSize, rhs: CGSize) {
         lhs = lhs - rhs
     }
-}
-
-extension CGSize {
+    
     // Scalar-vector multiplication
     static func * (lhs: CGFloat, rhs: CGSize) -> CGSize {
         return CGSize(width: lhs * rhs.width, height: lhs * rhs.height)
@@ -59,9 +57,7 @@ extension CGSize {
     static func *= (lhs: inout CGSize, rhs: CGFloat) {
         lhs = lhs * rhs
     }
-}
-
-extension CGSize {
+    
     func fitting(frame outerSize: CGSize) -> CGSize {
         if self.aspectRatio > outerSize.aspectRatio {
             return CGSize(width: outerSize.width, height: outerSize.width * self.aspectRatio)
@@ -77,9 +73,7 @@ extension CGSize {
             return CGSize(width: outerSize.width, height: outerSize.width * self.aspectRatio)
         }
     }
-}
-
-extension CGSize {
+    
     // Vector magnitude (length)
     var magnitude: CGFloat {
         return sqrt(width * width + height * height)
@@ -90,12 +84,10 @@ extension CGSize {
         return CGSize(width: width / magnitude, height: height / magnitude)
     }
     
-    public static func max(_ x: CGSize, _ y: CGSize) -> CGSize {
+    static func max(_ x: CGSize, _ y: CGSize) -> CGSize {
         x.magnitude > y.magnitude ? x : y
     }
-}
-
-extension CGSize {
+    
     var aspectRatio: CGFloat {
         width / height
     }
