@@ -86,14 +86,14 @@ struct ImageZoomView: UIViewRepresentable {
             switch zoomState {
             case .min:
                 if uiScrollView.zoomScale != uiScrollView.minimumZoomScale {
-                    uiScrollView.setZoomScale(minimumZoomScale, animated: true)
+                    uiScrollView.setZoomScale(minimumZoomScale, animated: !UIAccessibility.isReduceMotionEnabled)
                 }
             case let .max(center):
                 if uiScrollView.zoomScale != uiScrollView.maximumZoomScale {
                     // offset to center here
                     if let center = center {
                         let rect = CGRect(x: center.x, y: center.y, width: 1, height: 1)
-                        uiScrollView.zoom(to: rect, animated: true)
+                        uiScrollView.zoom(to: rect, animated: !UIAccessibility.isReduceMotionEnabled)
                     }
                 }
             default:

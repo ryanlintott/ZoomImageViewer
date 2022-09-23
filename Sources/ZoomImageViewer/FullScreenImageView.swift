@@ -50,6 +50,7 @@ struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
             GeometryReader { proxy in
                 if let uiImage = uiImage {
                     ImageZoomView(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
+                        .accessibilityIgnoresInvertColors()
                         .offset(offset)
                         /// For testing contentShape
 //                        .overlay(
