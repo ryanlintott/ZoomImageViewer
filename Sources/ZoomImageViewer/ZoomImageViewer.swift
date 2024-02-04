@@ -25,7 +25,9 @@ public struct ZoomImageViewer<CloseButtonStyle: ButtonStyle>: View {
     
     public var body: some View {
         if uiImage != nil {
-            FullScreenImageView(uiImage: $uiImage, closeButtonStyle: closeButtonStyle)
+            FullScreenImageView(uiImage: $uiImage, closeButtonStyle: closeButtonStyle).onDisappear() {
+                onDisappear()
+            }
         }
     }
 }
