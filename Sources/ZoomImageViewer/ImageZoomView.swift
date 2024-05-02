@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum ZoomState: Comparable {
+enum ZoomState: Comparable, Sendable {
     case min, partial
     case max(center: CGPoint?)
     

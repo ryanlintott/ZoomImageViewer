@@ -75,9 +75,11 @@ struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
                                 onDragEnded(predictedEndTranslation: predictedOffset)
                             }
                         })
-                        .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()
                         .background(
-                            Color.black.padding(-.maximum(proxy.size.height, proxy.size.width)).edgesIgnoringSafeArea(.all)
+                            Color.black
+                                .padding(-.maximum(proxy.size.height, proxy.size.width))
+                                .ignoresSafeArea()
                                 .opacity(backgroundOpacity)
                         )
                         .overlay(
