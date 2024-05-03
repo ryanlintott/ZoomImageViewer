@@ -8,8 +8,4 @@ final class ZoomImageViewerTests: XCTestCase {
         // results.
 //        XCTAssertEqual(ZoomImageViewer().text, "Hello, World!")
     }
-
-    static var allTests = [
-        ("testExample", testExample),
-    ]
 }

@@ -1,5 +1,5 @@
 //
-//  FullScreenImageView.swift
+//  _ZoomImageView.swift
 //  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2020-09-21.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
+struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle
     
@@ -49,7 +49,7 @@ struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
         Color.clear.overlay(
             GeometryReader { proxy in
                 if let uiImage = uiImage {
-                    ImageZoomView(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
+                    ZoomImageViewRepresentable(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
                         /// For testing contentShape
@@ -88,9 +88,8 @@ struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
                                     self.uiImage = nil
                                 }
                             } label: {
-                                Image(systemName: "xmark")
+                                Label("Close", systemImage: "xmark")
                                     .font(.title)
-                                    .accessibilityLabel("Close")
                                     .contentShape(Rectangle())
                             }
                                 .buttonStyle(closeButtonStyle)
@@ -102,10 +101,10 @@ struct FullScreenImageView<CloseButtonStyle: ButtonStyle>: View {
                         .onDisappear(perform: onDisappear)
                 }
             }
-                .onChange(of: uiImage) { uiImage in
-                    /// Included to prevent errors when image is dismissed and clicked quickly again
-                    uiImage == nil ? onDisappear() : onAppear()
-                }
+            .onChange(of: uiImage) { uiImage in
+                /// Included to prevent errors when image is dismissed and clicked quickly again
+                uiImage == nil ? onDisappear() : onAppear()
+            }
         )
     }
     

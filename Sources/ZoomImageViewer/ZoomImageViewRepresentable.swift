@@ -23,7 +23,7 @@ enum ZoomState: Comparable, Sendable {
     }
 }
 
-struct ImageZoomView: UIViewRepresentable {
+struct ZoomImageViewRepresentable: UIViewRepresentable {
     let proxy: GeometryProxy
     @Binding var isInteractive: Bool
     @Binding var zoomState: ZoomState
@@ -115,9 +115,9 @@ struct ImageZoomView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, UIScrollViewDelegate {
-        var parent: ImageZoomView
+        var parent: ZoomImageViewRepresentable
         
-        init(_ parent: ImageZoomView) {
+        init(_ parent: ZoomImageViewRepresentable) {
             self.parent = parent
         }
         

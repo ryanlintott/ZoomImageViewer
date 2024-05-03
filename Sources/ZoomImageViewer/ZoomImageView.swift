@@ -1,6 +1,6 @@
 //
-//  SwiftUIView.swift
-//  
+//  ZoomImageView.swift
+//  ZoomImageView
 //
 //  Created by Ryan Lintott on 2021-01-13.
 //
@@ -10,7 +10,7 @@ import SwiftUI
 /// A view for displaying fullscreen images that supports zooming, panning, and dismissing a zoomed-out image with a drag gesture.
 ///
 /// Close button style is customizable.
-public struct ZoomImageViewer<CloseButtonStyle: ButtonStyle>: View {
+public struct ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding private var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle
     
@@ -25,12 +25,12 @@ public struct ZoomImageViewer<CloseButtonStyle: ButtonStyle>: View {
     
     public var body: some View {
         if uiImage != nil {
-            FullScreenImageView(uiImage: $uiImage, closeButtonStyle: closeButtonStyle)
+            _ZoomImageView(uiImage: $uiImage, closeButtonStyle: closeButtonStyle)
         }
     }
 }
 
-public extension ZoomImageViewer<ZoomImageCloseButtonStyle> {
+public extension ZoomImageView<ZoomImageCloseButtonStyle> {
     /// Creates a view with a zoomable image and a default close button.
     /// - Parameters:
     ///   - uiImage: Image to present.
