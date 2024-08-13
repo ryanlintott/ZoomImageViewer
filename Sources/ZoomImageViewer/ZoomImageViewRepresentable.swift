@@ -23,6 +23,7 @@ enum ZoomState: Comparable, Sendable {
     }
 }
 
+@MainActor
 struct ZoomImageViewRepresentable: UIViewRepresentable {
     let proxy: GeometryProxy
     @Binding var isInteractive: Bool
@@ -35,12 +36,10 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         proxy.size + CGSize(width: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom)
     }
     
-    @MainActor
     var intrinsicContentSize: CGSize {
         content.intrinsicContentSize
     }
     
-    @MainActor
     var minimumZoomScale: CGFloat {
         intrinsicContentSize.aspectRatio > size.aspectRatio ? size.width / intrinsicContentSize.width : size.height / intrinsicContentSize.height
     }
@@ -104,7 +103,6 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         }
     }
     
-    @MainActor
     func updateInset(_ uiScrollView: UIScrollView) {
         let offset = (size - uiScrollView.contentSize) / 2.0
         uiScrollView.contentInset = UIEdgeInsets(top: max(offset.height, 0), left: max(offset.width, 0), bottom: 0, right: 0)
@@ -123,7 +121,6 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         
         @objc func handleDoubleTapGesture(gestureRecognizer: UITapGestureRecognizer) -> Void {
             // zoom based on gesture
-            print("double tap")
             switch parent.zoomState {
             case .max(_):
                 parent.zoomState = .min
