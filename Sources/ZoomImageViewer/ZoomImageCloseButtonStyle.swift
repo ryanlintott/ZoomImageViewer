@@ -16,7 +16,7 @@ public struct ZoomImageCloseButtonStyle: ButtonStyle, Sendable {
     /// Creates a button style that allows for color, blend mode and padding adjustments.
     /// - Parameters:
     ///   - color: Color of the button label.
-    ///   - blendmode: Defines how the button label with blend with the background.
+    ///   - blendmode: Defines how the button label will blend with the background.
     ///   - paddingAmount: Amount of outer padding on the button.
     public init(color: Color = .white, blendmode: BlendMode = .difference, paddingAmount: CGFloat = 10) {
         self.color = color
