@@ -58,22 +58,6 @@ internal extension CGSize {
         lhs = lhs * rhs
     }
     
-    func fitting(frame outerSize: CGSize) -> CGSize {
-        if self.aspectRatio > outerSize.aspectRatio {
-            return CGSize(width: outerSize.width, height: outerSize.width * self.aspectRatio)
-        } else {
-            return CGSize(width: outerSize.height * self.aspectRatio, height: outerSize.height)
-        }
-    }
-    
-    func filling(frame outerSize: CGSize) -> CGSize {
-        if self.aspectRatio > outerSize.aspectRatio {
-            return CGSize(width: outerSize.height * self.aspectRatio, height: outerSize.height)
-        } else {
-            return CGSize(width: outerSize.width, height: outerSize.width * self.aspectRatio)
-        }
-    }
-    
     // Vector magnitude (length)
     var magnitude: CGFloat {
         return sqrt(width * width + height * height)
@@ -90,14 +74,6 @@ internal extension CGSize {
     
     var aspectRatio: CGFloat {
         width / height
-    }
-    
-    init(cgPoint: CGPoint) {
-        self = CGSize(width: cgPoint.x, height: cgPoint.y)
-    }
-    
-    init(cgRect: CGRect) {
-        self = CGSize(width: cgRect.width, height: cgRect.height)
     }
 }
 
