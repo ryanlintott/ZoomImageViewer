@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle

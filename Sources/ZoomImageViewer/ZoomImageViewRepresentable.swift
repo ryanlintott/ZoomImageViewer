@@ -23,7 +23,6 @@ enum ZoomState: Comparable, Sendable {
     }
 }
 
-@MainActor
 struct ZoomImageViewRepresentable: UIViewRepresentable {
     let proxy: GeometryProxy
     let isInteractive: Bool
