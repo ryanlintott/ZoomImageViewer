@@ -50,7 +50,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         Color.clear.overlay(
             GeometryReader { proxy in
                 if let uiImage = uiImage {
-                    ZoomImageViewRepresentable(proxy: proxy, isInteractive: $isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, content: UIImageView(image: uiImage))
+                    ZoomImageViewRepresentable(proxy: proxy, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
                         /// For testing contentShape

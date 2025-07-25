@@ -26,18 +26,18 @@ enum ZoomState: Comparable, Sendable {
 @MainActor
 struct ZoomImageViewRepresentable: UIViewRepresentable {
     let proxy: GeometryProxy
-    @Binding var isInteractive: Bool
+    let isInteractive: Bool
     @Binding var zoomState: ZoomState
     let maximumZoomScale: CGFloat
     
-    let content: UIView
+    let uiImage: UIImage
     
     var size: CGSize {
         proxy.size + CGSize(width: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom)
     }
     
     var intrinsicContentSize: CGSize {
-        content.intrinsicContentSize
+        uiImage.size
     }
     
     var minimumZoomScale: CGFloat {
@@ -52,17 +52,25 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         uiScrollView.clipsToBounds = false
         // lets content move outside safe areas when set to .never
 //        uiScrollView.contentInsetAdjustmentBehavior = .never
+        
+        let imageView = UIImageView(image: uiImage)
+        imageView.contentMode = .scaleAspectFit
+        
         let gesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTapGesture(gestureRecognizer:)))
         gesture.numberOfTapsRequired = 2
-        content.addGestureRecognizer(gesture)
-        content.isUserInteractionEnabled = isInteractive
+        imageView.addGestureRecognizer(gesture)
+        imageView.isUserInteractionEnabled = isInteractive
         
         uiScrollView.isUserInteractionEnabled = isInteractive
-        uiScrollView.addSubview(content)
+        uiScrollView.addSubview(imageView)
         return uiScrollView
     }
     
     func updateUIView(_ uiScrollView: UIScrollView, context: Context) {
+        if let imageView = uiScrollView.subviews.first as? UIImageView {
+            imageView.image = uiImage
+        }
+        
         uiScrollView.isUserInteractionEnabled = isInteractive
         uiScrollView.subviews.first?.isUserInteractionEnabled = isInteractive
         
