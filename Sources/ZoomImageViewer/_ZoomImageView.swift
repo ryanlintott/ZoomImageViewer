@@ -7,6 +7,26 @@
 
 import SwiftUI
 
+struct ScaleToFitPadding: Shape {
+    var size: CGSize
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let size = size.scaledToFit(rect.size)
+        
+        let halfRemainingSize = CGSize(
+            width: rect.width == size.width ? rect.width : (rect.width - size.width) / 2,
+            height: rect.height == size.height ? rect.height : (rect.height - size.height) / 2
+        )
+
+        // Draw two rects covering the
+        path.addRect(.init(origin: .zero, size: halfRemainingSize))
+        path.addRect(.init(origin: .init(x: rect.maxX - halfRemainingSize.width, y: rect.maxY - halfRemainingSize.height), size: halfRemainingSize))
+        
+        return path
+    }
+}
+
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle
@@ -52,29 +72,28 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                     ZoomImageViewRepresentable(proxy: proxy, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
-                        /// For testing contentShape
-//                        .overlay(
-//                            Rectangle()
-//                                .scaleToFit(CGSize(width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom), aspectRatio: uiImage.size.aspectRatio)
-//                                .fill(Color.red.opacity(0.5))
-//                                .allowsHitTesting(false)
-//                        )
-                        .contentShape(
-                            Rectangle()
-                                .scaleToFit(
-                                    CGSize(
-                                        width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
-                                        height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
-                                    ),
-                                    aspectRatio: uiImage.size.aspectRatio
-                                )
-                        )
                         .gesture(zoomState == ZoomState.min ? dragImageGesture : nil)
-                        .onChange(of: isDragging, perform: { isDragging in
-                            if !isDragging {
+                        /// Debugging overlay
+//                        .overlay(
+//                            ScaleToFitPadding(
+//                                size: uiImage.size
+//                            )
+//                            .stroke(Color.pink)
+//                        )
+                        .overlay(
+                            ZStack {
+                                /// Blocks gestures outside of the image when the image is fully zoomed out
+                                if zoomState == ZoomState.min {
+                                    Color.clear
+                                        .contentShape(ScaleToFitPadding(size: uiImage.size))
+                                }
+                            }
+                        )
+                        .onChange(of: isDragging) { newValue in
+                            if !newValue {
                                 onDragEnded(predictedEndTranslation: predictedOffset)
                             }
-                        })
+                        }
                         .ignoresSafeArea()
                         .background(
                             Color.black

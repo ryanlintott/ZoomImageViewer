@@ -75,6 +75,15 @@ internal extension CGSize {
     var aspectRatio: CGFloat {
         width / height
     }
+    
+    func scaledToFit(_ frame: Self) -> Self {
+        if width == .zero && height == .zero { return .init(width: 0, height: 0) }
+        switch aspectRatio - frame.aspectRatio {
+        case 0: return frame
+        case ..<0: return .init(width: frame.height * aspectRatio, height: frame.height)
+        default: return .init(width: frame.width, height: frame.width / aspectRatio)
+        }
+    }
 }
 
 
