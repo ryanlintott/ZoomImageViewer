@@ -7,26 +7,6 @@
 
 import SwiftUI
 
-struct ScaleToFitPadding: Shape {
-    var size: CGSize
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let size = size.scaledToFit(rect.size)
-        
-        let halfRemainingSize = CGSize(
-            width: rect.width == size.width ? rect.width : (rect.width - size.width) / 2,
-            height: rect.height == size.height ? rect.height : (rect.height - size.height) / 2
-        )
-
-        // Draw two rects covering the
-        path.addRect(.init(origin: .zero, size: halfRemainingSize))
-        path.addRect(.init(origin: .init(x: rect.maxX - halfRemainingSize.width, y: rect.maxY - halfRemainingSize.height), size: halfRemainingSize))
-        
-        return path
-    }
-}
-
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle
@@ -39,7 +19,8 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
     @State private var offset: CGSize = .zero
-    @State private var predictedOffset: CGSize = .zero
+    @State private var predictedEndTranslation: CGSize = .zero
+    @State private var velocity: CGSize? = nil
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
     
@@ -48,21 +29,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     let animationSpeed = 0.4
     let dismissThreshold: CGFloat = 200
     let opacityAtDismissThreshold: Double = 0.8
-    let dismissDistance: CGFloat = 1000
-    
-    var dragImageGesture: some Gesture {
-        DragGesture()
-            .updating($isDragging) { value, gestureState, transaction in
-                gestureState = true
-            }
-            .onChanged { value in
-                predictedOffset = value.predictedEndTranslation
-                onDrag(translation: value.translation)
-            }
-            .onEnded { value in
-                predictedOffset = value.predictedEndTranslation
-            }
-    }
+//    let dismissDistance: CGFloat = 1000
     
     var body: some View {
         /// This helps center animated rotations
@@ -91,7 +58,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                         )
                         .onChange(of: isDragging) { newValue in
                             if !newValue {
-                                onDragEnded(predictedEndTranslation: predictedOffset)
+                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: proxy.size)
                             }
                         }
                         .ignoresSafeArea()
@@ -140,17 +107,51 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         imageOpacity = .zero
     }
     
+    var dragImageGesture: some Gesture {
+        DragGesture()
+            .updating($isDragging) { value, gestureState, transaction in
+                gestureState = true
+            }
+            .onChanged { value in
+                if #available(iOS 17, *) {
+                    velocity = value.velocity
+                }
+                predictedEndTranslation = value.predictedEndTranslation
+                onDrag(translation: value.translation)
+            }
+            .onEnded { value in
+                predictedEndTranslation = value.predictedEndTranslation
+            }
+    }
+    
     func onDrag(translation: CGSize) {
         isInteractive = false
         offset = translation
         backgroundOpacity = 1 - Double(offset.magnitude / dismissThreshold) * (1 - opacityAtDismissThreshold)
     }
     
-    func onDragEnded(predictedEndTranslation: CGSize) {
+    func onDragEnded(predictedEndTranslation: CGSize, velocity: CGSize?, frameSize: CGSize) {
         if predictedEndTranslation.magnitude > dismissThreshold {
-            withAnimation(Animation.linear(duration: animationSpeed)) {
-                offset = .max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
+            let dismissDistance = Swift.max(frameSize.width, frameSize.height) * 1.5
+            let animation: Animation
+            let endOffset: CGSize
+            if #available(iOS 17, *) {
+                // Transform the velocity size into a double and multiply by a factor that makes it feel smooth
+                let initialVelocity = (velocity?.magnitude ?? .zero) * 0.002
+                animation = .interpolatingSpring(.smooth, initialVelocity: initialVelocity)
+                endOffset = predictedEndTranslation.normalized * dismissDistance
+            } else {
+                animation = .spring
+                endOffset = .max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
+            }
+            withAnimation(animation) {
+                offset = endOffset
+            }
+            withAnimation(.linear(duration: animationSpeed)) {
                 backgroundOpacity = .zero
+            }
+            withAnimation(.linear(duration: animationSpeed * 0.5).delay(animationSpeed * 0.5)) {
+                imageOpacity = .zero
             }
             withAnimation(Animation.linear(duration: 0.1).delay(animationSpeed)) {
                 uiImage = nil
@@ -160,7 +161,16 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             withAnimation(Animation.easeOut) {
                 backgroundOpacity = 1
                 offset = .zero
+                self.velocity = nil
             }
         }
     }
+}
+
+@available(iOS 17, *)
+#Preview {
+    @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
+    
+    _ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle())
+
 }
