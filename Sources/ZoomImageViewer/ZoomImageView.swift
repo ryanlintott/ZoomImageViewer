@@ -12,13 +12,13 @@ import SwiftUI
 /// Close button style is customizable.
 public struct ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding private var uiImage: UIImage?
-    let closeButtonStyle: CloseButtonStyle
+    let closeButtonStyle: CloseButtonStyle?
     
     /// Creates a view with a zoomable image and a close button.
     /// - Parameters:
     ///   - uiImage: Image to present.
     ///   - closeButtonStyle: Button style to use for close button.
-    public init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle) {
+    public init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle?) {
         self._uiImage = uiImage
         self.closeButtonStyle = closeButtonStyle
     }
@@ -36,6 +36,6 @@ public extension ZoomImageView<ZoomImageCloseButtonStyle> {
     ///   - uiImage: Image to present.
     init(uiImage: Binding<UIImage?>) {
         self._uiImage = uiImage
-        self.closeButtonStyle = ZoomImageCloseButtonStyle()
+        self.closeButtonStyle = nil
     }
 }

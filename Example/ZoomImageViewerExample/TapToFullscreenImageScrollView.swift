@@ -10,49 +10,115 @@ import SwiftUI
 import ZoomImageViewer
 
 struct TapToFullscreenImageScrollView: View {
+    enum CloseButtonOption: String, CaseIterable, Identifiable {
+        case `default`
+        case defaultZoomImageCloseButtonStyle
+        case customZoomImageCloseButtonStyle
+        case customButtonStyle
+        
+        var id: Self {
+            self
+        }
+    }
+    
     @State private var isShowingFullScreen = false
     @State private var uiImage: UIImage? = nil
+    @State private var closeButtonOption: CloseButtonOption = .default
     
     let smallImage = UIImage(named: "testImage")!
     
+    var thumbnailImage: some View {
+        Image(uiImage: smallImage)
+            .resizable()
+            .scaledToFit()
+            .accessibilityIgnoresInvertColors()
+            .frame(width: 200)
+    }
+    
     var body: some View {
         GeometryReader { proxy in
-            HStack(alignment: .center) {
-                Spacer(minLength: 0)
-                ScrollView {
-                    VStack(alignment: .center) {
-                        ForEach(0...20, id: \.self) {
-                            Text("Content \($0)")
-                        }
-                        
-                        Image(uiImage: smallImage)
-                            .resizable()
-                            .scaledToFit()
-                            .accessibilityIgnoresInvertColors()
-                            .frame(width: 200)
-                            .onTapGesture {
-                                uiImage = smallImage
-                            }
-                        
-//                        Button {
-//                            uiImage = nil
-//                            isShowingFullScreen = true
-//                        } label: {
-//                            Text("Turn off image")
-//                        }
+            Form {
+                VStack(alignment: .leading) {
+                    Text("Liquid Glass")
+                        .font(.headline)
+                    Text("Fallback: Default ZoomImageCloseButtonStyle")
+                        .font(.subheadline)
+                    
+                    Button {
+                        closeButtonOption = .default
+                        uiImage = smallImage
+                    } label: {
+                        thumbnailImage
                     }
+                    .buttonStyle(.plain)
                 }
-                Spacer(minLength: 0)
+                
+                VStack(alignment: .leading) {
+                    Text("Default ZoomImageCloseButtonStyle")
+                        .font(.headline)
+                    
+                    Button {
+                        closeButtonOption = .defaultZoomImageCloseButtonStyle
+                        uiImage = smallImage
+                    } label: {
+                        thumbnailImage
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                VStack(alignment: .leading) {
+                    Text("Custom ZoomImageCloseButtonStyle")
+                        .font(.headline)
+                    
+                    Button {
+                        closeButtonOption = .customZoomImageCloseButtonStyle
+                        uiImage = smallImage
+                    } label: {
+                        thumbnailImage
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                VStack(alignment: .leading) {
+                    Text("Custom Button Style")
+                        .font(.headline)
+                    
+                    Button {
+                        closeButtonOption = .customButtonStyle
+                        uiImage = smallImage
+                    } label: {
+                        thumbnailImage
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
-        .background(Color.green.opacity(0.5))
-        .padding(50)
         .overlay(
-            /// Auto rotating modifier is from FrameUp and is optional
+            /// Auto rotating modifier is from FrameUp and is optional if you have an app that only uses portrait but you want to be able to view fullscreen images in landscape as well.
             AutoRotatingView {
-                ZoomImageView(uiImage: $uiImage)
+                switch closeButtonOption {
+                case .default:
+                    ZoomImageView(uiImage: $uiImage)
+                case .defaultZoomImageCloseButtonStyle:
+                    ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle())
+                case .customZoomImageCloseButtonStyle:
+                    ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
+                case .customButtonStyle:
+                    ZoomImageView(uiImage: $uiImage, closeButtonStyle: MyCustomButtonStyle())
+                }
             }
         )
+    }
+}
+
+struct MyCustomButtonStyle: ButtonStyle {
+    public func makeBody(configuration: Configuration) -> some View {
+        Text("Bye")
+            .foregroundColor(.white)
+            .padding()
+            .background(Capsule().fill(.red))
+            .rotationEffect(.degrees(configuration.isPressed ? 180 : 0))
+            .padding()
     }
 }
 

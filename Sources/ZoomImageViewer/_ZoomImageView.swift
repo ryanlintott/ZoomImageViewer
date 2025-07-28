@@ -9,9 +9,9 @@ import SwiftUI
 
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
-    let closeButtonStyle: CloseButtonStyle
+    let closeButtonStyle: CloseButtonStyle?
     
-    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle) {
+    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle?) {
         self._uiImage = uiImage
         self.closeButtonStyle = closeButtonStyle
     }
@@ -23,13 +23,13 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @State private var velocity: CGSize? = nil
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
+    @State private var closeButtonOpacity: Double = .zero
     
     @GestureState private var isDragging = false
     
     let animationSpeed = 0.4
     let dismissThreshold: CGFloat = 200
     let opacityAtDismissThreshold: Double = 0.8
-//    let dismissDistance: CGFloat = 1000
     
     var body: some View {
         /// This helps center animated rotations
@@ -68,21 +68,18 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                                 .ignoresSafeArea()
                                 .opacity(backgroundOpacity)
                         )
-                        .overlay(
-                            Button {
-                                withAnimation(.easeOut(duration: animationSpeed)) {
-                                    self.uiImage = nil
-                                }
-                            } label: {
-                                Label("Close", systemImage: "xmark")
-                                    .font(.title)
-                                    .contentShape(Rectangle())
-                            }
-                                .buttonStyle(closeButtonStyle)
-                                .opacity(backgroundOpacity)
-                            , alignment: .topLeading
-                        )
                         .opacity(imageOpacity)
+                        .overlay(
+                            ZoomImageCloseButtonView(
+                                closeButtonStyle: closeButtonStyle,
+                                opacity: closeButtonOpacity,
+                            ) {
+                                close()
+                            }
+                            .padding(.leading, 19)
+                            ,
+                            alignment: .topLeading
+                        )
                         .onAppear(perform: onAppear)
                         .onDisappear(perform: onDisappear)
                 }
@@ -94,17 +91,27 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         )
     }
     
+    func close() {
+        withAnimation(.easeOut(duration: animationSpeed)) {
+            self.uiImage = nil
+        }
+    }
+    
     func onAppear() {
         offset = .zero
         backgroundOpacity = 1
-        withAnimation(Animation.easeIn(duration: animationSpeed)) {
+        withAnimation(.easeIn(duration: animationSpeed)) {
             imageOpacity = 1
+        }
+        withAnimation(.easeIn(duration: animationSpeed).delay(animationSpeed)) {
+            closeButtonOpacity = 1
         }
     }
     
     func onDisappear() {
         backgroundOpacity = .zero
         imageOpacity = .zero
+        closeButtonOpacity = .zero
     }
     
     var dragImageGesture: some Gesture {
@@ -146,6 +153,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             }
             withAnimation(animation) {
                 offset = endOffset
+                closeButtonOpacity = 0
             }
             withAnimation(.linear(duration: animationSpeed)) {
                 backgroundOpacity = .zero

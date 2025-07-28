@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// A button style that allows for color, blend mode and padding adjustments.
-public struct ZoomImageCloseButtonStyle: ButtonStyle, Sendable {
+public struct ZoomImageCloseButtonStyle: ButtonStyle {
     let color: Color
     let blendMode: BlendMode
     let paddingAmount: CGFloat
@@ -26,10 +26,21 @@ public struct ZoomImageCloseButtonStyle: ButtonStyle, Sendable {
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .font(.title)
             .labelStyle(.iconOnly)
             .foregroundColor(color)
             .opacity(configuration.isPressed ? 0.5 : 1)
             .blendMode(blendMode)
             .padding(paddingAmount)
+            .contentShape(Rectangle())
     }
+}
+
+#Preview {
+    Button {
+        
+    } label: {
+        Label("Hello", systemImage: "xmark")
+    }
+    .buttonStyle(ZoomImageCloseButtonStyle(color: .blue, blendmode: .normal, paddingAmount: 10))
 }
