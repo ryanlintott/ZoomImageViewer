@@ -136,10 +136,10 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             let animation: Animation
             let endOffset: CGSize
             if #available(iOS 17, *) {
-                // Transform the velocity size into a double and multiply by a factor that makes it feel smooth
-                let initialVelocity = (velocity?.magnitude ?? .zero) * 0.002
-                animation = .interpolatingSpring(.smooth, initialVelocity: initialVelocity)
                 endOffset = predictedEndTranslation.normalized * dismissDistance
+                // Transform the velocity size into a double divide it by the dismiss distance to get an initial velocity.
+                let initialVelocity = (velocity?.magnitude ?? .zero) / dismissDistance
+                animation = .interpolatingSpring(.smooth, initialVelocity: initialVelocity)
             } else {
                 animation = .spring
                 endOffset = .max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
