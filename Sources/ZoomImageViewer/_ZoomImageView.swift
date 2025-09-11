@@ -39,7 +39,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                     ZoomImageViewRepresentable(proxy: proxy, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
-                        .gesture(zoomState == ZoomState.min ? dragImageGesture : nil)
+                        .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
                         /// Debugging overlay
 //                        .overlay(
 //                            ScaleToFitPadding(
