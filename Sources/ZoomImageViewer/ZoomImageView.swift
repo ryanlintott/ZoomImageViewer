@@ -38,7 +38,7 @@ public extension ZoomImageView<ZoomImageCloseButtonStyle> {
     /// - Parameters:
     ///   - uiImage: Image to present.
     ///   - closeButtonPosition: The close button position within the entire viewable frame.
-    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment) {
+    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topLeading) {
         self._uiImage = uiImage
         self.closeButtonStyle = ZoomImageCloseButtonStyle()
         self.closeButtonPosition = closeButtonPosition
