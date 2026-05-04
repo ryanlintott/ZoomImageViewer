@@ -9,12 +9,8 @@ import SwiftUI
 
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @Binding var uiImage: UIImage?
-    let closeButtonStyle: CloseButtonStyle?
-    
-    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle?) {
-        self._uiImage = uiImage
-        self.closeButtonStyle = closeButtonStyle
-    }
+    let closeButtonStyle: CloseButtonStyle
+    let closeButtonPosition: Alignment
     
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
@@ -76,9 +72,10 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                             ) {
                                 close()
                             }
-                            .padding(.leading, 19)
+                                .padding()
+                                .padding(proxy.horizontalContainerCornerInsetsIfAvailable(for: closeButtonPosition))
                             ,
-                            alignment: .topLeading
+                            alignment: closeButtonPosition
                         )
                         .onAppear(perform: onAppear)
                         .onDisappear(perform: onDisappear)
@@ -179,6 +176,6 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
 #Preview {
     @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
     
-    _ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle())
+    _ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle(), closeButtonPosition: .topLeading)
 
 }

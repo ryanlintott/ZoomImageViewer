@@ -98,7 +98,7 @@ struct TapToFullscreenImageScrollView: View {
             AutoRotatingView {
                 switch closeButtonOption {
                 case .default:
-                    ZoomImageView(uiImage: $uiImage)
+                    ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topTrailing)
                 case .defaultZoomImageCloseButtonStyle:
                     ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle())
                 case .customZoomImageCloseButtonStyle:
