@@ -33,14 +33,14 @@ public struct ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     }
 }
 
-public extension ZoomImageView<ZoomImageCloseButtonStyle> {
+public extension ZoomImageView<ZoomImageDefaultCloseButtonStyle> {
     /// Creates a view with a zoomable image and a default close button.
     /// - Parameters:
     ///   - uiImage: Image to present.
     ///   - closeButtonPosition: The close button position within the entire viewable frame.
     init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topLeading) {
         self._uiImage = uiImage
-        self.closeButtonStyle = ZoomImageCloseButtonStyle()
+        self.closeButtonStyle = ZoomImageDefaultCloseButtonStyle()
         self.closeButtonPosition = closeButtonPosition
     }
 }

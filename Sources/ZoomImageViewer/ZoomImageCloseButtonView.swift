@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ZoomImageCloseButtonView<CloseButtonStyle: ButtonStyle>: View {
-    let closeButtonStyle: CloseButtonStyle?
+    let closeButtonStyle: CloseButtonStyle
     let opacity: Double
     let onClose: () -> Void
     
@@ -33,23 +33,9 @@ struct ZoomImageCloseButtonView<CloseButtonStyle: ButtonStyle>: View {
     }
     
     var body: some View {
-        ZStack {
-            if let closeButtonStyle {
-                baseButton
-                    .buttonStyle(closeButtonStyle)
-            } else if #available(iOS 26, *) {
-                #if swift(>=6.2)
-                baseButton
-                    .buttonStyle(ZoomImageGlassCloseButtonStyle())
-                #else
-                baseButton
-                    .buttonStyle(ZoomImageCloseButtonStyle())
-                #endif
-            } else {
-                baseButton
-                    .buttonStyle(ZoomImageCloseButtonStyle())
-            }
-        }.opacity(opacity)
+        baseButton
+            .buttonStyle(closeButtonStyle)
+            .opacity(opacity)
     }
 }
 
@@ -62,11 +48,11 @@ struct ZoomImageCloseButtonView<CloseButtonStyle: ButtonStyle>: View {
         Color.black
         
         VStack {
-            ZoomImageCloseButtonView(closeButtonStyle: nil as ZoomImageCloseButtonStyle?, opacity: 1) {
+            ZoomImageCloseButtonView(closeButtonStyle: ZoomImageCloseButtonStyle(), opacity: 1) {
                 /// Close
             }
             
-            ZoomImageCloseButtonView(closeButtonStyle: ZoomImageCloseButtonStyle(), opacity: 1) {
+            ZoomImageCloseButtonView(closeButtonStyle: ZoomImageDefaultCloseButtonStyle(), opacity: 1) {
                 /// Close
             }
         }
