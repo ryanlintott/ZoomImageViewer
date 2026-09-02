@@ -1,0 +1,102 @@
+name: Swift Compatibility
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swift-compatibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-6-0:
+    name: Swift 6.0 compatibility
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Report toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Select iOS simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json | jq -r '
+            [.devices | to_entries[]
+              | select(.key | test("SimRuntime.iOS"))
+              | .key as $runtime
+              | .value[]
+              | select(.name | startswith("iPhone"))
+              | {udid, runtime: $runtime}
+            ] | sort_by(.runtime) | last | .udid')
+          if [ -z "$udid" ] || [ "$udid" = "null" ]; then
+            echo "No available iOS simulator found."
+            exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Test on iOS
+        run: >-
+          xcodebuild test
+          -scheme ZoomImageViewer
+          -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}'
+
+  current-swift:
+    name: Current Swift tests and platform builds
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Report toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Select iOS simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json | jq -r '
+            [.devices | to_entries[]
+              | select(.key | test("SimRuntime.iOS"))
+              | .key as $runtime
+              | .value[]
+              | select(.name | startswith("iPhone"))
+              | {udid, runtime: $runtime}
+            ] | sort_by(.runtime) | last | .udid')
+          if [ -z "$udid" ] || [ "$udid" = "null" ]; then
+            echo "No available iOS simulator found."
+            exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Test on iOS
+        run: >-
+          xcodebuild test
+          -scheme ZoomImageViewer
+          -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}'
+
+      - name: Build for iOS
+        run: >-
+          xcodebuild build
+          -scheme ZoomImageViewer
+          -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO
