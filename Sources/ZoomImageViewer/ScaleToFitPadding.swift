@@ -7,22 +7,32 @@
 
 import SwiftUI
 
+/// A shape covering the empty bars left around an image that has been scaled to fit a frame.
+///
+/// The path is empty when the image fills the frame exactly.
 struct ScaleToFitPadding: Shape {
     var size: CGSize
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let size = size.scaledToFit(rect.size)
-        
-        let halfRemainingSize = CGSize(
-            width: rect.width == size.width ? rect.width : (rect.width - size.width) / 2,
-            height: rect.height == size.height ? rect.height : (rect.height - size.height) / 2
-        )
 
-        // Draw two rects covering the
-        path.addRect(.init(origin: .zero, size: halfRemainingSize))
-        path.addRect(.init(origin: .init(x: rect.maxX - halfRemainingSize.width, y: rect.maxY - halfRemainingSize.height), size: halfRemainingSize))
-        
+        /// Amount of empty space on each side of the scaled image.
+        let dx = (rect.width - size.width) / 2
+        let dy = (rect.height - size.height) / 2
+
+        /// Bars above and below the image.
+        if dy > 0 {
+            path.addRect(.init(x: rect.minX, y: rect.minY, width: rect.width, height: dy))
+            path.addRect(.init(x: rect.minX, y: rect.maxY - dy, width: rect.width, height: dy))
+        }
+
+        /// Bars to either side of the image.
+        if dx > 0 {
+            path.addRect(.init(x: rect.minX, y: rect.minY, width: dx, height: rect.height))
+            path.addRect(.init(x: rect.maxX - dx, y: rect.minY, width: dx, height: rect.height))
+        }
+
         return path
     }
 }

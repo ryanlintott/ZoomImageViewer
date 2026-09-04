@@ -13,12 +13,18 @@
 - Swift Package Index configuration for building and hosting the package's documentation.
 - GitHub Actions workflow testing Swift 6.0 compatibility and building and testing on iOS with the current Swift version.
 - This changelog.
+- Unit tests for `ScaleToFitPadding`, the shape used to block gestures in the empty space around a scaled image, and for `CGSize.scaledToFit(_:)`.
 
 ### Changed
 
 - Rewrote the readme with badges, installation steps, and examples for each feature.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
 - The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
+- Tests now use Swift Testing instead of XCTest.
+
+### Fixed
+
+- Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape blocking gestures in the empty space around the image covered the whole screen in that case.
 
 ### Removed
 
