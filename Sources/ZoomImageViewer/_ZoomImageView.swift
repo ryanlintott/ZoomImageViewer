@@ -115,9 +115,18 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         
         replacementTask?.cancel()
         
-        guard displayedImage != nil, let newImage else {
+        guard let newImage else {
+            /// Leave the image on screen. Dismissing it is animated by whoever cleared the binding,
+            /// and this view is removed by its parent once that animation finishes, so clearing it
+            /// here would make the image vanish before it could fade out.
+            onDisappear()
+            return
+        }
+        
+        guard displayedImage != nil else {
+            /// Nothing on screen to dismiss first.
             displayedImage = newImage
-            newImage == nil ? onDisappear() : onAppear()
+            onAppear()
             return
         }
         

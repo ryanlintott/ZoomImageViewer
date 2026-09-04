@@ -7,21 +7,10 @@
 
 import SwiftUI
 
-enum ZoomState: Comparable, Sendable {
+enum ZoomState: Equatable, Sendable {
     case min
     case partial
     case max(center: CGPoint?)
-    
-    static func < (lhs: ZoomState, rhs: ZoomState) -> Bool {
-        switch lhs {
-        case .min:
-            return rhs == .min
-        case .partial:
-            return rhs == .partial
-        case let .max(center):
-            return rhs == .max(center: center)
-        }
-    }
 }
 
 struct ZoomImageViewRepresentable: UIViewRepresentable {

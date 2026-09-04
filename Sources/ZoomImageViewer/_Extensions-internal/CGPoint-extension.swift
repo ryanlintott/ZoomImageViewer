@@ -63,8 +63,9 @@ internal extension CGPoint {
         return sqrt(x * x + y * y)
     }
     
-    // Vector normalization
+    // Vector normalization. A vector with no length has no direction, so it stays zero.
     var normalized: CGPoint {
+        guard magnitude > 0 else { return .zero }
         return CGPoint(x: x / magnitude, y: y / magnitude)
     }
     

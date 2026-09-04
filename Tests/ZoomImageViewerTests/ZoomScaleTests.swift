@@ -51,6 +51,25 @@ struct ZoomScaleToFitTests {
         #expect(CGSize(width: 393, height: 852).zoomScaleToFit(frame) == 1)
     }
 
+    /// A zero dimension used to give an infinite or undefined scale, which reached `setZoomScale`.
+    @Test("A size with no width or height needs no zoom", arguments: [
+        CGSize.zero,
+        .init(width: 0, height: 100),
+        .init(width: 100, height: 0)
+    ])
+    func emptySizeNeedsNoZoom(imageSize: CGSize) {
+        #expect(imageSize.zoomScaleToFit(frame) == 1)
+    }
+
+    @Test("A frame with no width or height needs no zoom", arguments: [
+        CGSize.zero,
+        .init(width: 0, height: 852),
+        .init(width: 393, height: 0)
+    ])
+    func emptyFrameNeedsNoZoom(frameSize: CGSize) {
+        #expect(CGSize(width: 4000, height: 3000).zoomScaleToFit(frameSize) == 1)
+    }
+
     @Test("An image smaller than the frame is zoomed up to fit")
     func smallImageIsZoomedUpToFit() {
         let expected: CGFloat = 393 / 60
@@ -110,6 +129,21 @@ struct RepresentableZoomScaleTests {
 
     /// A minimum zoom scale above the maximum leaves `UIScrollView` unable to zoom, and showing the
     /// image too small to fill the frame.
+    /// `UIImage()` has no size, which used to give an infinite minimum zoom scale.
+    @Test("An image with no size gets usable zoom scales")
+    func emptyImageGetsUsableZoomScales() {
+        let representable = ZoomImageViewRepresentable(
+            sizeIncludingSafeAreaInsets: frame,
+            isInteractive: true,
+            zoomState: .constant(.min),
+            maximumZoomScale: requestedMaximumZoomScale,
+            uiImage: UIImage()
+        )
+
+        #expect(representable.minimumZoomScale == 1)
+        #expect(representable.clampedMaximumZoomScale == requestedMaximumZoomScale)
+    }
+
     @Test("The maximum is never below the minimum", arguments: largeSizes + smallSizes)
     func maximumIsNeverBelowMinimum(imageSize: CGSize) {
         let representable = Self.representable(imageSize: imageSize)

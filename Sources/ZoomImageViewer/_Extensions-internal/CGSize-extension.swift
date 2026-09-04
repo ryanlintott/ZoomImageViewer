@@ -63,8 +63,9 @@ internal extension CGSize {
         return sqrt(width * width + height * height)
     }
     
-    // Vector normalization
+    // Vector normalization. A vector with no length has no direction, so it stays zero.
     var normalized: CGSize {
+        guard magnitude > 0 else { return .zero }
         return CGSize(width: width / magnitude, height: height / magnitude)
     }
     
@@ -87,9 +88,12 @@ internal extension CGSize {
     
     /// The zoom scale needed to fit this size inside `frame`.
     ///
-    /// Greater than 1 when this size is smaller than the frame.
+    /// Greater than 1 when this size is smaller than the frame. Either size having no width or
+    /// height leaves nothing to fit, so the scale is 1 rather than an infinite or undefined one.
     func zoomScaleToFit(_ frame: Self) -> CGFloat {
-        aspectRatio > frame.aspectRatio ? frame.width / width : frame.height / height
+        guard width > 0, height > 0, frame.width > 0, frame.height > 0 else { return 1 }
+        
+        return aspectRatio > frame.aspectRatio ? frame.width / width : frame.height / height
     }
 }
 

@@ -17,18 +17,10 @@ struct ZoomImageCloseButtonView<CloseButtonStyle: ButtonStyle>: View {
     }
     
     var baseButton: some View {
-        if #available(iOS 15, *) {
-            Button(role: .cancel) {
-                onClose()
-            } label: {
-                closeLabel
-            }
-        } else {
-            Button {
-                onClose()
-            } label: {
-                closeLabel
-            }
+        Button(role: .cancel) {
+            onClose()
+        } label: {
+            closeLabel
         }
     }
     
