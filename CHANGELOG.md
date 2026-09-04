@@ -14,9 +14,11 @@
 - GitHub Actions workflow testing Swift 6.0 compatibility and building and testing on iOS with the current Swift version.
 - This changelog.
 - Unit tests for `ScaleToFitPadding`, the shape used to block gestures in the empty space around a scaled image, and for `CGSize.scaledToFit(_:)`.
+- Unit tests for the zoom scale limits.
 
 ### Changed
 
+- Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
 - Rewrote the readme with badges, installation steps, and examples for each feature.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
 - The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
@@ -25,6 +27,9 @@
 ### Fixed
 
 - Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape blocking gestures in the empty space around the image covered the whole screen in that case.
+- Images smaller than the screen now fill it and can be zoomed. They need a zoom scale above 1 just to fit, which was larger than the maximum zoom scale, so they rendered small and would not zoom at all. The maximum zoom scale is now never below the scale needed to fit, and allows zooming to twice that. Images at least as large as the screen are unaffected.
+- Pinch zooming no longer centres the image against the frame size from when it first appeared. The scroll view delegate held the first version of the view it was given, so after a rotation or a window resize it inset the image using the old size.
+- Replacing the image without setting the binding to `nil` in between is now presented as a dismissal followed by a fresh presentation. The old image fades out, the new one fades in, and it is shown by a new scroll view at its own size, zoomed out. Previously the new image was swapped into the scroll view already on screen, which kept the frame it was built with, so an image of a different size was stretched to fit the previous one's frame.
 
 ### Removed
 

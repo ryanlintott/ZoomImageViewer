@@ -84,6 +84,13 @@ internal extension CGSize {
         default: return .init(width: frame.width, height: frame.width / aspectRatio)
         }
     }
+    
+    /// The zoom scale needed to fit this size inside `frame`.
+    ///
+    /// Greater than 1 when this size is smaller than the frame.
+    func zoomScaleToFit(_ frame: Self) -> CGFloat {
+        aspectRatio > frame.aspectRatio ? frame.width / width : frame.height / height
+    }
 }
 
 

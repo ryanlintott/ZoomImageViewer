@@ -12,6 +12,19 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     let closeButtonStyle: CloseButtonStyle
     let closeButtonPosition: Alignment
     
+    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle, closeButtonPosition: Alignment) {
+        self._uiImage = uiImage
+        self.closeButtonStyle = closeButtonStyle
+        self.closeButtonPosition = closeButtonPosition
+        self._displayedImage = State(initialValue: uiImage.wrappedValue)
+    }
+    
+    /// The image on screen, which lags ``uiImage`` so a replacement can be dismissed before the new
+    /// image is presented.
+    @State private var displayedImage: UIImage?
+    /// Presents the replacement image once the image it replaces has been dismissed.
+    @State private var replacementTask: Task<Void, Never>? = nil
+    
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
     @State private var offset: CGSize = .zero
@@ -31,8 +44,8 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         /// This helps center animated rotations
         Color.clear.overlay(
             GeometryReader { proxy in
-                if let uiImage = uiImage {
-                    ZoomImageViewRepresentable(proxy: proxy, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                if let uiImage = displayedImage {
+                    ZoomImageViewRepresentable(sizeIncludingSafeAreaInsets: proxy.sizeIncludingSafeAreaInsets, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
@@ -82,8 +95,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                 }
             }
             .onChange(of: uiImage) { uiImage in
-                /// Included to prevent errors when image is dismissed and clicked quickly again
-                uiImage == nil ? onDisappear() : onAppear()
+                apply(uiImage)
             }
         )
     }
@@ -94,8 +106,39 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         }
     }
     
+    /// Shows `newImage`, dismissing whatever is on screen first.
+    ///
+    /// Compared by identity, as two images with the same contents are still a replacement.
+    @MainActor
+    func apply(_ newImage: UIImage?) {
+        guard displayedImage !== newImage else { return }
+        
+        replacementTask?.cancel()
+        
+        guard displayedImage != nil, let newImage else {
+            displayedImage = newImage
+            newImage == nil ? onDisappear() : onAppear()
+            return
+        }
+        
+        /// The viewer presents a single image, so a replacement is shown as a dismissal followed by
+        /// a fresh presentation. Going by way of no image at all rebuilds the scroll view, so the
+        /// new image is shown at its own size and zoomed out.
+        onDisappear()
+        displayedImage = nil
+        replacementTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(animationSpeed * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            displayedImage = newImage
+            onAppear()
+        }
+    }
+    
     func onAppear() {
         offset = .zero
+        /// A presentation always starts zoomed out and interactive, never inheriting the last one.
+        zoomState = .min
+        isInteractive = true
         backgroundOpacity = 1
         withAnimation(.easeIn(duration: animationSpeed)) {
             imageOpacity = 1

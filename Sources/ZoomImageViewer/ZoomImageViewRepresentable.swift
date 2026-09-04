@@ -8,7 +8,8 @@
 import SwiftUI
 
 enum ZoomState: Comparable, Sendable {
-    case min, partial
+    case min
+    case partial
     case max(center: CGPoint?)
     
     static func < (lhs: ZoomState, rhs: ZoomState) -> Bool {
@@ -24,23 +25,34 @@ enum ZoomState: Comparable, Sendable {
 }
 
 struct ZoomImageViewRepresentable: UIViewRepresentable {
-    let proxy: GeometryProxy
+    /// The size of the frame the image is shown in, including safe area insets.
+    ///
+    /// Taken as a size rather than a `GeometryProxy` because the coordinator holds on to this view
+    /// between updates, and a proxy is only valid during the layout pass it came from.
+    let sizeIncludingSafeAreaInsets: CGSize
     let isInteractive: Bool
     @Binding var zoomState: ZoomState
     let maximumZoomScale: CGFloat
     
     let uiImage: UIImage
     
-    var size: CGSize {
-        proxy.size + CGSize(width: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing, height: proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom)
-    }
-    
     var intrinsicContentSize: CGSize {
         uiImage.size
     }
     
     var minimumZoomScale: CGFloat {
-        intrinsicContentSize.aspectRatio > size.aspectRatio ? size.width / intrinsicContentSize.width : size.height / intrinsicContentSize.height
+        intrinsicContentSize.zoomScaleToFit(sizeIncludingSafeAreaInsets)
+    }
+    
+    /// The requested maximum zoom scale, raised when needed so it is never below the minimum.
+    ///
+    /// An image smaller than the frame needs a minimum zoom scale above 1 just to fit, which can be
+    /// larger than the requested maximum. `UIScrollView` behaves unpredictably when its minimum zoom
+    /// scale is larger than its maximum, leaving the image too small to fill the frame and refusing
+    /// to zoom, so the maximum is raised to allow zooming to twice the fitted size. Images at least
+    /// as large as the frame fit at a scale of 1 or less, so they always use the requested maximum.
+    var clampedMaximumZoomScale: CGFloat {
+        max(maximumZoomScale, minimumZoomScale * 2)
     }
     
     func makeUIView(context: Context) -> UIScrollView {
@@ -66,7 +78,14 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     }
     
     func updateUIView(_ uiScrollView: UIScrollView, context: Context) {
-        if let imageView = uiScrollView.subviews.first as? UIImageView {
+        /// The coordinator keeps this view to read the current size and zoom state, so it needs
+        /// replacing on every update. Without this it lays out against the size from the first
+        /// update and mis-centres the image after a rotation or resize.
+        context.coordinator.parent = self
+        
+        /// A replacement image arrives as a new scroll view rather than a new image in this one, so
+        /// this only has to skip the redundant assignment on every other update.
+        if let imageView = uiScrollView.subviews.first as? UIImageView, imageView.image !== uiImage {
             imageView.image = uiImage
         }
         
@@ -74,19 +93,21 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         uiScrollView.subviews.first?.isUserInteractionEnabled = isInteractive
         
         if uiScrollView.minimumZoomScale != minimumZoomScale {
+            /// Set the maximum first so the scroll view never briefly has a minimum above its maximum.
+            uiScrollView.maximumZoomScale = clampedMaximumZoomScale
             uiScrollView.minimumZoomScale = minimumZoomScale
-            uiScrollView.maximumZoomScale = maximumZoomScale
 
             switch zoomState {
             case .min:
                 uiScrollView.setZoomScale(minimumZoomScale, animated: false)
             case .max:
-                uiScrollView.setZoomScale(maximumZoomScale, animated: false)
+                uiScrollView.setZoomScale(clampedMaximumZoomScale, animated: false)
             default:
                 break
             }
 
-            let contentOffset = uiScrollView.contentOffset - CGPoint(cgSize: (size - uiScrollView.visibleSize) / 2)
+            let contentOffset = uiScrollView.contentOffset - CGPoint(cgSize: (sizeIncludingSafeAreaInsets - uiScrollView.visibleSize) / 2)
+            
             updateInset(uiScrollView)
             
             uiScrollView.contentOffset = contentOffset
@@ -111,7 +132,7 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     }
     
     func updateInset(_ uiScrollView: UIScrollView) {
-        let offset = (size - uiScrollView.contentSize) / 2.0
+        let offset = (sizeIncludingSafeAreaInsets - uiScrollView.contentSize) / 2.0
         uiScrollView.contentInset = UIEdgeInsets(top: max(offset.height, 0), left: max(offset.width, 0), bottom: 0, right: 0)
     }
     
