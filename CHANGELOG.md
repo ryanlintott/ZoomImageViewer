@@ -27,6 +27,7 @@
 ### Fixed
 
 - Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape blocking gestures in the empty space around the image covered the whole screen in that case.
+- All images now have a maximum zoom 2x the image size or 2x the frame size, whichever is greater. An image that fits the screen at a zoom scale of 1 used to not scale at all but now it will now zoom up to 2x.
 - Images smaller than the screen now fill it and can be zoomed. They need a zoom scale above 1 just to fit, which was larger than the maximum zoom scale, so they rendered small and would not zoom at all. The maximum zoom scale is now never below the scale needed to fit, and allows zooming to twice that. Images at least as large as the screen are unaffected.
 - Pinch zooming no longer centres the image against the frame size from when it first appeared. The scroll view delegate held the first version of the view it was given, so after a rotation or a window resize it inset the image using the old size.
 - An image with no size, such as an empty `UIImage`, no longer gives an infinite minimum zoom scale that was handed to the scroll view. Either the image or the frame having no width or height now leaves the zoom scale at 1.

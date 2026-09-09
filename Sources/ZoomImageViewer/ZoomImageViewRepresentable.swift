@@ -44,6 +44,16 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         max(maximumZoomScale, minimumZoomScale * 2)
     }
     
+    /// Whether `uiScrollView` is carrying zoom scales worked out for a different image or frame.
+    ///
+    /// Both scales are compared, not just the minimum. A new scroll view starts with a minimum and
+    /// a maximum of 1, which an image that fits at a scale of 1 already matches, so going by the
+    /// minimum alone left such an image with the default maximum of 1 and unable to zoom at all.
+    func zoomScalesAreOutOfDate(for uiScrollView: UIScrollView) -> Bool {
+        uiScrollView.minimumZoomScale != minimumZoomScale
+        || uiScrollView.maximumZoomScale != clampedMaximumZoomScale
+    }
+    
     func makeUIView(context: Context) -> UIScrollView {
         let uiScrollView = UIScrollView()
         uiScrollView.delegate = context.coordinator
@@ -81,7 +91,7 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         uiScrollView.isUserInteractionEnabled = isInteractive
         uiScrollView.subviews.first?.isUserInteractionEnabled = isInteractive
         
-        if uiScrollView.minimumZoomScale != minimumZoomScale {
+        if zoomScalesAreOutOfDate(for: uiScrollView) {
             /// Set the maximum first so the scroll view never briefly has a minimum above its maximum.
             uiScrollView.maximumZoomScale = clampedMaximumZoomScale
             uiScrollView.minimumZoomScale = minimumZoomScale

@@ -169,6 +169,40 @@ struct RepresentableZoomScaleTests {
         #expect(Self.representable(imageSize: .init(width: 60, height: 60)).clampedMaximumZoomScale == 13.1)
     }
 
+    /// A new `UIScrollView` starts with a minimum and a maximum zoom scale of 1. An image that fits
+    /// at a scale of 1, such as a screenshot taken on the same device, matches that minimum, so
+    /// checking the minimum alone left it with the default maximum and unable to zoom in at all.
+    @Test("An image that fits at a scale of 1 still has its zoom scales applied")
+    func imageFittingAtOneStillGetsItsZoomScales() {
+        let representable = Self.representable(imageSize: frame)
+        let uiScrollView = UIScrollView()
+
+        #expect(representable.minimumZoomScale == 1)
+        #expect(representable.clampedMaximumZoomScale == 2)
+        #expect(uiScrollView.minimumZoomScale == representable.minimumZoomScale)
+        #expect(representable.zoomScalesAreOutOfDate(for: uiScrollView))
+    }
+
+    @Test("Zoom scales already matching the image and frame are left alone", arguments: largeSizes + smallSizes)
+    func matchingZoomScalesAreLeftAlone(imageSize: CGSize) {
+        let representable = Self.representable(imageSize: imageSize)
+        let uiScrollView = UIScrollView()
+        uiScrollView.maximumZoomScale = representable.clampedMaximumZoomScale
+        uiScrollView.minimumZoomScale = representable.minimumZoomScale
+
+        #expect(!representable.zoomScalesAreOutOfDate(for: uiScrollView))
+    }
+
+    @Test("Zoom scales worked out for another image are out of date", arguments: largeSizes + smallSizes)
+    func staleZoomScalesAreOutOfDate(imageSize: CGSize) {
+        let representable = Self.representable(imageSize: imageSize)
+        let uiScrollView = UIScrollView()
+        uiScrollView.maximumZoomScale = representable.clampedMaximumZoomScale + 1
+        uiScrollView.minimumZoomScale = representable.minimumZoomScale
+
+        #expect(representable.zoomScalesAreOutOfDate(for: uiScrollView))
+    }
+
     @Test("A requested maximum above twice the fitted scale is used as is", arguments: largeSizes)
     func largerRequestedMaximumIsUsedAsIs(imageSize: CGSize) {
         #expect(Self.representable(imageSize: imageSize, maximumZoomScale: 100).clampedMaximumZoomScale == 100)
