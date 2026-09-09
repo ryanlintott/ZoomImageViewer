@@ -19,11 +19,9 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
     }
     
-    /// The image on screen, which lags ``uiImage`` so a replacement can be dismissed before the new
-    /// image is presented.
+    /// The image on screen, which lags ``uiImage`` so a dismissed image can fade out before it is
+    /// removed.
     @State private var displayedImage: UIImage?
-    /// Presents the replacement image once the image it replaces has been dismissed.
-    @State private var replacementTask: Task<Void, Never>? = nil
     
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
@@ -46,6 +44,11 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             GeometryReader { proxy in
                 if let uiImage = displayedImage {
                     ZoomImageViewRepresentable(sizeIncludingSafeAreaInsets: proxy.sizeIncludingSafeAreaInsets, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                        /// A replacement image gets its own scroll view rather than being swapped
+                        /// into the one before it, so it is laid out at its own size and zoomed out.
+                        /// Only this view is rebuilt, leaving the opacities and gestures around it
+                        /// untouched so a replacement appears without any transition.
+                        .id(ObjectIdentifier(uiImage))
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
@@ -101,19 +104,22 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     }
     
     func close() {
-        withAnimation(.easeOut(duration: animationSpeed)) {
-            self.uiImage = nil
+        withAnimation(.spring) {
+            closeButtonOpacity = 0
+        }
+        withAnimation(.linear(duration: animationSpeed)) {
+            backgroundOpacity = .zero
+            imageOpacity = .zero
+            uiImage = nil
         }
     }
     
-    /// Shows `newImage`, dismissing whatever is on screen first.
+    /// Shows `newImage`, fading it in only when there is nothing on screen to replace.
     ///
     /// Compared by identity, as two images with the same contents are still a replacement.
     @MainActor
     func apply(_ newImage: UIImage?) {
-        guard displayedImage !== newImage else { return }
-        
-        replacementTask?.cancel()
+        if displayedImage === newImage { return }
         
         guard let newImage else {
             /// Leave the image on screen. Dismissing it is animated by whoever cleared the binding,
@@ -123,31 +129,35 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             return
         }
         
-        guard displayedImage != nil else {
-            /// Nothing on screen to dismiss first.
+        if displayedImage == nil {
+            /// A first presentation fades in from nothing.
             displayedImage = newImage
             onAppear()
             return
         }
         
-        /// The viewer presents a single image, so a replacement is shown as a dismissal followed by
-        /// a fresh presentation. Going by way of no image at all rebuilds the scroll view, so the
-        /// new image is shown at its own size and zoomed out.
-        onDisappear()
-        displayedImage = nil
-        replacementTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(animationSpeed * 1_000_000_000))
-            guard !Task.isCancelled else { return }
+        /// An image already on screen is replaced immediately, with no fade in either direction.
+        /// Only the state deciding how the image is laid out is reset, leaving the opacities as
+        /// they are. Animations are disabled so the swap stays immediate even when the caller
+        /// changed the binding inside `withAnimation`.
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
             displayedImage = newImage
-            onAppear()
+            resetPresentation()
         }
     }
     
-    func onAppear() {
+    /// Puts an image on screen unmoved, zoomed out and interactive, never inheriting the state of
+    /// the image before it.
+    func resetPresentation() {
         offset = .zero
-        /// A presentation always starts zoomed out and interactive, never inheriting the last one.
         zoomState = .min
         isInteractive = true
+    }
+    
+    func onAppear() {
+        resetPresentation()
         backgroundOpacity = 1
         withAnimation(.easeIn(duration: animationSpeed)) {
             imageOpacity = 1

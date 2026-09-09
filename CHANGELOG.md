@@ -31,7 +31,7 @@
 - Pinch zooming no longer centres the image against the frame size from when it first appeared. The scroll view delegate held the first version of the view it was given, so after a rotation or a window resize it inset the image using the old size.
 - An image with no size, such as an empty `UIImage`, no longer gives an infinite minimum zoom scale that was handed to the scroll view. Either the image or the frame having no width or height now leaves the zoom scale at 1.
 - Dragging an image away no longer divides by zero when the drag has no length, which gave an offset of `NaN`. A vector with no length now normalizes to zero.
-- Replacing the image without setting the binding to `nil` in between is now presented as a dismissal followed by a fresh presentation. The old image fades out, the new one fades in, and it is shown by a new scroll view at its own size, zoomed out. Previously the new image was swapped into the scroll view already on screen, which kept the frame it was built with, so an image of a different size was stretched to fit the previous one's frame.
+- Replacing the image without setting the binding to `nil` in between now shows the new image immediately, with no transition, in a new scroll view at its own size and zoomed out. Presenting an image when there is nothing on screen still fades in, and dismissing one still fades out. Previously the new image was swapped into the scroll view already on screen, which kept the frame it was built with, so an image of a different size was stretched to fit the previous one's frame.
 
 ### Removed
 

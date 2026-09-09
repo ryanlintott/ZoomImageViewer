@@ -12,6 +12,7 @@
 		CF0D8C2125AF57980075FB2A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CF0D8C2025AF57980075FB2A /* Assets.xcassets */; };
 		CF0D8C2425AF57980075FB2A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CF0D8C2325AF57980075FB2A /* Preview Assets.xcassets */; };
 		CF0D8C3525AF58600075FB2A /* TapToFullscreenImageScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */; };
+		CF0D8C4125AF58600075FB2A /* TestImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0D8C4025AF58600075FB2A /* TestImage.swift */; };
 		CF1AB2AC2CB5BAE90049E553 /* ZoomImageViewer in Frameworks */ = {isa = PBXBuildFile; productRef = CF1AB2AB2CB5BAE90049E553 /* ZoomImageViewer */; };
 		CFF592A1283BC62D007141A3 /* FrameUp in Frameworks */ = {isa = PBXBuildFile; productRef = CFF592A0283BC62D007141A3 /* FrameUp */; };
 /* End PBXBuildFile section */
@@ -24,6 +25,7 @@
 		CF0D8C2325AF57980075FB2A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		CF0D8C2525AF57980075FB2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TapToFullscreenImageScrollView.swift; sourceTree = "<group>"; };
+		CF0D8C4025AF58600075FB2A /* TestImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestImage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +63,7 @@
 				CF0D8C1C25AF57980075FB2A /* ZoomImageViewerExampleApp.swift */,
 				CF0D8C1E25AF57980075FB2A /* ContentView.swift */,
 				CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */,
+				CF0D8C4025AF58600075FB2A /* TestImage.swift */,
 				CF0D8C2025AF57980075FB2A /* Assets.xcassets */,
 				CF0D8C2525AF57980075FB2A /* Info.plist */,
 				CF0D8C2225AF57980075FB2A /* Preview Content */,
@@ -155,6 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF0D8C3525AF58600075FB2A /* TapToFullscreenImageScrollView.swift in Sources */,
+				CF0D8C4125AF58600075FB2A /* TestImage.swift in Sources */,
 				CF0D8C1F25AF57980075FB2A /* ContentView.swift in Sources */,
 				CF0D8C1D25AF57980075FB2A /* ZoomImageViewerExampleApp.swift in Sources */,
 			);
