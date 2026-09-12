@@ -19,6 +19,13 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     /// Taken as a size rather than a `GeometryProxy` because the coordinator holds on to this view
     /// between updates, and a proxy is only valid during the layout pass it came from.
     let sizeIncludingSafeAreaInsets: CGSize
+    /// The safe area insets around the frame, as laid out by SwiftUI.
+    ///
+    /// Taken from SwiftUI rather than read from the scroll view, because a UIKit view's own
+    /// `safeAreaInsets` come from the window. A viewer rotated to an orientation the app does not
+    /// support sits in a window that has not rotated with it, so UIKit reports insets belonging to
+    /// edges the content no longer meets.
+    let safeAreaInsets: UIEdgeInsets
     let isInteractive: Bool
     @Binding var zoomState: ZoomState
     let maximumZoomScale: CGFloat
@@ -60,8 +67,9 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         uiScrollView.showsVerticalScrollIndicator = false
         uiScrollView.showsHorizontalScrollIndicator = false
         uiScrollView.clipsToBounds = false
-        // lets content move outside safe areas when set to .never
-//        uiScrollView.contentInsetAdjustmentBehavior = .never
+        /// The safe area is applied by ``updateInset(_:)`` from ``safeAreaInsets`` instead, as the
+        /// insets this scroll view would use are the window's and can belong to the wrong edges when used inside `AutoRotatingView` from FrameUp.
+        uiScrollView.contentInsetAdjustmentBehavior = .never
         
         let imageView = UIImageView(image: uiImage)
         imageView.contentMode = .scaleAspectFit
@@ -130,9 +138,21 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         }
     }
     
+    /// Centres an image smaller than the frame, and insets one larger than it to the safe area so
+    /// every part of it can be scrolled into view.
+    ///
+    /// This is what `contentInsetAdjustmentBehavior` does on its own, worked out per axis from the
+    /// insets SwiftUI laid the frame out with rather than the ones the window would supply.
     func updateInset(_ uiScrollView: UIScrollView) {
-        let offset = (sizeIncludingSafeAreaInsets - uiScrollView.contentSize) / 2.0
-        uiScrollView.contentInset = UIEdgeInsets(top: max(offset.height, 0), left: max(offset.width, 0), bottom: 0, right: 0)
+        /// Space left over around the image, negative in an axis where the image overflows.
+        let free = sizeIncludingSafeAreaInsets - uiScrollView.contentSize
+        
+        uiScrollView.contentInset = UIEdgeInsets(
+            top: free.height > 0 ? free.height / 2 : safeAreaInsets.top,
+            left: free.width > 0 ? free.width / 2 : safeAreaInsets.left,
+            bottom: free.height > 0 ? 0 : safeAreaInsets.bottom,
+            right: free.width > 0 ? 0 : safeAreaInsets.right
+        )
     }
     
     func makeCoordinator() -> Coordinator {

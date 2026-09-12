@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
+    /// Used to resolve the leading and trailing safe area insets before they are handed to UIKit.
+    @Environment(\.layoutDirection) private var layoutDirection
+    
     @Binding var uiImage: UIImage?
     let closeButtonStyle: CloseButtonStyle
     let closeButtonPosition: Alignment
@@ -43,7 +46,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         Color.clear.overlay(
             GeometryReader { proxy in
                 if let uiImage = displayedImage {
-                    ZoomImageViewRepresentable(sizeIncludingSafeAreaInsets: proxy.sizeIncludingSafeAreaInsets, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                    ZoomImageViewRepresentable(sizeIncludingSafeAreaInsets: proxy.sizeIncludingSafeAreaInsets, safeAreaInsets: proxy.safeAreaInsets.uiEdgeInsets(layoutDirection: layoutDirection), isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         /// A replacement image gets its own scroll view rather than being swapped
                         /// into the one before it, so it is laid out at its own size and zoomed out.
                         /// Only this view is rebuilt, leaving the opacities and gestures around it

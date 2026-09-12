@@ -115,6 +115,7 @@ struct RepresentableZoomScaleTests {
     ) -> ZoomImageViewRepresentable {
         ZoomImageViewRepresentable(
             sizeIncludingSafeAreaInsets: frame,
+            safeAreaInsets: .zero,
             isInteractive: true,
             zoomState: .constant(.min),
             maximumZoomScale: maximumZoomScale,
@@ -134,6 +135,7 @@ struct RepresentableZoomScaleTests {
     func emptyImageGetsUsableZoomScales() {
         let representable = ZoomImageViewRepresentable(
             sizeIncludingSafeAreaInsets: frame,
+            safeAreaInsets: .zero,
             isInteractive: true,
             zoomState: .constant(.min),
             maximumZoomScale: requestedMaximumZoomScale,
