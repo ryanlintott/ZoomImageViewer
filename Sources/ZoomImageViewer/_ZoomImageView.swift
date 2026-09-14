@@ -39,6 +39,8 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     let animationSpeed = 0.4
     let dismissThreshold: CGFloat = 200
     let opacityAtDismissThreshold: Double = 0.8
+    /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
+    let dismissDistanceMultiplier: CGFloat = 2
     
     var body: some View {
         /// This helps center animated rotations
@@ -56,7 +58,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
                         .onChange(of: isDragging) { newValue in
                             if !newValue {
-                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: proxy.size)
+                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: viewerFrame.size)
                             }
                         }
                         .ignoresSafeArea()
@@ -166,6 +168,9 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                 onDrag(translation: value.translation)
             }
             .onEnded { value in
+                if #available(iOS 17, *) {
+                    velocity = value.velocity
+                }
                 predictedEndTranslation = value.predictedEndTranslation
             }
     }
@@ -176,22 +181,16 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         backgroundOpacity = 1 - Double(offset.magnitude / dismissThreshold) * (1 - opacityAtDismissThreshold)
     }
     
+    /// Dismisses the image when the drag was heading far enough away, or puts it back otherwise.
+    ///
+    /// Called when the drag's gesture state resets rather than from the gesture's `onEnded`, so a drag that is cancelled is put back too.
+    /// - Parameter frameSize: The size of the viewer's frame including its safe area, which a dismissed image leaves.
     func onDragEnded(predictedEndTranslation: CGSize, velocity: CGSize?, frameSize: CGSize) {
         if predictedEndTranslation.magnitude > dismissThreshold {
-            let dismissDistance = Swift.max(frameSize.width, frameSize.height) * 1.5
-            let animation: Animation
-            let endOffset: CGSize
-            if #available(iOS 17, *) {
-                endOffset = predictedEndTranslation.normalized * dismissDistance
-                // Transform the velocity size into a double divide it by the dismiss distance to get an initial velocity.
-                let initialVelocity = (velocity?.magnitude ?? .zero) / dismissDistance
-                animation = .interpolatingSpring(.smooth, initialVelocity: initialVelocity)
-            } else {
-                animation = .spring
-                endOffset = .max(predictedEndTranslation, predictedEndTranslation.normalized * dismissDistance)
-            }
-            withAnimation(animation) {
-                offset = endOffset
+            /// Lasts as long as the background's fade, so the image is off the screen by the time the background is gone.
+            let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: animationSpeed)
+            withAnimation(toss.animation) {
+                offset = toss.endOffset
                 closeButtonOpacity = 0
             }
             withAnimation(.linear(duration: animationSpeed)) {
