@@ -52,23 +52,8 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                         .id(ObjectIdentifier(uiImage))
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
+                        /// Attached to the whole frame rather than just the image, so a zoomed out image can be pinched or dragged away from the empty space around it as well.
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
-                        /// Debugging overlay
-//                        .overlay(
-//                            ScaleToFitPadding(
-//                                size: uiImage.size
-//                            )
-//                            .stroke(Color.pink)
-//                        )
-                        .overlay(
-                            ZStack {
-                                /// Blocks gestures outside of the image when the image is fully zoomed out
-                                if zoomState == ZoomState.min {
-                                    Color.clear
-                                        .contentShape(ScaleToFitPadding(size: uiImage.size, safeAreaInsets: viewerFrame.safeAreaInsets))
-                                }
-                            }
-                        )
                         .onChange(of: isDragging) { newValue in
                             if !newValue {
                                 onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: proxy.size)

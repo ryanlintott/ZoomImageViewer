@@ -8,8 +8,6 @@
 import SwiftUI
 
 /// A frame size, including its safe area, together with the safe area insets inside it.
-///
-/// Both the scroll view showing an image and the shape that blocks gestures around it fit and centre the image inside this safe area, so they share it rather than each working it out.
 struct SafeAreaFrame: Equatable {
     var size: CGSize
     var safeAreaInsets: UIEdgeInsets
