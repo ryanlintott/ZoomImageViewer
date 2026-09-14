@@ -159,6 +159,37 @@ struct ScaleToFitPaddingTests {
     }
 }
 
+@Suite("ScaleToFitPadding with a safe area")
+struct ScaleToFitPaddingSafeAreaTests {
+    /// A portrait phone's safe area, with a taller inset at the top than the bottom.
+    static let insets = UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
+
+    /// The image is fitted inside the safe area, so the safe area either side of a tall image is empty and has to be covered too.
+    @Test("A tall image leaves the safe area above and below it covered")
+    func tallImageLeavesSafeAreaCovered() {
+        let path = ScaleToFitPadding(size: .init(width: 141, height: 1573), safeAreaInsets: Self.insets).path(in: frame)
+
+        #expect(path.contains(.init(x: frame.midX, y: 58)))
+        #expect(!path.contains(.init(x: frame.midX, y: 60)))
+        #expect(!path.contains(.init(x: frame.midX, y: frame.maxY - 35)))
+        #expect(path.contains(.init(x: frame.midX, y: frame.maxY - 33)))
+    }
+
+    /// Centred in the safe area rather than the frame, so uneven insets move the image off the middle of the frame.
+    @Test("A wide image is centred in the safe area")
+    func wideImageIsCentredInSafeArea() {
+        let path = ScaleToFitPadding(size: .init(width: 4000, height: 3000), safeAreaInsets: Self.insets).path(in: frame)
+
+        /// The safe area is 759 points tall and the image 294.75, leaving 232.125 points either side of it inside the safe area.
+        let imageTop = 59 + 232.125
+        let imageBottom = frame.maxY - 34 - 232.125
+        #expect(path.contains(.init(x: frame.midX, y: imageTop - 1)))
+        #expect(!path.contains(.init(x: frame.midX, y: imageTop + 1)))
+        #expect(!path.contains(.init(x: frame.midX, y: imageBottom - 1)))
+        #expect(path.contains(.init(x: frame.midX, y: imageBottom + 1)))
+    }
+}
+
 @Suite("CGSize.scaledToFit")
 struct CGSizeScaledToFitTests {
     @Test("An image wider than the frame is limited by the frame width")

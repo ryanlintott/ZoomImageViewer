@@ -14,6 +14,10 @@ enum ZoomState: Equatable, Sendable {
 }
 
 struct ZoomImageViewRepresentable: UIViewRepresentable {
+    /// The size of the frame the image is shown in, including safe area insets.
+    ///
+    /// This is where SwiftUI's layout ends up rather than the size the scroll view is right now. It is handed over once, before SwiftUI starts animating the scroll view's bounds towards it, so ``ZoomImageScrollView`` knows where each frame of that animation is heading.
+    let size: CGSize
     /// The safe area insets around the frame, as laid out by SwiftUI.
     ///
     /// Taken from SwiftUI rather than read from the scroll view, because a UIKit view's own `safeAreaInsets` come from the window. A viewer rotated to an orientation the app does not support sits in a window that has not rotated with it, so UIKit reports insets belonging to edges the content no longer meets.
@@ -24,7 +28,6 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     
     let uiImage: UIImage
     
-    /// The size of the frame is deliberately not passed in. ``ZoomImageScrollView`` fits and centres the image from its own bounds instead, so it stays in the right place through every frame of an animated resize rather than only once it has finished.
     func makeUIView(context: Context) -> ZoomImageScrollView {
         let uiScrollView = ZoomImageScrollView(image: uiImage)
         uiScrollView.delegate = context.coordinator
@@ -45,7 +48,7 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
             uiScrollView.imageView.image = uiImage
         }
         
-        uiScrollView.contentSafeAreaInsets = safeAreaInsets
+        uiScrollView.setTargetFrame(size: size, safeAreaInsets: safeAreaInsets)
         uiScrollView.requestedMaximumZoomScale = maximumZoomScale
         uiScrollView.isUserInteractionEnabled = isInteractive
         uiScrollView.imageView.isUserInteractionEnabled = isInteractive

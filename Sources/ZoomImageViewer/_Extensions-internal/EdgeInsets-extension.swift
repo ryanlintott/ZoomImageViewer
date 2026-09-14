@@ -21,3 +21,15 @@ extension EdgeInsets {
         )
     }
 }
+
+extension UIEdgeInsets {
+    /// These insets moved `progress` of the way towards `end`, edge by edge.
+    func interpolated(to end: UIEdgeInsets, progress: CGFloat) -> UIEdgeInsets {
+        UIEdgeInsets(
+            top: top.interpolated(to: end.top, progress: progress),
+            left: left.interpolated(to: end.left, progress: progress),
+            bottom: bottom.interpolated(to: end.bottom, progress: progress),
+            right: right.interpolated(to: end.right, progress: progress)
+        )
+    }
+}
