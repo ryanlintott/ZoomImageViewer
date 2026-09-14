@@ -9,10 +9,7 @@ import SwiftUI
 
 /// An image generated at a size relative to the frame it will be viewed in.
 ///
-/// The viewer scales an image to fit its frame, so the cases worth testing are the ones where that
-/// fit is decided differently: an image smaller than the frame has to be scaled up just to fill it,
-/// one that matches the frame exactly fits at a scale of 1, and the rest fit against a single axis
-/// while overflowing the other.
+/// The viewer scales an image to fit its frame, so the cases worth testing are the ones where that fit is decided differently: an image smaller than the frame has to be scaled up just to fill it, one that matches the frame exactly fits at a scale of 1, and the rest fit against a single axis while overflowing the other.
 enum TestImage: String, CaseIterable, Identifiable {
     /// Smaller than the frame in both dimensions.
     case smaller
@@ -98,8 +95,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     
     /// An image sized for a frame of `frameSize`.
     ///
-    /// Every call returns a new image, even for the same case, so showing one twice in a row is
-    /// still a replacement as far as the viewer is concerned.
+    /// Every call returns a new image, even for the same case, so showing one twice in a row is still a replacement as far as the viewer is concerned.
     func image(in frameSize: CGSize) -> UIImage {
         guard self != .bundled else { return Self.bundledImage }
         return Self.render(size: size(in: frameSize), title: name, color: uiColor)

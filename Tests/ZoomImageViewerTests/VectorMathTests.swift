@@ -11,8 +11,7 @@ import Testing
 
 @Suite("Vector normalization")
 struct VectorMathTests {
-    /// Dragging an image away divides the drag by its own length, which used to give a size of
-    /// `NaN` for a vector with no length.
+    /// Dragging an image away divides the drag by its own length, which used to give a size of `NaN` for a vector with no length.
     @Test("A size with no length normalizes to zero")
     func zeroSizeNormalizesToZero() {
         #expect(CGSize.zero.normalized == .zero)
@@ -51,8 +50,7 @@ struct ZoomStateTests {
         #expect(ZoomState.partial != .max(center: nil))
     }
 
-    /// Zooming out reports `max` with no centre while a double tap reports the point tapped, and
-    /// `updateUIView` only zooms to a centre when one is given.
+    /// Zooming out reports `max` with no centre while a double tap reports the point tapped, and `updateUIView` only zooms to a centre when one is given.
     @Test("Zoomed in states are told apart by their centre")
     func zoomedInStatesComparedByCentre() {
         #expect(ZoomState.max(center: nil) != .max(center: .zero))

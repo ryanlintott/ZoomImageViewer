@@ -113,8 +113,7 @@ struct TapToFullscreenImageScrollView: View {
             /// Auto rotating modifier is from FrameUp and is optional if you have an app that only uses portrait but you want to be able to view fullscreen images in landscape as well.
             AutoRotatingView {
                 ZStack {
-                    /// Holds the overlay at full size so the viewer frame can be measured even while
-                    /// no image is showing.
+                    /// Holds the overlay at full size so the viewer frame can be measured even while no image is showing.
                     Color.clear
                         .onSizeChange {
                             viewerSize = $0

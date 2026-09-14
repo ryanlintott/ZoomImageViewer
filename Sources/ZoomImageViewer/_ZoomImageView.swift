@@ -22,8 +22,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
     }
     
-    /// The image on screen, which lags ``uiImage`` so a dismissed image can fade out before it is
-    /// removed.
+    /// The image on screen, which lags ``uiImage`` so a dismissed image can fade out before it is removed.
     @State private var displayedImage: UIImage?
     
     @State private var isInteractive: Bool = true
@@ -46,11 +45,8 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         Color.clear.overlay(
             GeometryReader { proxy in
                 if let uiImage = displayedImage {
-                    ZoomImageViewRepresentable(sizeIncludingSafeAreaInsets: proxy.sizeIncludingSafeAreaInsets, safeAreaInsets: proxy.safeAreaInsets.uiEdgeInsets(layoutDirection: layoutDirection), isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
-                        /// A replacement image gets its own scroll view rather than being swapped
-                        /// into the one before it, so it is laid out at its own size and zoomed out.
-                        /// Only this view is rebuilt, leaving the opacities and gestures around it
-                        /// untouched so a replacement appears without any transition.
+                    ZoomImageViewRepresentable(safeAreaInsets: proxy.safeAreaInsets.uiEdgeInsets(layoutDirection: layoutDirection), isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                        /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                         .id(ObjectIdentifier(uiImage))
                         .accessibilityIgnoresInvertColors()
                         .offset(offset)
@@ -125,9 +121,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         if displayedImage === newImage { return }
         
         guard let newImage else {
-            /// Leave the image on screen. Dismissing it is animated by whoever cleared the binding,
-            /// and this view is removed by its parent once that animation finishes, so clearing it
-            /// here would make the image vanish before it could fade out.
+            /// Leave the image on screen. Dismissing it is animated by whoever cleared the binding, and this view is removed by its parent once that animation finishes, so clearing it here would make the image vanish before it could fade out.
             onDisappear()
             return
         }
@@ -139,10 +133,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             return
         }
         
-        /// An image already on screen is replaced immediately, with no fade in either direction.
-        /// Only the state deciding how the image is laid out is reset, leaving the opacities as
-        /// they are. Animations are disabled so the swap stays immediate even when the caller
-        /// changed the binding inside `withAnimation`.
+        /// An image already on screen is replaced immediately, with no fade in either direction. Only the state deciding how the image is laid out is reset, leaving the opacities as they are. Animations are disabled so the swap stays immediate even when the caller changed the binding inside `withAnimation`.
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -151,8 +142,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         }
     }
     
-    /// Puts an image on screen unmoved, zoomed out and interactive, never inheriting the state of
-    /// the image before it.
+    /// Puts an image on screen unmoved, zoomed out and interactive, never inheriting the state of the image before it.
     func resetPresentation() {
         offset = .zero
         zoomState = .min

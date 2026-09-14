@@ -8,14 +8,6 @@
 import SwiftUI
 
 extension GeometryProxy {
-    /// The size of this proxy's frame including its safe area insets.
-    var sizeIncludingSafeAreaInsets: CGSize {
-        size + CGSize(
-            width: safeAreaInsets.leading + safeAreaInsets.trailing,
-            height: safeAreaInsets.top + safeAreaInsets.bottom
-        )
-    }
-    
     var containerCornerInsetsIfAvailable: RectangleCornerInsetsIfAvailable {
         if #available(iOS 26, macOS 26, watchOS 26, visionOS 26, tvOS 26, *) {
             .init(containerCornerInsets)

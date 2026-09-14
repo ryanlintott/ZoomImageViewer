@@ -101,8 +101,7 @@ struct ScaleToFitPaddingTests {
         }
     }
 
-    /// An image with the same aspect ratio as the frame used to produce a path covering the entire
-    /// frame, which blocked every gesture including pinch, double tap and drag to dismiss.
+    /// An image with the same aspect ratio as the frame used to produce a path covering the entire frame, which blocked every gesture including pinch, double tap and drag to dismiss.
     @Test("An image filling the frame is not covered at all", arguments: exactFitSizes)
     func imageFillingFrameIsNotCovered(imageSize: CGSize) {
         let path = ScaleToFitPadding(size: imageSize).path(in: frame)
