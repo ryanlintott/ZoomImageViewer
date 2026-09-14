@@ -68,11 +68,16 @@ enum TestImage: String, CaseIterable, Identifiable {
         }
     }
     
-    /// The bundled image asset.
+    /// The bundled image asset, with alt text for VoiceOver.
     ///
     /// `UIImage(named:)` caches, so this is cheap to read repeatedly.
     static var bundledImage: UIImage {
-        UIImage(named: "testImage") ?? UIImage()
+        let image = UIImage(named: "testImage") ?? UIImage()
+        image.accessibilityLabel = String(
+            localized: "Medieval manuscript image of two eagles flying over a body of water. One eagle has a fish in its talons.",
+            comment: "Alt text for the bundled test image."
+        )
+        return image
     }
     
     /// A frame size to fall back on before the viewer has been measured.

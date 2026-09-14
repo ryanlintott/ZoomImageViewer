@@ -1,5 +1,5 @@
 //
-//  ZoomImageDefaultCloseButtonStyle.swift
+//  ZoomImageDefaultButtonStyle.swift
 //  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2025-07-28.
@@ -7,8 +7,13 @@
 
 import SwiftUI
 
-/// A default button style that looks like a Glass button in iOS 26 and ZoomImageCloseButtonStyle in its default mode in any earlier version.
-public struct ZoomImageDefaultCloseButtonStyle: ButtonStyle {
+/// The button style a ``ZoomImageView`` gives the buttons in its overlay, unless they set their own.
+///
+/// It looks like a Glass button in iOS 26 and ``ZoomImageCloseButtonStyle`` in its default mode in any earlier version.
+public struct ZoomImageDefaultButtonStyle: ButtonStyle {
+    /// Creates the default button style for a ``ZoomImageView`` overlay.
+    public init() {}
+    
     public func makeBody(configuration: Configuration) -> some View {
         if #available(iOS 26.0, *) {
             configuration.label
@@ -38,9 +43,16 @@ public struct ZoomImageDefaultCloseButtonStyle: ButtonStyle {
             Button {
                 
             } label: {
-                Label("Hello", systemImage: "xmark")
+                Label {
+                    Text(verbatim: "Hello")
+                } icon: {
+                    Image(systemName: "xmark")
+                }
             }
-            .buttonStyle(ZoomImageDefaultCloseButtonStyle())
+            .buttonStyle(ZoomImageDefaultButtonStyle())
         }
     }
 }
+
+@available(*, deprecated, renamed: "ZoomImageDefaultButtonStyle")
+public typealias ZoomImageDefaultCloseButtonStyle = ZoomImageDefaultButtonStyle

@@ -6,9 +6,18 @@
 
 - Raised the minimum supported iOS version from 14 to 15.
 - Raised the Swift tools version to 6.0. The package now builds in the Swift 6 language mode and needs Swift 6.0 or later.
+- `ZoomImageView`'s generic parameter is now its overlay instead of its close button style. Only code that names the type is affected: `ZoomImageView<ZoomImageDefaultCloseButtonStyle>` becomes `ZoomImageView<ZoomImageDefaultOverlay>`, and a view made with the deprecated `closeButtonStyle` initializer is a `ZoomImageView<AnyView>`.
 
 ### Added
 
+- `ZoomImageView(uiImage:overlay:)` for replacing everything shown over the image, such as the close button, other controls or captions. The overlay is given a `ZoomImageOverlayContext` with a `close` action, fades in and out with the image, and can be reached with VoiceOver. Buttons in it can use any button style, including primitive styles like `.glass` and `.bordered` that `closeButtonStyle` cannot take.
+- `ZoomImageDefaultOverlay`, the default overlay, for keeping the default close button in a custom overlay. Restyle it with `buttonStyle(_:)` while keeping its localized label and position.
+- `ZoomImageCloseButton`, the built-in close button without a position, for placing yourself.
+- A public initializer for `ZoomImageDefaultButtonStyle`. The style had none, so it could not be created outside the package.
+- VoiceOver users can dismiss the image with the escape gesture.
+- The viewer is modal to VoiceOver. Focus moves into it when it appears and back out when it is dismissed, and the content behind it can no longer be reached.
+- The image is a VoiceOver element with the image trait, labelled with the `UIImage`'s `accessibilityLabel`. It was not reachable before, so a viewer without a close button had nothing to focus. It comes before the overlay, so VoiceOver reads it first.
+- Replacing the image on screen announces the new image's `accessibilityLabel` to VoiceOver, as focus stays on whatever control swapped it.
 - Shared `ZoomImageViewer.xcworkspace` and `ZoomImageViewer Development` scheme for package and example-app development.
 - Swift Package Index configuration for building and hosting the package's documentation.
 - GitHub Actions workflow testing Swift 6.0 compatibility and building and testing on iOS with the current Swift version.
@@ -16,8 +25,14 @@
 - Unit tests for `ScaleToFitPadding`, the shape used to block gestures in the empty space around a scaled image, and for `CGSize.scaledToFit(_:)`.
 - Unit tests for the zoom scale limits, vector normalization and zoom state equality.
 
+### Deprecated
+
+- `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Put `ZoomImageCloseButton` with `buttonStyle(_:)` in an overlay instead.
+- `ZoomImageDefaultCloseButtonStyle`, renamed to `ZoomImageDefaultButtonStyle` as it now styles every button in the overlay.
+
 ### Changed
 
+- On iOS 26 and up the built-in close button uses `ButtonRole.close` with the label the system provides, which is localized by the system.
 - Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
 - Rewrote the readme with badges, installation steps, and examples for each feature.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
@@ -26,6 +41,7 @@
 
 ### Fixed
 
+- The close button's "Close" title on versions before iOS 26 is now looked up in the package's own string catalog. It was looked up in the app's bundle, so it could only be localized if the app happened to have a "Close" key.
 - Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape blocking gestures in the empty space around the image covered the whole screen in that case.
 - All images now have a maximum zoom 2x the image size or 2x the frame size, whichever is greater. An image that fits the screen at a zoom scale of 1 used to not scale at all but now it will now zoom up to 2x.
 - Images smaller than the screen now fill it and can be zoomed. They need a zoom scale above 1 just to fit, which was larger than the maximum zoom scale, so they rendered small and would not zoom at all. The maximum zoom scale is now never below the scale needed to fit, and allows zooming to twice that. Images at least as large as the screen are unaffected.

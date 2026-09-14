@@ -1,0 +1,9 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Close" : {
+      "comment" : "Title of the button that dismisses the fullscreen image viewer. Shown as an xmark icon and read by VoiceOver."
+    }
+  },
+  "version" : "1.0"
+}

@@ -61,23 +61,67 @@ Inside the viewer you can:
 
 Zooming and panning respect the reduce motion and smart invert accessibility settings.
 
+With VoiceOver, the viewer acts as a modal: focus moves into it when it appears, content behind it is hidden, and the escape gesture, a two-finger scrub, dismisses the image. The image is a single element described by the `UIImage`'s `accessibilityLabel`, read before anything in the overlay and announced when it replaces another image, so set one to tell VoiceOver users what it shows.
+
+```swift
+let image = UIImage(named: "testImage")
+image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
+uiImage = image
+```
+
 ## Close button position
-The close button sits in the top leading corner by default and can be moved to any `Alignment`. Padding keeps it clear of system UI in the corners, like the traffic lights on an iPad window.
+The close button sits in the top leading corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
 
 ```swift
 ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topTrailing)
 ```
 
-## Close button style
-The default style, `ZoomImageDefaultCloseButtonStyle`, renders as a Liquid Glass button on iOS 26 and as `ZoomImageCloseButtonStyle` on earlier versions.
+## Close button
+The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions use an xmark icon titled "Close" from the package's string catalog.
+
+Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass button on iOS 26 and as `ZoomImageCloseButtonStyle` on earlier versions.
+
+## Overlay
+Everything shown over the image, including the close button, is an overlay you can replace. The viewer gives the overlay a context with a `close` action, covers its frame with it, and fades it in and out with the image. The overlay is inside the viewer's VoiceOver modal, so anything you put in it can be reached.
+
+The overlay's views are stacked on top of each other inside the viewer's safe area, and placing and padding them is up to you. Use `ZoomImageDefaultOverlay` to keep the default close button, in its default position, alongside your own views.
+
+```swift
+ZoomImageView(uiImage: $uiImage) { viewer in
+    ZoomImageDefaultOverlay(viewer, closeButtonPosition: .topTrailing)
+
+    Text("Two eagles catching a fish")
+        .padding()
+        .background(.ultraThinMaterial, in: Capsule())
+        .padding()
+        .frame(maxHeight: .infinity, alignment: .bottom)
+}
+```
+
+A custom overlay replaces the default one, so include a close button unless dragging the image away is the only way you want to close it.
+
+On iOS 26 and up, windows can have system UI in their corners, like the traffic lights on an iPad window. The default overlay moves its close button clear of them. Do the same for views you place in a corner with `containerCornerOffset(_:sizeToFit:)`.
+
+### Button styles
+Buttons in the overlay use `ZoomImageDefaultButtonStyle` unless they set their own. Any button style will do, including system styles like `.glass` or `.bordered`. Use `.buttonStyle(.automatic)` for the system's usual look.
+
+```swift
+ZoomImageView(uiImage: $uiImage) { viewer in
+    ZoomImageDefaultOverlay(viewer)
+        .buttonStyle(.glass)
+}
+```
 
 Use `ZoomImageCloseButtonStyle` to adjust the color, blend mode and padding of the classic close button. Its defaults are a white label drawn with the `difference` blend mode, which keeps it visible on top of any image.
 
 ```swift
-ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
+ZoomImageView(uiImage: $uiImage) { viewer in
+    ZoomImageDefaultOverlay(viewer)
+        .buttonStyle(ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
+}
 ```
 
-Any `ButtonStyle` will do, so the close button can be replaced entirely. The button label is a `Label` so styles can use the icon, the text, or both.
+A custom style given to the built-in close button receives the system close label on iOS 26 and up, and a `Label` with an xmark icon on earlier versions, so it can use the icon, the text, or both.
 
 ```swift
 struct MyCustomButtonStyle: ButtonStyle {
@@ -91,7 +135,31 @@ struct MyCustomButtonStyle: ButtonStyle {
     }
 }
 
-ZoomImageView(uiImage: $uiImage, closeButtonStyle: MyCustomButtonStyle())
+ZoomImageView(uiImage: $uiImage) { viewer in
+    ZoomImageDefaultOverlay(viewer)
+        .buttonStyle(MyCustomButtonStyle())
+}
+```
+
+### Placing the close button yourself
+`ZoomImageCloseButton` is the built-in button on its own, without a position or padding.
+
+```swift
+ZoomImageView(uiImage: $uiImage) { viewer in
+    ZoomImageCloseButton(action: viewer.close)
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+}
+```
+
+Or use any button that calls `close` to change the title, role or accessibility too. Localize its title in your own bundle as you would any other `Text`.
+
+```swift
+ZoomImageView(uiImage: $uiImage) { viewer in
+    Button("Done", systemImage: "xmark", role: .close, action: viewer.close)
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+}
 ```
 
 ## Rotation

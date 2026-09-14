@@ -80,7 +80,11 @@ struct ZoomImageCloseButtonViewModifier: ViewModifier {
     Button {
         
     } label: {
-        Label("Hello", systemImage: "xmark")
+        Label {
+            Text(verbatim: "Hello")
+        } icon: {
+            Image(systemName: "xmark")
+        }
     }
     .buttonStyle(ZoomImageCloseButtonStyle(color: .blue, blendmode: .normal, paddingAmount: 10))
 }

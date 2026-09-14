@@ -120,19 +120,25 @@ struct TapToFullscreenImageScrollView: View {
                         }
                         .ignoresSafeArea()
                     
-                    switch closeButtonOption {
-                    case .default:
-                        ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topTrailing)
-                    case .defaultZoomImageCloseButtonStyle:
-                        ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle())
-                    case .customZoomImageCloseButtonStyle:
-                        ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
-                    case .customButtonStyle:
-                        ZoomImageView(uiImage: $uiImage, closeButtonStyle: MyCustomButtonStyle())
-                    }
-                    
-                    if uiImage != nil {
+                    ZoomImageView(uiImage: $uiImage) { viewer in
+                        switch closeButtonOption {
+                        case .default:
+                            ZoomImageDefaultOverlay(viewer, closeButtonPosition: .topTrailing)
+                        case .defaultZoomImageCloseButtonStyle:
+                            ZoomImageDefaultOverlay(viewer)
+                                .buttonStyle(ZoomImageCloseButtonStyle())
+                        case .customZoomImageCloseButtonStyle:
+                            ZoomImageDefaultOverlay(viewer)
+                                .buttonStyle(ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
+                        case .customButtonStyle:
+                            ZoomImageDefaultOverlay(viewer)
+                                .buttonStyle(MyCustomButtonStyle())
+                        }
+                        
+                        /// Inside the overlay so VoiceOver can reach it and it fades out with the image.
                         imageSwapControls
+                            .padding()
+                            .frame(maxHeight: .infinity, alignment: .bottom)
                     }
                 }
             }
@@ -141,32 +147,29 @@ struct TapToFullscreenImageScrollView: View {
     
     /// Steps between test images while one is on screen, to check the swap animation.
     var imageSwapControls: some View {
-        VStack {
-            Spacer()
-            
-            HStack(spacing: 16) {
-                Button {
-                    step(by: -1)
-                } label: {
-                    Label("Previous image", systemImage: "chevron.left")
-                }
-                
-                Text(testImage.name)
-                    .font(.subheadline)
-                    .frame(minWidth: 140)
-                
-                Button {
-                    step(by: 1)
-                } label: {
-                    Label("Next image", systemImage: "chevron.right")
-                }
+        HStack(spacing: 16) {
+            Button {
+                step(by: -1)
+            } label: {
+                Label("Previous image", systemImage: "chevron.left")
             }
-            .labelStyle(.iconOnly)
-            .font(.title3)
-            .padding()
-            .background(.ultraThinMaterial, in: Capsule())
-            .padding()
+            
+            Text(testImage.name)
+                .font(.subheadline)
+                .frame(minWidth: 140)
+            
+            Button {
+                step(by: 1)
+            } label: {
+                Label("Next image", systemImage: "chevron.right")
+            }
         }
+        /// Opts out of the overlay's default button style.
+        .buttonStyle(.automatic)
+        .labelStyle(.iconOnly)
+        .font(.title3)
+        .padding()
+        .background(.ultraThinMaterial, in: Capsule())
     }
     
     func sizeDescription(_ size: CGSize) -> String {

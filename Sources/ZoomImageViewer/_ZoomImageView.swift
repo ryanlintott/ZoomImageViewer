@@ -7,18 +7,16 @@
 
 import SwiftUI
 
-struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
+struct _ZoomImageView<Overlay: View>: View {
     /// Used to resolve the leading and trailing safe area insets before they are handed to UIKit.
     @Environment(\.layoutDirection) private var layoutDirection
     
     @Binding var uiImage: UIImage?
-    let closeButtonStyle: CloseButtonStyle
-    let closeButtonPosition: Alignment
+    let overlay: (ZoomImageOverlayContext) -> Overlay
     
-    init(uiImage: Binding<UIImage?>, closeButtonStyle: CloseButtonStyle, closeButtonPosition: Alignment) {
+    init(uiImage: Binding<UIImage?>, overlay: @escaping (ZoomImageOverlayContext) -> Overlay) {
         self._uiImage = uiImage
-        self.closeButtonStyle = closeButtonStyle
-        self.closeButtonPosition = closeButtonPosition
+        self.overlay = overlay
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
     }
     
@@ -32,7 +30,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     @State private var velocity: CGSize? = nil
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
-    @State private var closeButtonOpacity: Double = .zero
+    @State private var overlayOpacity: Double = .zero
     
     @GestureState private var isDragging = false
     
@@ -53,6 +51,12 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                         /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                         .id(ObjectIdentifier(uiImage))
                         .accessibilityIgnoresInvertColors()
+                        /// VoiceOver focuses the image as a single element, so the viewer always has something to focus, even with no close button. It is described by the image's own accessibility label.
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityAddTraits(.isImage)
+                        .accessibilityLabel(Text(uiImage.accessibilityLabel ?? ""))
+                        /// The image comes before the overlay, so it is what VoiceOver reads first when the viewer appears, however the overlay is laid out.
+                        .accessibilitySortPriority(1)
                         .offset(offset)
                         /// Attached to the whole frame rather than just the image, so a zoomed out image can be pinched or dragged away from the empty space around it as well.
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
@@ -70,19 +74,29 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                         )
                         .opacity(imageOpacity)
                         .overlay(
-                            ZoomImageCloseButtonView(
-                                closeButtonStyle: closeButtonStyle,
-                                opacity: closeButtonOpacity,
-                            ) {
-                                close()
+                            ZStack {
+                                overlay(ZoomImageOverlayContext(close: close))
                             }
-                                .padding()
-                                .padding(proxy.horizontalContainerCornerInsetsIfAvailable(for: closeButtonPosition))
-                            ,
-                            alignment: closeButtonPosition
+                            /// Styles every button in the overlay. A style a button sets for itself is closer to it, so it takes precedence.
+                            .buttonStyle(ZoomImageDefaultButtonStyle())
+                            .opacity(overlayOpacity)
                         )
-                        .onAppear(perform: onAppear)
-                        .onDisappear(perform: onDisappear)
+                        /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
+                        .accessibilityElement(children: .contain)
+                        .accessibilityAddTraits(.isModal)
+                        .accessibilityAction(.escape) {
+                            close()
+                        }
+                        .onAppear {
+                            onAppear()
+                            /// Moves VoiceOver focus into the viewer.
+                            UIAccessibility.post(notification: .screenChanged, argument: nil)
+                        }
+                        .onDisappear {
+                            onDisappear()
+                            /// Moves VoiceOver focus back to the content the viewer covered.
+                            UIAccessibility.post(notification: .screenChanged, argument: nil)
+                        }
                 }
             }
             .onChange(of: uiImage) { uiImage in
@@ -93,7 +107,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
     
     func close() {
         withAnimation(.spring) {
-            closeButtonOpacity = 0
+            overlayOpacity = 0
         }
         withAnimation(.linear(duration: animationSpeed)) {
             backgroundOpacity = .zero
@@ -129,6 +143,17 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             displayedImage = newImage
             resetPresentation()
         }
+        
+        announceReplacement(newImage)
+    }
+    
+    /// Reads out the description of an image that replaced the one on screen, as VoiceOver focus stays wherever it was, often on the control that swapped the image.
+    ///
+    /// Queued rather than interrupting, so the control's own response is not cut off. Images without an accessibility label are not announced.
+    func announceReplacement(_ newImage: UIImage) {
+        guard let label = newImage.accessibilityLabel, !label.isEmpty else { return }
+        let announcement = NSAttributedString(string: label, attributes: [.accessibilitySpeechQueueAnnouncement: true])
+        UIAccessibility.post(notification: .announcement, argument: announcement)
     }
     
     /// Puts an image on screen unmoved, zoomed out and interactive, never inheriting the state of the image before it.
@@ -145,14 +170,14 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             imageOpacity = 1
         }
         withAnimation(.easeIn(duration: animationSpeed).delay(animationSpeed)) {
-            closeButtonOpacity = 1
+            overlayOpacity = 1
         }
     }
     
     func onDisappear() {
         backgroundOpacity = .zero
         imageOpacity = .zero
-        closeButtonOpacity = .zero
+        overlayOpacity = .zero
     }
     
     var dragImageGesture: some Gesture {
@@ -191,7 +216,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
             let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: animationSpeed)
             withAnimation(toss.animation) {
                 offset = toss.endOffset
-                closeButtonOpacity = 0
+                overlayOpacity = 0
             }
             withAnimation(.linear(duration: animationSpeed)) {
                 backgroundOpacity = .zero
@@ -217,6 +242,9 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
 #Preview {
     @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
     
-    _ZoomImageView(uiImage: $uiImage, closeButtonStyle: ZoomImageCloseButtonStyle(), closeButtonPosition: .topLeading)
+    ZoomImageView(uiImage: $uiImage) { viewer in
+        ZoomImageDefaultOverlay(viewer)
+            .buttonStyle(ZoomImageCloseButtonStyle())
+    }
 
 }
