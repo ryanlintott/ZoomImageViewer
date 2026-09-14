@@ -44,8 +44,10 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
         /// This helps center animated rotations
         Color.clear.overlay(
             GeometryReader { proxy in
+                let viewerFrame = SafeAreaFrame(proxy, layoutDirection: layoutDirection)
+                
                 if let uiImage = displayedImage {
-                    ZoomImageViewRepresentable(size: proxy.sizeIncludingSafeAreaInsets, safeAreaInsets: proxy.safeAreaInsets.uiEdgeInsets(layoutDirection: layoutDirection), isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                    ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
                         /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                         .id(ObjectIdentifier(uiImage))
                         .accessibilityIgnoresInvertColors()
@@ -63,7 +65,7 @@ struct _ZoomImageView<CloseButtonStyle: ButtonStyle>: View {
                                 /// Blocks gestures outside of the image when the image is fully zoomed out
                                 if zoomState == ZoomState.min {
                                     Color.clear
-                                        .contentShape(ScaleToFitPadding(size: uiImage.size, safeAreaInsets: proxy.safeAreaInsets.uiEdgeInsets(layoutDirection: layoutDirection)))
+                                        .contentShape(ScaleToFitPadding(size: uiImage.size, safeAreaInsets: viewerFrame.safeAreaInsets))
                                 }
                             }
                         )

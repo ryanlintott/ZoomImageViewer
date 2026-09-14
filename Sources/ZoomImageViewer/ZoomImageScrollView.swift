@@ -11,66 +11,28 @@ import SwiftUI
 ///
 /// Everything here could be worked out from the frame size SwiftUI lays this view out at and applied in `updateUIView(_:context:)`, but that size only describes where the animation ends. SwiftUI animates the frame of a hosted `UIView` by setting it again on every display frame while calling `updateUIView(_:context:)` only once, at the start, so a layout applied there lands while the view is still the size it started at and is only in the right place once the frame catches up. That is the pop seen part way through an ``AutoRotatingView`` rotation.
 ///
-/// Laying out in ``layoutSubviews()`` uses whatever bounds the scroll view has at that moment instead. While the bounds are animating towards a frame set with ``setTargetFrame(size:safeAreaInsets:)``, the zoomed out scale and the safe area move in a straight line from the layout the animation started at to the one it ends at, which is how the frame of SwiftUI content moves, so the image turns with the rest of the interface rather than growing and shrinking on the way round.
+/// Laying out in ``layoutSubviews()`` uses whatever bounds the scroll view has at that moment instead. While the bounds are animating towards a frame set with ``setTargetFrame(_:)``, the zoomed out scale and the safe area move in a straight line from the layout the animation started at to the one it ends at, which is how the frame of SwiftUI content moves, so the image turns with the rest of the interface rather than growing and shrinking on the way round.
 final class ZoomImageScrollView: UIScrollView {
-    /// A frame size, including its safe area, together with the safe area insets inside it.
-    struct Frame: Equatable {
-        var size: CGSize
-        var safeAreaInsets: UIEdgeInsets
-        
-        static let zero = Frame(size: .zero, safeAreaInsets: .zero)
-        
-        /// The size of the part of the frame inside the safe area.
-        var safeSize: CGSize {
-            CGSize(
-                width: size.width - safeAreaInsets.left - safeAreaInsets.right,
-                height: size.height - safeAreaInsets.top - safeAreaInsets.bottom
-            )
-        }
-        
-        /// The middle of the part of the frame inside the safe area, relative to the frame's origin.
-        var safeCentre: CGPoint {
-            CGPoint(x: safeAreaInsets.left + safeSize.width / 2, y: safeAreaInsets.top + safeSize.height / 2)
-        }
-    }
-    
-    /// A change of frame that SwiftUI animates by setting the bounds again on every display frame.
-    struct Resize: Equatable {
-        var from: Frame
-        var to: Frame
-        
-        /// How far bounds of `size` are from the start of the resize towards its end, where 0 is the start and 1 is the end.
-        ///
-        /// Measured along the axis that changes the most, as SwiftUI moves both axes along the same curve and the larger change is the more precise reading. The result is not clamped, so a spring that overshoots its end carries on past 1 in the same way the frame does.
-        func progress(at size: CGSize) -> CGFloat {
-            let change = to.size - from.size
-            if abs(change.width) >= abs(change.height) {
-                return change.width == 0 ? 1 : (size.width - from.size.width) / change.width
-            } else {
-                return (size.height - from.size.height) / change.height
-            }
-        }
-    }
-    
     let imageView: UIImageView
     
     /// The maximum zoom scale asked for, before it is raised to clear the minimum.
-    var requestedMaximumZoomScale: CGFloat = 1 {
-        didSet { if requestedMaximumZoomScale != oldValue { setNeedsLayout() } }
-    }
+    let requestedMaximumZoomScale: CGFloat
     
     /// The frame SwiftUI is laying this view out in, as of its most recent update.
-    private(set) var targetFrame: Frame = .zero
+    private(set) var targetFrame: SafeAreaFrame = .zero
     
-    /// The animated resize ending at ``targetFrame``, when the bounds were not already its size as it was set.
-    private var resize: Resize?
+    /// The layout an animated resize to ``targetFrame`` started from, when the bounds were not already the target's size as it was set.
+    private var resizeStart: SafeAreaFrame?
     
     /// The frame the current zoom scales, inset and offset were worked out for, with the safe area as it stood part way through any resize.
-    private(set) var layoutFrame: Frame = .zero
+    private(set) var layoutFrame: SafeAreaFrame = .zero
     
-    init(image: UIImage) {
+    init(image: UIImage, maximumZoomScale: CGFloat) {
         imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFit
+        /// Needed for the double tap to zoom. Turning off interaction on the scroll view already cuts off its subviews, so this never has to be turned off again.
+        imageView.isUserInteractionEnabled = true
+        requestedMaximumZoomScale = maximumZoomScale
         
         super.init(frame: .zero)
         
@@ -100,23 +62,29 @@ final class ZoomImageScrollView: UIScrollView {
         imageView.image?.size ?? .zero
     }
     
-    /// Sets the frame SwiftUI is laying this view out in: its full size including the safe area, and the safe area insets within it.
+    /// Sets the frame SwiftUI is laying this view out in.
     ///
     /// SwiftUI updates this once, before it starts animating the bounds to the new size. When the bounds are not that size yet, the move from the current layout to the new one is kept so each frame of the animation can be laid out part way between the two.
-    func setTargetFrame(size: CGSize, safeAreaInsets: UIEdgeInsets) {
-        let target = Frame(size: size, safeAreaInsets: safeAreaInsets)
+    func setTargetFrame(_ target: SafeAreaFrame) {
         guard target != targetFrame else { return }
         
         targetFrame = target
-        resize = layoutFrame.size != .zero && layoutFrame.size != size && bounds.size != size
-            ? Resize(from: layoutFrame, to: target)
+        resizeStart = (layoutFrame.size != .zero && layoutFrame.size != target.size && bounds.size != target.size)
+            ? layoutFrame
             : nil
         setNeedsLayout()
     }
     
-    /// The zoom scale that fits the image inside the safe area of `frame`.
-    func fittingZoomScale(in frame: Frame) -> CGFloat {
-        imageSize.zoomScaleToFit(frame.safeSize)
+    /// How far bounds of `size` are through the resize from `start` to ``targetFrame``, where 0 is the start and 1 is the end.
+    ///
+    /// Measured along the axis that changes the most, as SwiftUI moves both axes along the same curve and the larger change is the more precise reading. The result is not clamped, so a spring that overshoots its end carries on past 1 in the same way the frame does.
+    func resizeProgress(at size: CGSize, from start: SafeAreaFrame) -> CGFloat {
+        let change = targetFrame.size - start.size
+        if abs(change.width) >= abs(change.height) {
+            return change.width == 0 ? 1 : (size.width - start.size.width) / change.width
+        } else {
+            return (size.height - start.size.height) / change.height
+        }
     }
     
     /// The requested maximum zoom scale, raised when needed so it is never below `minimumZoomScale`.
@@ -130,15 +98,15 @@ final class ZoomImageScrollView: UIScrollView {
     ///
     /// Outside a resize the image is fitted to the safe area of the target frame. Part way through one, both move in a straight line from where the resize started to where it ends. Fitting the image to each size along the way instead makes it grow and then shrink again, because a frame part way between portrait and landscape is closer to square than either and fits most images at a larger scale than both.
     func layoutValues(at size: CGSize) -> (safeAreaInsets: UIEdgeInsets, minimumZoomScale: CGFloat) {
-        guard let resize, size != resize.to.size else {
-            let frame = Frame(size: size, safeAreaInsets: targetFrame.safeAreaInsets)
-            return (frame.safeAreaInsets, fittingZoomScale(in: frame))
+        guard let resizeStart, size != targetFrame.size else {
+            let frame = SafeAreaFrame(size: size, safeAreaInsets: targetFrame.safeAreaInsets)
+            return (frame.safeAreaInsets, frame.zoomScaleToFit(imageSize))
         }
         
-        let progress = resize.progress(at: size)
+        let progress = resizeProgress(at: size, from: resizeStart)
         return (
-            resize.from.safeAreaInsets.interpolated(to: resize.to.safeAreaInsets, progress: progress),
-            fittingZoomScale(in: resize.from).interpolated(to: fittingZoomScale(in: resize.to), progress: progress)
+            resizeStart.safeAreaInsets.interpolated(to: targetFrame.safeAreaInsets, progress: progress),
+            resizeStart.zoomScaleToFit(imageSize).interpolated(to: targetFrame.zoomScaleToFit(imageSize), progress: progress)
         )
     }
     
@@ -147,7 +115,7 @@ final class ZoomImageScrollView: UIScrollView {
         
         if size.width > 0, size.height > 0 {
             let (safeAreaInsets, minimumZoomScale) = layoutValues(at: size)
-            let frame = Frame(size: size, safeAreaInsets: safeAreaInsets)
+            let frame = SafeAreaFrame(size: size, safeAreaInsets: safeAreaInsets)
             let previousFrame = layoutFrame
             let isFirstLayout = previousFrame.size == .zero
             
@@ -181,20 +149,9 @@ final class ZoomImageScrollView: UIScrollView {
     
     /// Centres an image smaller than the safe area inside it, and insets one larger than it to the safe area so every part of it can be scrolled into view.
     ///
-    /// This is what `contentInsetAdjustmentBehavior` does on its own, worked out per axis from the insets SwiftUI laid this view out with rather than the ones the window would supply. Space left over inside the safe area is split evenly either side of the image, so the insets always add up to the bounds and a fitted image cannot be scrolled. As that space runs out both insets settle on the safe area without a jump, so an image fitted exactly to one axis does not flicker between the two while the frame animates.
+    /// This is what `contentInsetAdjustmentBehavior` does on its own, worked out per axis from the insets SwiftUI laid this view out with rather than the ones the window would supply. The insets and a fitted image add up to the bounds, so it cannot be scrolled.
     func updateInset() {
-        let frame = Frame(size: bounds.size, safeAreaInsets: layoutFrame.safeAreaInsets)
-        let free = CGSize(
-            width: max(0, frame.safeSize.width - contentSize.width),
-            height: max(0, frame.safeSize.height - contentSize.height)
-        )
-        
-        let contentInset = UIEdgeInsets(
-            top: frame.safeAreaInsets.top + free.height / 2,
-            left: frame.safeAreaInsets.left + free.width / 2,
-            bottom: frame.safeAreaInsets.bottom + free.height / 2,
-            right: frame.safeAreaInsets.right + free.width / 2
-        )
+        let contentInset = SafeAreaFrame(size: bounds.size, safeAreaInsets: layoutFrame.safeAreaInsets).insets(around: contentSize)
         
         if self.contentInset != contentInset {
             self.contentInset = contentInset
@@ -209,14 +166,14 @@ final class ZoomImageScrollView: UIScrollView {
     }
     
     /// The point of the image, before any zoom, that sits in the middle of the safe area of `frame`.
-    private func centredImagePoint(in frame: Frame) -> CGPoint {
+    private func centredImagePoint(in frame: SafeAreaFrame) -> CGPoint {
         guard zoomScale > 0 else { return CGPoint(cgSize: imageSize / 2) }
         
         return (contentOffset + frame.safeCentre) / zoomScale
     }
     
     /// The offset that puts `imagePoint` in the middle of the safe area of `frame`, kept within what can be scrolled to.
-    private func contentOffset(centring imagePoint: CGPoint, in frame: Frame) -> CGPoint {
+    private func contentOffset(centring imagePoint: CGPoint, in frame: SafeAreaFrame) -> CGPoint {
         let offset = imagePoint * zoomScale - frame.safeCentre
         let minimum = CGPoint(x: -contentInset.left, y: -contentInset.top)
         let maximum = CGPoint(

@@ -23,8 +23,8 @@ private let rotatedInsets = UIEdgeInsets(top: 0, left: 34, bottom: 0, right: 59)
 @Suite("ZoomImageScrollView content insets")
 struct ContentInsetTests {
     static func scrollView(contentSize: CGSize, safeAreaInsets: UIEdgeInsets) -> ZoomImageScrollView {
-        let scrollView = ZoomImageScrollView(image: UIImage())
-        scrollView.setTargetFrame(size: frame, safeAreaInsets: safeAreaInsets)
+        let scrollView = ZoomImageScrollView(image: UIImage(), maximumZoomScale: 2)
+        scrollView.setTargetFrame(SafeAreaFrame(size: frame, safeAreaInsets: safeAreaInsets))
         scrollView.frame = CGRect(origin: .zero, size: frame)
         scrollView.layoutIfNeeded()
         scrollView.contentSize = contentSize
@@ -114,7 +114,7 @@ struct ContentInsetTests {
     @Test("Scroll edge effects are hidden")
     func edgeEffectsAreHidden() throws {
         guard #available(iOS 26, *) else { return }
-        let scrollView = ZoomImageScrollView(image: UIImage())
+        let scrollView = ZoomImageScrollView(image: UIImage(), maximumZoomScale: 2)
 
         #expect(scrollView.topEdgeEffect.isHidden)
         #expect(scrollView.leftEdgeEffect.isHidden)
