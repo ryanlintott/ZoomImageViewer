@@ -356,3 +356,47 @@ struct ScrollViewResizeTests {
         #expect(scrollView.zoomScale == 1)
     }
 }
+
+/// The viewer hides its overlay, status bar and home indicator while the image is zoomed in, so only an image zoomed past the scale that fits it should count.
+@MainActor
+@Suite("ZoomImageScrollView zoomed in")
+struct ScrollViewZoomedInTests {
+    @Test("A fitted image is not zoomed in", arguments: largeSizes + smallSizes)
+    func fittedImageIsNotZoomedIn(imageSize: CGSize) {
+        let delegate = ScrollViewResizeTests.ZoomDelegate()
+        let scrollView = ScrollViewResizeTests.scrollView(imageSize: imageSize, delegate: delegate)
+
+        #expect(!scrollView.isZoomedIn)
+    }
+
+    @Test("An image zoomed in part way or all the way is zoomed in", arguments: [0.5, 1])
+    func zoomedImageIsZoomedIn(progress: CGFloat) {
+        let delegate = ScrollViewResizeTests.ZoomDelegate()
+        let scrollView = ScrollViewResizeTests.scrollView(imageSize: CGSize(width: 4000, height: 3000), delegate: delegate)
+        scrollView.zoomScale = scrollView.minimumZoomScale.interpolated(to: scrollView.maximumZoomScale, progress: progress)
+
+        #expect(scrollView.isZoomedIn)
+    }
+
+    /// A pinch rarely settles on exactly the minimum it was clamped to.
+    @Test("An image a hair above the fitted scale is not zoomed in")
+    func imageWithinToleranceIsNotZoomedIn() {
+        let delegate = ScrollViewResizeTests.ZoomDelegate()
+        let scrollView = ScrollViewResizeTests.scrollView(imageSize: CGSize(width: 4000, height: 3000), delegate: delegate)
+        scrollView.zoomScale = scrollView.minimumZoomScale * 1.00001
+
+        #expect(!scrollView.isZoomedIn)
+    }
+
+    /// The minimum zoom scale moves on every frame of a rotation, and the overlay would flicker if a zoomed out image ever looked zoomed in along the way.
+    @Test("A zoomed out image is never zoomed in through a rotation", arguments: [0.25, 0.5, 0.75, 1])
+    func zoomedOutImageStaysZoomedOutThroughARotation(progress: CGFloat) {
+        let delegate = ScrollViewResizeTests.ZoomDelegate()
+        let scrollView = ScrollViewResizeTests.scrollView(imageSize: CGSize(width: 4000, height: 3000), safeAreaInsets: ScrollViewResizeTests.portraitInsets, delegate: delegate)
+
+        scrollView.setTargetFrame(SafeAreaFrame(size: ScrollViewResizeTests.landscapeFrame, safeAreaInsets: ScrollViewResizeTests.rotatedInsets))
+        ScrollViewResizeTests.setBounds(of: scrollView, progress: progress)
+
+        #expect(!scrollView.isZoomedIn)
+    }
+}

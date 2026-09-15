@@ -25,6 +25,10 @@ struct _ZoomImageView<Overlay: View>: View {
     
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
+    /// Whether the image is zoomed in past the scale that fits it.
+    @State private var isZoomedIn: Bool = false
+    /// Whether the overlay is showing. Like in Photos, zooming in hides it, zooming back out to fit shows it, and a single tap or the accessibility action toggles it.
+    @State private var isShowingOverlay: Bool = true
     @State private var offset: CGSize = .zero
     @State private var predictedEndTranslation: CGSize = .zero
     @State private var velocity: CGSize? = nil
@@ -39,6 +43,8 @@ struct _ZoomImageView<Overlay: View>: View {
     @GestureState private var isDragging = false
     
     let animationSpeed = 0.4
+    /// How long the overlay, status bar and home indicator take to hide or show.
+    let chromeAnimationSpeed = 0.25
     let dismissThreshold: CGFloat = 200
     let opacityAtDismissThreshold: Double = 0.8
     /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
@@ -52,7 +58,7 @@ struct _ZoomImageView<Overlay: View>: View {
                 
                 if let uiImage = displayedImage {
                     ZStack {
-                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
+                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
                             /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                             .id(ObjectIdentifier(uiImage))
                     }
@@ -73,6 +79,13 @@ struct _ZoomImageView<Overlay: View>: View {
                         /// Lets assistive technologies such as VoiceOver move around a zoomed in image, as the image is a single element with nothing inside it to scroll.
                         .accessibilityScrollAction { edge in
                             accessibilityScroll(towards: edge)
+                        }
+                        /// Does what a single tap does, which VoiceOver can't pass through to the image. Without it, an overlay hidden by zooming in could only be brought back by zooming out. Named for what it will do, so it reads as a choice rather than a toggle.
+                        .accessibilityAction(named: isShowingOverlay
+                            ? Text("Hide Controls", bundle: .module, comment: "Accessibility action on the fullscreen image that hides the controls shown over it.")
+                            : Text("Show Controls", bundle: .module, comment: "Accessibility action on the fullscreen image that shows the controls over it after they were hidden.")
+                        ) {
+                            toggleOverlay()
                         }
                         .offset(offset)
                         /// Attached to the whole frame rather than just the image, so a zoomed out image can be pinched or dragged away from the empty space around it as well.
@@ -97,6 +110,10 @@ struct _ZoomImageView<Overlay: View>: View {
                             /// Styles every button in the overlay. A style a button sets for itself is closer to it, so it takes precedence.
                             .buttonStyle(ZoomImageDefaultButtonStyle())
                             .opacity(overlayOpacity)
+                            /// Hidden while zoomed in or after a tap, so nothing covers the image. Kept apart from `overlayOpacity` so hiding it never interrupts the overlay fading in or out with the image.
+                            .opacity(isShowingOverlay ? 1 : 0)
+                            .allowsHitTesting(isShowingOverlay)
+                            .accessibilityHidden(!isShowingOverlay)
                             .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage))
                         )
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
@@ -104,6 +121,18 @@ struct _ZoomImageView<Overlay: View>: View {
                         .accessibilityAddTraits(.isModal)
                         .accessibilityAction(.escape) {
                             close()
+                        }
+                        .background {
+                            /// Only in the hierarchy while hiding them, so a viewer showing them leaves the app's own status bar and home indicator settings alone rather than overriding them with its own.
+                            if !isShowingSystemOverlay {
+                                Color.clear
+                                    .statusBarHidden(true)
+                                    .ifAvailable {
+                                        if #available(iOS 16, *) {
+                                            $0.persistentSystemOverlays(.hidden)
+                                        }
+                                    }
+                            }
                         }
                         .onAppear {
                             onAppear()
@@ -128,6 +157,23 @@ struct _ZoomImageView<Overlay: View>: View {
             guard !Task.isCancelled else { return }
             removalID = nil
             displayedImage = nil
+        }
+    }
+    
+    /// Whether the status bar and home indicator are showing.
+    ///
+    /// They show along with the overlay only while the image is zoomed out to fit, so showing the controls over a zoomed in image leaves them hidden and the image keeps the whole screen. They come back as soon as the viewer starts fading out rather than once it is gone, so they return along with the content behind it.
+    var isShowingSystemOverlay: Bool {
+        (isShowingOverlay && !isZoomedIn) || removalID != nil
+    }
+    
+    /// Shows or hides the overlay for an assistive technology, the same as a single tap. The status bar and home indicator follow it while the image is zoomed out.
+    ///
+    /// Ignored while the image is being dragged away, which already fades the overlay out.
+    func toggleOverlay() {
+        guard isInteractive else { return }
+        withAnimation(.easeInOut(duration: chromeAnimationSpeed)) {
+            isShowingOverlay.toggle()
         }
     }
     
@@ -234,6 +280,9 @@ struct _ZoomImageView<Overlay: View>: View {
     func resetPresentation() {
         offset = .zero
         zoomState = .min
+        /// A replacement image gets a new scroll view, which starts zoomed out without reporting a zoom, so the overlay is shown for it here.
+        isZoomedIn = false
+        isShowingOverlay = true
         accessibilityScrollRequest = nil
         isInteractive = true
     }

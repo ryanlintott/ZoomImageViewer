@@ -158,6 +158,13 @@ final class ZoomImageScrollView: UIScrollView {
         }
     }
     
+    /// Whether the image is zoomed in past the scale that fits it.
+    ///
+    /// A scale within the tolerance of ``isZoomed(to:)`` still counts as fitted, so a pinch that settles back at the minimum is not zoomed in. A scale bouncing below the minimum is not zoomed in either.
+    var isZoomedIn: Bool {
+        zoomScale > minimumZoomScale && !isZoomed(to: minimumZoomScale)
+    }
+    
     /// Whether the image is resting at `zoomScale`.
     ///
     /// Compared with a small tolerance, as a scale `UIScrollView` settled on after a pinch is rarely exactly the limit it was clamped to.

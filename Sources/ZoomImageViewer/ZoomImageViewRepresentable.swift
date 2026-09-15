@@ -25,6 +25,10 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     let frame: SafeAreaFrame
     let isInteractive: Bool
     @Binding var zoomState: ZoomState
+    /// Whether the image is zoomed in past the scale that fits it, updated as the zoom scale changes rather than when a zoom ends, so it follows a pinch while it is under way.
+    @Binding var isZoomedIn: Bool
+    /// Whether the overlay is showing. Zooming in hides it and zooming back out to fit shows it, at the same moment ``isZoomedIn`` changes. A single tap toggles it at any zoom.
+    @Binding var isShowingOverlay: Bool
     /// Handled once, the first time the scroll view is updated with it.
     let accessibilityScrollRequest: AccessibilityScrollRequest?
     /// Read once, when the scroll view is made.
@@ -36,9 +40,14 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         let uiScrollView = ZoomImageScrollView(image: uiImage, maximumZoomScale: maximumZoomScale)
         uiScrollView.delegate = context.coordinator
         
-        let gesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTapGesture(gestureRecognizer:)))
-        gesture.numberOfTapsRequired = 2
-        uiScrollView.imageView.addGestureRecognizer(gesture)
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTapGesture(gestureRecognizer:)))
+        doubleTap.numberOfTapsRequired = 2
+        uiScrollView.imageView.addGestureRecognizer(doubleTap)
+        
+        /// On the scroll view rather than the image, so the empty space around a zoomed out image can be tapped too. Waits for a double tap to fail, so the first tap of a double tap doesn't toggle the overlay.
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTapGesture(gestureRecognizer:)))
+        singleTap.require(toFail: doubleTap)
+        uiScrollView.addGestureRecognizer(singleTap)
         
         return uiScrollView
     }
@@ -51,22 +60,10 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         uiScrollView.setTargetFrame(frame)
         uiScrollView.isUserInteractionEnabled = isInteractive
         
-        switch zoomState {
-        case .min:
-            if uiScrollView.zoomScale != uiScrollView.minimumZoomScale {
-                uiScrollView.setZoomScale(uiScrollView.minimumZoomScale, animated: !UIAccessibility.isReduceMotionEnabled)
-            }
-        case let .max(center):
-            if uiScrollView.zoomScale != uiScrollView.maximumZoomScale {
-                if let center = center {
-                    /// The bounds' origin is the scroll offset, so adding it turns a point on screen into one in the scroll view's content.
-                    let imagePoint = uiScrollView.imageView.convert(center + uiScrollView.bounds.origin, from: uiScrollView)
-                    let rect = CGRect(x: imagePoint.x, y: imagePoint.y, width: 1, height: 1)
-                    uiScrollView.zoom(to: rect, animated: !UIAccessibility.isReduceMotionEnabled)
-                }
-            }
-        case .partial:
-            break
+        /// Only a change of zoom state is applied. A pinch doesn't update the zoom state until it ends, so an update part way through one, like the one hiding the overlay as the image zooms in, would otherwise snap the image back to the scale the pinch started from.
+        if zoomState != context.coordinator.appliedZoomState {
+            context.coordinator.appliedZoomState = zoomState
+            apply(zoomState, to: uiScrollView)
         }
         
         if let accessibilityScrollRequest, accessibilityScrollRequest != context.coordinator.handledScrollRequest {
@@ -86,6 +83,27 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         }
     }
     
+    /// Zooms the scroll view out to fit or in to the maximum, leaving it alone for a partial zoom, which only comes from a pinch that has already happened.
+    func apply(_ zoomState: ZoomState, to uiScrollView: ZoomImageScrollView) {
+        switch zoomState {
+        case .min:
+            if uiScrollView.zoomScale != uiScrollView.minimumZoomScale {
+                uiScrollView.setZoomScale(uiScrollView.minimumZoomScale, animated: !UIAccessibility.isReduceMotionEnabled)
+            }
+        case let .max(center):
+            if uiScrollView.zoomScale != uiScrollView.maximumZoomScale {
+                if let center = center {
+                    /// The bounds' origin is the scroll offset, so adding it turns a point on screen into one in the scroll view's content.
+                    let imagePoint = uiScrollView.imageView.convert(center + uiScrollView.bounds.origin, from: uiScrollView)
+                    let rect = CGRect(x: imagePoint.x, y: imagePoint.y, width: 1, height: 1)
+                    uiScrollView.zoom(to: rect, animated: !UIAccessibility.isReduceMotionEnabled)
+                }
+            }
+        case .partial:
+            break
+        }
+    }
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
@@ -94,9 +112,17 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         var parent: ZoomImageViewRepresentable
         /// The scroll request already applied, so later updates don't scroll again.
         var handledScrollRequest: AccessibilityScrollRequest?
+        /// The zoom state last applied to the scroll view, so an update that hasn't changed it leaves the scroll view's zoom alone.
+        var appliedZoomState: ZoomState = .min
+        /// Whether the image was zoomed in when the zoom scale last changed, kept here rather than read from the binding, which only catches up once the change sent to it has been written.
+        private var reportedIsZoomedIn = false
         
         init(_ parent: ZoomImageViewRepresentable) {
             self.parent = parent
+        }
+        
+        @objc func handleSingleTapGesture(gestureRecognizer: UITapGestureRecognizer) {
+            parent.isShowingOverlay.toggle()
         }
         
         @objc func handleDoubleTapGesture(gestureRecognizer: UITapGestureRecognizer) -> Void {
@@ -127,7 +153,22 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         }
         
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
-            (scrollView as? ZoomImageScrollView)?.updateInset()
+            guard let scrollView = scrollView as? ZoomImageScrollView else { return }
+            scrollView.updateInset()
+            
+            /// Only acted on when it changes, as this is called for every step of a pinch and for zooms applied while laying out. An overlay shown or hidden with a tap stays that way until the image next zooms in or back out to fit.
+            let isZoomedIn = scrollView.isZoomedIn
+            guard isZoomedIn != reportedIsZoomedIn else { return }
+            reportedIsZoomedIn = isZoomedIn
+            
+            /// Zooms started by a double tap or VoiceOver are applied in `updateUIView(_:context:)`, which calls this straight away. SwiftUI ignores state changed while it is updating a view, so the change is written once the update is over.
+            let isZoomedInBinding = parent.$isZoomedIn
+            let isShowingOverlayBinding = parent.$isShowingOverlay
+            Task { @MainActor in
+                /// Written together, so the status bar, which depends on both, changes in the same update as the overlay.
+                isZoomedInBinding.wrappedValue = isZoomedIn
+                isShowingOverlayBinding.wrappedValue = !isZoomedIn
+            }
         }
     }
 }

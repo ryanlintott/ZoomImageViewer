@@ -57,7 +57,10 @@ Inside the viewer you can:
 - Pinch to zoom, or double tap to zoom in and out.
 - Pan around a zoomed-in image.
 - Drag a zoomed-out image away to dismiss it.
+- Tap once to show or hide the overlay.
 - Tap the close button.
+
+Like in Photos, zooming in hides the overlay, status bar and home indicator so nothing covers the image. They come back when the image is zoomed back out to fit. A single tap shows or hides the overlay at any zoom, taking the status bar and home indicator with it only while the image is zoomed out, so a zoomed in image keeps the whole screen. Hiding the home indicator needs iOS 16.
 
 Zooming and panning respect the reduce motion and smart invert accessibility settings.
 
@@ -69,7 +72,7 @@ image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
 uiImage = image
 ```
 
-VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction.
+VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction. The image's Show Controls and Hide Controls actions do the same as a single tap, so an overlay hidden by zooming in can be brought back without zooming out.
 
 ## Close button position
 The close button sits in the top leading corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
@@ -84,7 +87,7 @@ The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iO
 Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass button on iOS 26 and as `ZoomImageCloseButtonStyle` on earlier versions.
 
 ## Overlay
-Everything shown over the image, including the close button, is an overlay you can replace. The viewer covers its frame with the overlay and fades it in and out with the image. The overlay is inside the viewer's VoiceOver modal, so anything you put in it can be reached.
+Everything shown over the image, including the close button, is an overlay you can replace. The viewer covers its frame with the overlay, fades it in and out with the image, and hides it while the image is zoomed in or after a single tap. The overlay is inside the viewer's VoiceOver modal, so anything you put in it can be reached.
 
 The overlay's views are stacked on top of each other inside the viewer's safe area, and placing and padding them is up to you. Use `ZoomImageDefaultOverlay` to keep the default close button, in its default position, alongside your own views.
 
