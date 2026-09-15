@@ -10,6 +10,8 @@ import SwiftUI
 /// A view for displaying fullscreen images that supports zooming, panning, and dismissing a zoomed-out image with a drag gesture.
 ///
 /// The close button is part of an overlay that can be restyled, or replaced with any views, like other controls or captions.
+///
+/// With VoiceOver the viewer is modal and the image is a single element, described by the `UIImage`'s `accessibilityLabel`. The escape gesture closes the viewer. On iOS 16 and up, VoiceOver's zoom action zooms in on the middle of the screen and back out, and three-finger swipes pan a zoomed in image half a screen at a time.
 public struct ZoomImageView<Overlay: View>: View {
     @Binding private var uiImage: UIImage?
     let overlay: Overlay

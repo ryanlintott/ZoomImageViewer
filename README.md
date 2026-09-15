@@ -69,6 +69,8 @@ image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
 uiImage = image
 ```
 
+VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction.
+
 ## Close button position
 The close button sits in the top leading corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
 

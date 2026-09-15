@@ -19,6 +19,8 @@
 - VoiceOver users can dismiss the image with the escape gesture.
 - The viewer is modal to VoiceOver. Focus moves into it when it appears and back out when it is dismissed, and the content behind it can no longer be reached.
 - The image is a VoiceOver element with the image trait, labelled with the `UIImage`'s `accessibilityLabel`. It was not reachable before, so a viewer without a close button had nothing to focus. It comes before the overlay, so VoiceOver reads it first.
+- On iOS 16 and up, VoiceOver users can zoom the image in and out with VoiceOver's zoom action, the same as a double tap. Zooming in centres on the middle of the screen rather than where the gesture was made.
+- VoiceOver users can pan a zoomed in image with three-finger swipes, half a screen at a time. VoiceOver plays its border sound when the image cannot move any further in that direction.
 - Replacing the image on screen announces the new image's `accessibilityLabel` to VoiceOver, as focus stays on whatever control swapped it.
 - Shared `ZoomImageViewer.xcworkspace` and `ZoomImageViewer Development` scheme for package and example-app development.
 - Swift Package Index configuration for building and hosting the package's documentation.

@@ -31,6 +31,8 @@ struct _ZoomImageView<Overlay: View>: View {
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
     @State private var overlayOpacity: Double = .zero
+    /// The most recent request from an assistive technology to scroll the zoomed image, handled once by the scroll view.
+    @State private var accessibilityScrollRequest: AccessibilityScrollRequest? = nil
     /// Identifies the removal of an image that is fading out, or is `nil` when nothing is fading out. Changing it cancels the removal task for the previous value, so showing a new image clears it to cancel the removal.
     @State private var removalID: UUID? = nil
     
@@ -50,7 +52,7 @@ struct _ZoomImageView<Overlay: View>: View {
                 
                 if let uiImage = displayedImage {
                     ZStack {
-                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
                             /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                             .id(ObjectIdentifier(uiImage))
                     }
@@ -60,8 +62,18 @@ struct _ZoomImageView<Overlay: View>: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isImage)
                         .accessibilityLabel(Text(uiImage.accessibilityLabel ?? ""))
-                        /// The image comes before the overlay, so it is what VoiceOver reads first when the viewer appears, however the overlay is laid out.
-                        .accessibilitySortPriority(1)
+                        .ifAvailable {
+                            if #available(iOS 16, *) {
+                                /// Lets assistive technologies such as VoiceOver zoom the image in and out, the same as a double tap.
+                                $0.accessibilityZoomAction { action in
+                                    accessibilityZoom(action.direction, center: viewerFrame.safeCentre)
+                                }
+                            }
+                        }
+                        /// Lets assistive technologies such as VoiceOver move around a zoomed in image, as the image is a single element with nothing inside it to scroll.
+                        .accessibilityScrollAction { edge in
+                            accessibilityScroll(towards: edge)
+                        }
                         .offset(offset)
                         /// Attached to the whole frame rather than just the image, so a zoomed out image can be pinched or dragged away from the empty space around it as well.
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
@@ -182,6 +194,33 @@ struct _ZoomImageView<Overlay: View>: View {
         announceReplacement(newImage)
     }
     
+    /// Zooms in or out for an assistive technology.
+    ///
+    /// Like a double tap, zooming in goes straight to the maximum and zooming out goes straight back to fit, as the maximum is only twice the fitted size. Ignored while the image is being dragged away.
+    ///
+    /// Zooming in always centres on the middle of the screen rather than where the gesture happened. VoiceOver's gestures can be performed anywhere on screen, so their location says nothing about the part of the image someone wants to see.
+    /// - Parameter center: The middle of the viewer's safe area, measured from the top left corner of its frame.
+    @available(iOS 16, *)
+    func accessibilityZoom(_ direction: AccessibilityZoomGestureAction.Direction, center: CGPoint) {
+        guard isInteractive else { return }
+        
+        switch direction {
+        case .zoomIn:
+            if case .max = zoomState { return }
+            zoomState = .max(center: center)
+        case .zoomOut:
+            zoomState = .min
+        }
+    }
+    
+    /// Scrolls a zoomed in image towards `edge` for an assistive technology.
+    ///
+    /// Ignored while the image is being dragged away. A zoomed out image fits the screen, so the scroll view has nowhere to move it.
+    func accessibilityScroll(towards edge: Edge) {
+        guard isInteractive else { return }
+        accessibilityScrollRequest = AccessibilityScrollRequest(edge: UIRectEdge(accessibilityScrollEdge: edge, layoutDirection: layoutDirection))
+    }
+    
     /// Reads out the description of an image that replaced the one on screen, as VoiceOver focus stays wherever it was, often on the control that swapped the image.
     ///
     /// Queued rather than interrupting, so the control's own response is not cut off. Images without an accessibility label are not announced.
@@ -195,6 +234,7 @@ struct _ZoomImageView<Overlay: View>: View {
     func resetPresentation() {
         offset = .zero
         zoomState = .min
+        accessibilityScrollRequest = nil
         isInteractive = true
     }
     

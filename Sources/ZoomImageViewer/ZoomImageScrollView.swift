@@ -174,17 +174,7 @@ final class ZoomImageScrollView: UIScrollView {
     
     /// The offset that puts `imagePoint` in the middle of the safe area of `frame`, kept within what can be scrolled to.
     private func contentOffset(centring imagePoint: CGPoint, in frame: SafeAreaFrame) -> CGPoint {
-        let offset = imagePoint * zoomScale - frame.safeCentre
-        let minimum = CGPoint(x: -contentInset.left, y: -contentInset.top)
-        let maximum = CGPoint(
-            x: max(minimum.x, contentSize.width + contentInset.right - bounds.width),
-            y: max(minimum.y, contentSize.height + contentInset.bottom - bounds.height)
-        )
-        
-        return CGPoint(
-            x: min(max(offset.x, minimum.x), maximum.x),
-            y: min(max(offset.y, minimum.y), maximum.y)
-        )
+        clampedContentOffset(imagePoint * zoomScale - frame.safeCentre)
     }
     
     /// Zooms without animating, leaving an already matching scale alone so no layout is asked for.
