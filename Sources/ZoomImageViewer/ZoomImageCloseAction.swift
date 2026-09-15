@@ -28,29 +28,20 @@ import SwiftUI
 /// Use this instead of `dismiss`. The viewer is an overlay rather than a presentation, so `dismiss` closes whatever presentation the viewer is in, like a sheet, and leaves the image showing.
 ///
 /// Outside of a viewer it does nothing.
-public struct ZoomImageCloseAction: Equatable {
-    /// Identifies the viewer the action closes.
-    let id: UUID?
-    let action: @MainActor () -> Void
-    
-    init(id: UUID?, action: @escaping @MainActor () -> Void) {
-        self.id = id
-        self.action = action
-    }
+public struct ZoomImageCloseAction {
+    /// The image binding of the viewer the action closes, or `nil` outside of a viewer.
+    ///
+    /// Stored rather than a closure, as closures cannot be compared, so every view reading the action would update whenever the viewer does. Clearing the binding is all closing takes, as the viewer fades out when its image is set to `nil`.
+    let uiImage: Binding<UIImage?>?
     
     /// Closes the viewer.
     @MainActor
     public func callAsFunction() {
-        action()
-    }
-    
-    /// Compared by viewer rather than by action, as actions cannot be compared. Otherwise every view reading the action would update whenever the viewer does.
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
+        uiImage?.wrappedValue = nil
     }
 }
 
 public extension EnvironmentValues {
     /// Closes the ``ZoomImageView`` this environment is in, or does nothing outside of one.
-    @Entry var closeZoomImage = ZoomImageCloseAction(id: nil) {}
+    @Entry var closeZoomImage = ZoomImageCloseAction(uiImage: nil)
 }

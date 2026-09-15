@@ -31,10 +31,8 @@ struct _ZoomImageView<Overlay: View>: View {
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
     @State private var overlayOpacity: Double = .zero
-    /// Identifies the removal of an image that is fading out, or is `nil` when nothing is fading out. Showing a new image clears it, which cancels the removal.
-    @State private var pendingRemoval: UUID? = nil
-    /// Identifies this viewer's close action, so the action compares equal across updates and views reading it do not update with every change to the viewer.
-    @State private var closeActionID = UUID()
+    /// Identifies the removal of an image that is fading out, or is `nil` when nothing is fading out. Changing it cancels the removal task for the previous value, so showing a new image clears it to cancel the removal.
+    @State private var removalID: UUID? = nil
     
     @GestureState private var isDragging = false
     
@@ -87,8 +85,7 @@ struct _ZoomImageView<Overlay: View>: View {
                             /// Styles every button in the overlay. A style a button sets for itself is closer to it, so it takes precedence.
                             .buttonStyle(ZoomImageDefaultButtonStyle())
                             .opacity(overlayOpacity)
-                            /// Views reading the action can keep one from an earlier update, as it compares equal to every later one. That is safe while `close()` only uses state, the image binding and constants.
-                            .environment(\.closeZoomImage, ZoomImageCloseAction(id: closeActionID, action: close))
+                            .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage))
                         )
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
                         .accessibilityElement(children: .contain)
@@ -112,17 +109,26 @@ struct _ZoomImageView<Overlay: View>: View {
                 apply(uiImage)
             }
         )
+        /// Removes a faded out image once it can no longer be seen. Cancelled when a new image is shown, or when the viewer leaves the view hierarchy.
+        .task(id: removalID) {
+            guard removalID != nil else { return }
+            try? await Task.sleep(nanoseconds: UInt64(animationSpeed * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            removalID = nil
+            displayedImage = nil
+        }
     }
     
-    /// Closes the viewer, fading it out.
+    /// Closes the viewer. Clearing the binding fades it out.
     func close() {
-        fadeOut()
         uiImage = nil
     }
     
     /// Fades the viewer out, then removes the image once it can no longer be seen.
+    ///
+    /// Does nothing while a removal is already under way, such as after dragging the image away, which has its own animation.
     func fadeOut() {
-        guard displayedImage != nil, pendingRemoval == nil else { return }
+        guard displayedImage != nil, removalID == nil else { return }
         withAnimation(.spring) {
             overlayOpacity = 0
         }
@@ -130,19 +136,7 @@ struct _ZoomImageView<Overlay: View>: View {
             backgroundOpacity = .zero
             imageOpacity = .zero
         }
-        removeImage(after: animationSpeed)
-    }
-    
-    /// Removes the image on screen after `delay`, unless a new image is shown first.
-    func removeImage(after delay: TimeInterval) {
-        let removal = UUID()
-        pendingRemoval = removal
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            guard pendingRemoval == removal else { return }
-            pendingRemoval = nil
-            displayedImage = nil
-        }
+        removalID = UUID()
     }
     
     /// Shows `newImage`, fading it in only when there is nothing on screen to replace, or fades the viewer out when there is no image.
@@ -155,9 +149,9 @@ struct _ZoomImageView<Overlay: View>: View {
             return
         }
         
-        if pendingRemoval != nil {
+        if removalID != nil {
             /// An image shown while the viewer fades out cancels the removal and fades the viewer back in.
-            pendingRemoval = nil
+            removalID = nil
             if displayedImage !== newImage {
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
@@ -265,7 +259,8 @@ struct _ZoomImageView<Overlay: View>: View {
             withAnimation(.linear(duration: animationSpeed * 0.5).delay(animationSpeed * 0.5)) {
                 imageOpacity = .zero
             }
-            removeImage(after: animationSpeed)
+            /// Starts the removal before clearing the binding, so the standard fade out skips this image.
+            removalID = UUID()
             uiImage = nil
         } else {
             isInteractive = true
