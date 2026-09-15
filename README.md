@@ -54,13 +54,13 @@ var body: some View {
 
 Inside the viewer you can:
 
-- Pinch to zoom, or double tap to zoom in and out.
+- Pinch to zoom, or double tap to zoom in. Double tapping an image zoomed in by any amount zooms it back out.
 - Pan around a zoomed-in image.
 - Drag a zoomed-out image away to dismiss it.
 - Tap once to show or hide the overlay.
 - Tap the close button.
 
-Like in Photos, zooming in hides the overlay, status bar and home indicator so nothing covers the image. They come back when the image is zoomed back out to fit. A single tap shows or hides the overlay at any zoom, taking the status bar and home indicator with it only while the image is zoomed out, so a zoomed in image keeps the whole screen. Hiding the home indicator needs iOS 16.
+Like in Photos, the image fills the whole screen, ignoring the safe area, and a zoomed-in image can be panned right to its edges. Zooming in hides the overlay, status bar and home indicator so nothing covers the image. They come back when the image is zoomed back out to fit. A single tap shows or hides the overlay at any zoom, taking the status bar and home indicator with it only while the image is zoomed out, so a zoomed in image keeps the whole screen. An overlay shown over a zoomed-in image hides again as soon as you pan or zoom. Hiding the home indicator needs iOS 16.
 
 Zooming and panning respect the reduce motion and smart invert accessibility settings.
 

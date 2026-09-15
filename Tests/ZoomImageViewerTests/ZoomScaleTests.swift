@@ -101,9 +101,6 @@ struct ZoomScaleToFitTests {
 @MainActor
 @Suite("ZoomImageScrollView zoom scales")
 struct ScrollViewZoomScaleTests {
-    /// The whole frame with no safe area, so fitting to the safe area is fitting to the frame.
-    static let unsafeFrame = SafeAreaFrame(size: frame, safeAreaInsets: .zero)
-
     /// An image of an exact size, drawn at a scale of 1 to keep the backing bitmap small.
     static func image(size: CGSize) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
@@ -119,22 +116,7 @@ struct ScrollViewZoomScaleTests {
     }
 
     static func maximum(for scrollView: ZoomImageScrollView) -> CGFloat {
-        scrollView.clampedMaximumZoomScale(minimumZoomScale: unsafeFrame.zoomScaleToFit(scrollView.imageSize))
-    }
-
-    @Test("The minimum zoom scale is the scale needed to fit", arguments: largeSizes + smallSizes)
-    func minimumIsScaleToFit(imageSize: CGSize) {
-        #expect(Self.unsafeFrame.zoomScaleToFit(imageSize) == imageSize.zoomScaleToFit(frame))
-    }
-
-    /// A tall and skinny image used to be fitted to the whole frame, leaving its ends under the status bar and home indicator when it first opened.
-    @Test("The minimum zoom scale fits the image inside the safe area")
-    func minimumFitsInsideSafeArea() {
-        let insets = UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
-        let safeFrame = SafeAreaFrame(size: frame, safeAreaInsets: insets)
-        let imageSize = CGSize(width: 141, height: 1573)
-
-        #expect(safeFrame.zoomScaleToFit(imageSize) == (frame.height - 59 - 34) / imageSize.height)
+        scrollView.clampedMaximumZoomScale(minimumZoomScale: scrollView.imageSize.zoomScaleToFit(frame))
     }
 
     /// A minimum zoom scale above the maximum leaves `UIScrollView` unable to zoom, and showing the image too small to fill the frame. `UIImage()` has no size, which used to give an infinite minimum zoom scale.
@@ -142,7 +124,7 @@ struct ScrollViewZoomScaleTests {
     func emptyImageGetsUsableZoomScales() {
         let scrollView = ZoomImageScrollView(image: UIImage(), maximumZoomScale: requestedMaximumZoomScale)
 
-        #expect(Self.unsafeFrame.zoomScaleToFit(scrollView.imageSize) == 1)
+        #expect(scrollView.imageSize.zoomScaleToFit(frame) == 1)
         #expect(Self.maximum(for: scrollView) == requestedMaximumZoomScale)
     }
 
@@ -150,7 +132,7 @@ struct ScrollViewZoomScaleTests {
     func maximumIsNeverBelowMinimum(imageSize: CGSize) {
         let scrollView = Self.scrollView(imageSize: imageSize)
 
-        #expect(Self.maximum(for: scrollView) >= Self.unsafeFrame.zoomScaleToFit(scrollView.imageSize))
+        #expect(Self.maximum(for: scrollView) >= scrollView.imageSize.zoomScaleToFit(frame))
     }
 
     @Test("Images at least as large as the frame use the requested maximum", arguments: largeSizes)
@@ -162,7 +144,7 @@ struct ScrollViewZoomScaleTests {
     func smallImagesCanStillZoomIn(imageSize: CGSize) {
         let scrollView = Self.scrollView(imageSize: imageSize)
 
-        #expect(Self.maximum(for: scrollView) == Self.unsafeFrame.zoomScaleToFit(scrollView.imageSize) * 2)
+        #expect(Self.maximum(for: scrollView) == scrollView.imageSize.zoomScaleToFit(frame) * 2)
     }
 
     @Test("A small image zooms to twice the size that fills the frame")
@@ -192,12 +174,6 @@ struct ScrollViewZoomScaleTests {
 @MainActor
 @Suite("ZoomImageScrollView resizing")
 struct ScrollViewResizeTests {
-    /// A portrait phone's safe area, as SwiftUI reports it when nothing is rotated.
-    static let portraitInsets = UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
-
-    /// The same safe area inside a view rotated a quarter turn.
-    static let rotatedInsets = UIEdgeInsets(top: 0, left: 34, bottom: 0, right: 59)
-
     /// A landscape frame, as the same phone is laid out after a quarter turn.
     static let landscapeFrame = CGSize(width: frame.height, height: frame.width)
 
@@ -212,10 +188,10 @@ struct ScrollViewResizeTests {
     }
 
     /// A scroll view laid out as SwiftUI first presents one: told its frame, then given bounds of that size.
-    static func scrollView(imageSize: CGSize, safeAreaInsets: UIEdgeInsets = .zero, delegate: ZoomDelegate) -> ZoomImageScrollView {
+    static func scrollView(imageSize: CGSize, delegate: ZoomDelegate) -> ZoomImageScrollView {
         let scrollView = ZoomImageScrollView(image: ScrollViewZoomScaleTests.image(size: imageSize), maximumZoomScale: requestedMaximumZoomScale)
         scrollView.delegate = delegate
-        scrollView.setTargetFrame(SafeAreaFrame(size: frame, safeAreaInsets: safeAreaInsets))
+        scrollView.setTargetSize(frame)
         scrollView.frame = CGRect(origin: .zero, size: frame)
         scrollView.layoutIfNeeded()
         return scrollView
@@ -230,12 +206,12 @@ struct ScrollViewResizeTests {
         scrollView.layoutIfNeeded()
     }
 
-    /// The point of the image, before any zoom, that the scroll view is showing in the middle of its safe area.
+    /// The point of the image, before any zoom, that the scroll view is showing in its middle.
     static func centredImagePoint(in scrollView: ZoomImageScrollView) -> CGPoint {
-        (scrollView.contentOffset + scrollView.layoutFrame.safeCentre) / scrollView.zoomScale
+        (scrollView.contentOffset + CGPoint(cgSize: scrollView.layoutSize / 2)) / scrollView.zoomScale
     }
 
-    /// How far, in points on screen, the image is from showing `imagePoint` in the middle of the safe area.
+    /// How far, in points on screen, the image is from showing `imagePoint` in the middle of the scroll view.
     ///
     /// Measured on screen rather than in the image, as the same drift in image coordinates is a different amount of movement at every zoom scale, and `UIScrollView` rounds its content to whole pixels either way.
     static func offsetOnScreen(of imagePoint: CGPoint, from scrollView: ZoomImageScrollView) -> CGPoint {
@@ -250,16 +226,29 @@ struct ScrollViewResizeTests {
         #expect(abs(scrollView.zoomScale - imageSize.zoomScaleToFit(frame)) < 0.0001)
     }
 
-    /// A tall and skinny image used to open fitted to the whole frame, leaving its ends under the status bar and home indicator.
-    @Test("An image opens fitted and centred inside the safe area")
-    func opensFittedInsideSafeArea() {
+    /// Like in Photos, a tall and skinny image fills the whole height of the screen, running under the status bar and home indicator, rather than stopping at the safe area.
+    @Test("An image opens fitted and centred in the whole frame")
+    func opensFittedInWholeFrame() {
         let imageSize = CGSize(width: 141, height: 1573)
         let delegate = ZoomDelegate()
-        let scrollView = Self.scrollView(imageSize: imageSize, safeAreaInsets: Self.portraitInsets, delegate: delegate)
+        let scrollView = Self.scrollView(imageSize: imageSize, delegate: delegate)
 
-        let safeHeight = frame.height - Self.portraitInsets.top - Self.portraitInsets.bottom
-        #expect(abs(scrollView.zoomScale - safeHeight / imageSize.height) < 0.0001)
-        #expect(abs(scrollView.contentOffset.y + Self.portraitInsets.top) < 0.5)
+        let fittedWidth = imageSize.width * frame.height / imageSize.height
+        #expect(abs(scrollView.zoomScale - frame.height / imageSize.height) < 0.0001)
+        #expect(abs(scrollView.contentOffset.y) < 0.5)
+        #expect(abs(scrollView.contentOffset.x + (frame.width - fittedWidth) / 2) < 0.5)
+    }
+
+    /// An image the size of the frame fits at a scale of 1, which a new `UIScrollView` already has, so fitting it never zooms. `UIScrollView` only updates its content size when it zooms, so the content size stayed empty and centring that empty size put the image's top left corner in the middle of the screen.
+    @Test("An image the size of the frame opens filling it")
+    func exactFitImageFillsFrame() {
+        let delegate = ZoomDelegate()
+        let scrollView = Self.scrollView(imageSize: frame, delegate: delegate)
+
+        #expect(scrollView.zoomScale == 1)
+        #expect(scrollView.contentSize == frame)
+        #expect(scrollView.contentInset == .zero)
+        #expect(scrollView.contentOffset == .zero)
     }
 
     /// Bounds SwiftUI never announced, such as a frame set directly, have no resize to follow, so the image is simply fitted to them.
@@ -280,12 +269,11 @@ struct ScrollViewResizeTests {
     @Test("A zoomed out image scales in a straight line through a rotation", arguments: largeSizes + smallSizes)
     func scalesLinearlyThroughRotation(imageSize: CGSize) {
         let delegate = ZoomDelegate()
-        let scrollView = Self.scrollView(imageSize: imageSize, safeAreaInsets: Self.portraitInsets, delegate: delegate)
+        let scrollView = Self.scrollView(imageSize: imageSize, delegate: delegate)
         let startScale = scrollView.zoomScale
 
-        scrollView.setTargetFrame(SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: Self.rotatedInsets))
-        let endFrame = SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: Self.rotatedInsets)
-        let endScale = endFrame.zoomScaleToFit(scrollView.imageSize)
+        scrollView.setTargetSize(Self.landscapeFrame)
+        let endScale = scrollView.imageSize.zoomScaleToFit(Self.landscapeFrame)
 
         for progress: CGFloat in [0, 0.25, 0.5, 0.75, 1] {
             Self.setBounds(of: scrollView, progress: progress)
@@ -295,25 +283,11 @@ struct ScrollViewResizeTests {
         }
     }
 
-    /// SwiftUI moves the safe area with the frame, so an image centred in it moves steadily rather than jumping when the insets change edges at the start of the rotation.
-    @Test("The safe area moves in a straight line through a rotation")
-    func safeAreaMovesLinearlyThroughRotation() {
-        let delegate = ZoomDelegate()
-        let scrollView = Self.scrollView(imageSize: CGSize(width: 4000, height: 3000), safeAreaInsets: Self.portraitInsets, delegate: delegate)
-        scrollView.setTargetFrame(SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: Self.rotatedInsets))
-
-        Self.setBounds(of: scrollView, progress: 0.5)
-        #expect(scrollView.layoutFrame.safeAreaInsets == Self.portraitInsets.interpolated(to: Self.rotatedInsets, progress: 0.5))
-
-        Self.setBounds(of: scrollView, progress: 1)
-        #expect(scrollView.layoutFrame.safeAreaInsets == Self.rotatedInsets)
-    }
-
-    @Test("A zoomed out image stays centred in the safe area through a rotation", arguments: largeSizes + smallSizes)
+    @Test("A zoomed out image stays centred through a rotation", arguments: largeSizes + smallSizes)
     func staysCentredThroughRotation(imageSize: CGSize) {
         let delegate = ZoomDelegate()
-        let scrollView = Self.scrollView(imageSize: imageSize, safeAreaInsets: Self.portraitInsets, delegate: delegate)
-        scrollView.setTargetFrame(SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: Self.rotatedInsets))
+        let scrollView = Self.scrollView(imageSize: imageSize, delegate: delegate)
+        scrollView.setTargetSize(Self.landscapeFrame)
 
         for progress: CGFloat in [0.25, 0.5, 1] {
             Self.setBounds(of: scrollView, progress: progress)
@@ -334,7 +308,7 @@ struct ScrollViewResizeTests {
         let centre = CGPoint(x: 1000, y: 500)
         scrollView.contentOffset = centre * scrollView.zoomScale - CGPoint(cgSize: frame / 2)
 
-        scrollView.setTargetFrame(SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: .zero))
+        scrollView.setTargetSize(Self.landscapeFrame)
         Self.setBounds(of: scrollView, progress: 1)
 
         let drift = Self.offsetOnScreen(of: centre, from: scrollView)
@@ -349,7 +323,7 @@ struct ScrollViewResizeTests {
         let scrollView = Self.scrollView(imageSize: CGSize(width: 4000, height: 3000), delegate: delegate)
         scrollView.zoomScale = 1
 
-        scrollView.setTargetFrame(SafeAreaFrame(size: Self.landscapeFrame, safeAreaInsets: .zero))
+        scrollView.setTargetSize(Self.landscapeFrame)
         Self.setBounds(of: scrollView, progress: 0.5)
         Self.setBounds(of: scrollView, progress: 1)
 
@@ -392,9 +366,9 @@ struct ScrollViewZoomedInTests {
     @Test("A zoomed out image is never zoomed in through a rotation", arguments: [0.25, 0.5, 0.75, 1])
     func zoomedOutImageStaysZoomedOutThroughARotation(progress: CGFloat) {
         let delegate = ScrollViewResizeTests.ZoomDelegate()
-        let scrollView = ScrollViewResizeTests.scrollView(imageSize: CGSize(width: 4000, height: 3000), safeAreaInsets: ScrollViewResizeTests.portraitInsets, delegate: delegate)
+        let scrollView = ScrollViewResizeTests.scrollView(imageSize: CGSize(width: 4000, height: 3000), delegate: delegate)
 
-        scrollView.setTargetFrame(SafeAreaFrame(size: ScrollViewResizeTests.landscapeFrame, safeAreaInsets: ScrollViewResizeTests.rotatedInsets))
+        scrollView.setTargetSize(ScrollViewResizeTests.landscapeFrame)
         ScrollViewResizeTests.setBounds(of: scrollView, progress: progress)
 
         #expect(!scrollView.isZoomedIn)

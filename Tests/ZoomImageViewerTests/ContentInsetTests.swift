@@ -9,62 +9,48 @@ import SwiftUI
 import Testing
 @testable import ZoomImageViewer
 
-/// A portrait phone frame in points, including its safe area.
+/// A portrait phone frame in points, including the safe area the image ignores.
 private let frame = CGSize(width: 393, height: 852)
 
-/// A portrait phone's safe area, as SwiftUI reports it when nothing is rotated.
-private let portraitInsets = UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
-
-/// The same safe area as SwiftUI reports it inside a view rotated a quarter turn, where the insets have moved to the edges they now meet.
-private let rotatedInsets = UIEdgeInsets(top: 0, left: 34, bottom: 0, right: 59)
-
-/// The content inset is what carries the safe area, because `contentInsetAdjustmentBehavior` is `.never`. Left to itself `UIScrollView` would use the window's insets, which belong to the wrong edges whenever the content is rotated to an orientation the app does not support.
+/// The content inset only centres the image, because `contentInsetAdjustmentBehavior` is `.never`. Like in Photos the image ignores the safe area, which `UIScrollView` would otherwise add from the window, on edges that are wrong whenever the content is rotated to an orientation the app does not support.
 @MainActor
 @Suite("ZoomImageScrollView content insets")
 struct ContentInsetTests {
-    static func scrollView(contentSize: CGSize, safeAreaInsets: UIEdgeInsets) -> ZoomImageScrollView {
+    static func scrollView(contentSize: CGSize) -> ZoomImageScrollView {
         let scrollView = ZoomImageScrollView(image: UIImage(), maximumZoomScale: 2)
-        scrollView.setTargetFrame(SafeAreaFrame(size: frame, safeAreaInsets: safeAreaInsets))
+        scrollView.setTargetSize(frame)
         scrollView.frame = CGRect(origin: .zero, size: frame)
         scrollView.layoutIfNeeded()
         scrollView.contentSize = contentSize
         return scrollView
     }
 
-    @Test("An image larger than the frame is inset to the safe area")
-    func overflowingImageUsesSafeArea() {
-        let scrollView = Self.scrollView(contentSize: CGSize(width: 800, height: 1600), safeAreaInsets: portraitInsets)
+    /// A zoomed in image can be scrolled right to the edges of the screen, under the status bar and home indicator.
+    @Test("An image larger than the frame has no inset")
+    func overflowingImageHasNoInset() {
+        let scrollView = Self.scrollView(contentSize: CGSize(width: 800, height: 1600))
         scrollView.updateInset()
 
-        #expect(scrollView.contentInset == portraitInsets)
+        #expect(scrollView.contentInset == .zero)
     }
 
-    /// The insets have to follow the content through a rotation rather than staying on the window's edges, or a viewer rotated to an unsupported orientation keeps its top and bottom insets running across the screen.
-    @Test("Rotated insets are used as given, not transposed back")
-    func overflowingImageUsesRotatedSafeArea() {
-        let scrollView = Self.scrollView(contentSize: CGSize(width: 800, height: 1600), safeAreaInsets: rotatedInsets)
-        scrollView.updateInset()
-
-        #expect(scrollView.contentInset == rotatedInsets)
-    }
-
-    /// A zoomed out image is fitted inside the safe area, so it is centred there too rather than in the whole frame, keeping it clear of the status bar and home indicator.
-    @Test("An image smaller than the safe area is centred inside it")
-    func fittingImageIsCentredInSafeArea() {
+    /// Like in Photos, a zoomed out image is centred in the whole frame rather than in the safe area.
+    @Test("An image smaller than the frame is centred in it")
+    func fittingImageIsCentredInFrame() {
         let contentSize = CGSize(width: 200, height: 400)
-        let scrollView = Self.scrollView(contentSize: contentSize, safeAreaInsets: portraitInsets)
+        let scrollView = Self.scrollView(contentSize: contentSize)
         scrollView.updateInset()
 
-        let safeHeight = frame.height - portraitInsets.top - portraitInsets.bottom
-        #expect(scrollView.contentInset.top == portraitInsets.top + (safeHeight - contentSize.height) / 2)
+        #expect(scrollView.contentInset.top == (frame.height - contentSize.height) / 2)
+        #expect(scrollView.contentInset.bottom == (frame.height - contentSize.height) / 2)
         #expect(scrollView.contentInset.left == (frame.width - contentSize.width) / 2)
     }
 
     /// The insets add up to the whole frame, which is what stops an image that fits from being scrolled at all.
-    @Test("An image smaller than the safe area cannot be scrolled")
+    @Test("An image smaller than the frame cannot be scrolled")
     func fittingImageCannotScroll() {
         let contentSize = CGSize(width: 200, height: 400)
-        let scrollView = Self.scrollView(contentSize: contentSize, safeAreaInsets: portraitInsets)
+        let scrollView = Self.scrollView(contentSize: contentSize)
         scrollView.updateInset()
 
         let inset = scrollView.contentInset
@@ -73,34 +59,32 @@ struct ContentInsetTests {
     }
 
     /// Each axis is decided on its own, the same way `contentInsetAdjustmentBehavior` would.
-    @Test("An image overflowing one axis is inset there and centred on the other")
+    @Test("An image overflowing one axis has no inset there and is centred on the other")
     func axesAreDecidedSeparately() {
         let contentSize = CGSize(width: 800, height: 400)
-        let scrollView = Self.scrollView(contentSize: contentSize, safeAreaInsets: portraitInsets)
+        let scrollView = Self.scrollView(contentSize: contentSize)
         scrollView.updateInset()
 
-        let safeHeight = frame.height - portraitInsets.top - portraitInsets.bottom
-        #expect(scrollView.contentInset.left == portraitInsets.left)
-        #expect(scrollView.contentInset.right == portraitInsets.right)
-        #expect(scrollView.contentInset.top == portraitInsets.top + (safeHeight - contentSize.height) / 2)
+        #expect(scrollView.contentInset.left == 0)
+        #expect(scrollView.contentInset.right == 0)
+        #expect(scrollView.contentInset.top == (frame.height - contentSize.height) / 2)
     }
 
-    /// An image fitted exactly to an axis lands a hair either side of it while a frame animates. The inset used to jump between centring and the safe area on that boundary, flickering from one frame to the next.
-    @Test("The inset does not jump as an image grows past the safe area", arguments: [-0.001, 0, 0.001])
-    func insetIsContinuousAtSafeAreaEdge(overflow: CGFloat) {
-        let safeHeight = frame.height - portraitInsets.top - portraitInsets.bottom
-        let scrollView = Self.scrollView(contentSize: CGSize(width: 200, height: safeHeight + overflow), safeAreaInsets: portraitInsets)
+    /// An image fitted exactly to an axis lands a hair either side of it while a frame animates, so the inset has to settle on nothing smoothly rather than flicker between two values.
+    @Test("The inset does not jump as an image grows past the frame", arguments: [-0.001, 0, 0.001])
+    func insetIsContinuousAtFrameEdge(overflow: CGFloat) {
+        let scrollView = Self.scrollView(contentSize: CGSize(width: 200, height: frame.height + overflow))
         scrollView.updateInset()
 
-        #expect(abs(scrollView.contentInset.top - portraitInsets.top) < 0.01)
-        #expect(abs(scrollView.contentInset.bottom - portraitInsets.bottom) < 0.01)
+        #expect(abs(scrollView.contentInset.top) < 0.01)
+        #expect(abs(scrollView.contentInset.bottom) < 0.01)
     }
 
     /// The inset is worked out from the scroll view's own bounds rather than a size handed in, so a frame animating to a new size stays centred at every step instead of only at the end.
     @Test("The inset follows the bounds, not the size the layout ended at")
     func insetFollowsBounds() {
         let contentSize = CGSize(width: 200, height: 400)
-        let scrollView = Self.scrollView(contentSize: contentSize, safeAreaInsets: .zero)
+        let scrollView = Self.scrollView(contentSize: contentSize)
         /// Part way through a quarter turn, between portrait and landscape.
         let partWayThrough = CGSize(width: 600, height: 645)
         scrollView.bounds.size = partWayThrough

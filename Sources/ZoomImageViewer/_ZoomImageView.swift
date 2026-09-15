@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct _ZoomImageView<Overlay: View>: View {
-    /// Used to resolve the leading and trailing safe area insets before they are handed to UIKit.
+    /// Used to resolve the leading and trailing edges VoiceOver scrolls towards before they are handed to UIKit.
     @Environment(\.layoutDirection) private var layoutDirection
     
     @Binding var uiImage: UIImage?
@@ -54,11 +54,12 @@ struct _ZoomImageView<Overlay: View>: View {
         /// This helps center animated rotations
         Color.clear.overlay(
             GeometryReader { proxy in
-                let viewerFrame = SafeAreaFrame(proxy, layoutDirection: layoutDirection)
+                /// The image fills the whole frame, safe area included, like in Photos.
+                let viewerSize = proxy.sizeIncludingSafeAreaInsets
                 
                 if let uiImage = displayedImage {
                     ZStack {
-                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
+                        ZoomImageViewRepresentable(frameSize: viewerSize, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
                             /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                             .id(ObjectIdentifier(uiImage))
                     }
@@ -72,7 +73,7 @@ struct _ZoomImageView<Overlay: View>: View {
                             if #available(iOS 16, *) {
                                 /// Lets assistive technologies such as VoiceOver zoom the image in and out, the same as a double tap.
                                 $0.accessibilityZoomAction { action in
-                                    accessibilityZoom(action.direction, center: viewerFrame.safeCentre)
+                                    accessibilityZoom(action.direction, center: CGPoint(cgSize: viewerSize / 2))
                                 }
                             }
                         }
@@ -92,7 +93,7 @@ struct _ZoomImageView<Overlay: View>: View {
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
                         .onChange(of: isDragging) { newValue in
                             if !newValue {
-                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: viewerFrame.size)
+                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: viewerSize)
                             }
                         }
                         .ignoresSafeArea()
@@ -245,7 +246,7 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Like a double tap, zooming in goes straight to the maximum and zooming out goes straight back to fit, as the maximum is only twice the fitted size. Ignored while the image is being dragged away.
     ///
     /// Zooming in always centres on the middle of the screen rather than where the gesture happened. VoiceOver's gestures can be performed anywhere on screen, so their location says nothing about the part of the image someone wants to see.
-    /// - Parameter center: The middle of the viewer's safe area, measured from the top left corner of its frame.
+    /// - Parameter center: The middle of the viewer, measured from the top left corner of its frame.
     @available(iOS 16, *)
     func accessibilityZoom(_ direction: AccessibilityZoomGestureAction.Direction, center: CGPoint) {
         guard isInteractive else { return }

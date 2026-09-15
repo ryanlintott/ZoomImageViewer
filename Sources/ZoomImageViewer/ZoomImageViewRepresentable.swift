@@ -17,12 +17,10 @@ enum ZoomState: Equatable, Sendable {
 }
 
 struct ZoomImageViewRepresentable: UIViewRepresentable {
-    /// The frame the image is shown in, including its safe area, as laid out by SwiftUI.
+    /// The size of the frame the image is shown in, including the safe area the image ignores, as laid out by SwiftUI.
     ///
     /// This is where SwiftUI's layout ends up rather than the size the scroll view is right now. It is handed over once, before SwiftUI starts animating the scroll view's bounds towards it, so ``ZoomImageScrollView`` knows where each frame of that animation is heading.
-    ///
-    /// The safe area comes from SwiftUI rather than the scroll view, because a UIKit view's own `safeAreaInsets` come from the window which hasn't been rotated by SwiftUI's rotationEffect.
-    let frame: SafeAreaFrame
+    let frameSize: CGSize
     let isInteractive: Bool
     @Binding var zoomState: ZoomState
     /// Whether the image is zoomed in past the scale that fits it, updated as the zoom scale changes rather than when a zoom ends, so it follows a pinch while it is under way.
@@ -57,7 +55,7 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         context.coordinator.parent = self
         
         /// The image is not updated here, as the id of this image is set to the object identifier of the UIImage.
-        uiScrollView.setTargetFrame(frame)
+        uiScrollView.setTargetSize(frameSize)
         uiScrollView.isUserInteractionEnabled = isInteractive
         
         /// Only a change of zoom state is applied. A pinch doesn't update the zoom state until it ends, so an update part way through one, like the one hiding the overlay as the image zooms in, would otherwise snap the image back to the scale the pinch started from.
@@ -68,8 +66,8 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
         
         if let accessibilityScrollRequest, accessibilityScrollRequest != context.coordinator.handledScrollRequest {
             context.coordinator.handledScrollRequest = accessibilityScrollRequest
-            /// Half the safe area rather than a whole one, so each step keeps part of what was on screen before it. An image zoomed to twice its fitted size then takes two steps to cross from one side to the other in the axis it fits.
-            let offset = uiScrollView.contentOffset(scrollingTowards: accessibilityScrollRequest.edge, by: uiScrollView.layoutFrame.safeSize / 2)
+            /// Half the screen rather than a whole one, so each step keeps part of what was on screen before it. An image zoomed to twice its fitted size then takes two steps to cross from one side to the other in the axis it fits.
+            let offset = uiScrollView.contentOffset(scrollingTowards: accessibilityScrollRequest.edge, by: uiScrollView.layoutSize / 2)
             
             /// Within half a point, as offsets worked out from zoom scales are rarely whole points.
             if (offset - uiScrollView.contentOffset).magnitude < 0.5 {
@@ -125,16 +123,33 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
             parent.isShowingOverlay.toggle()
         }
         
+        /// Zooms a fitted image in on the point tapped, and zooms an image zoomed in by any amount back out to fit.
+        ///
+        /// Decided by the scroll view's zoom scale rather than ``zoomState``, so an image pinched part way in zooms out rather than further in.
         @objc func handleDoubleTapGesture(gestureRecognizer: UITapGestureRecognizer) -> Void {
-            // zoom based on gesture
-            switch parent.zoomState {
-            case .max(_):
+            guard let scrollView = gestureRecognizer.view?.superview as? ZoomImageScrollView else { return }
+            
+            if scrollView.isZoomedIn {
                 parent.zoomState = .min
-            default:
-                if let scrollView = gestureRecognizer.view?.superview {
-                    parent.zoomState = .max(center: gestureRecognizer.location(in: scrollView) - scrollView.bounds.origin)
-                }
+            } else {
+                parent.zoomState = .max(center: gestureRecognizer.location(in: scrollView) - scrollView.bounds.origin)
             }
+        }
+        
+        /// Hides an overlay shown over a zoomed in image as soon as the image starts moving, like in Photos, so it doesn't cover the part being looked at.
+        ///
+        /// A zoomed out image is left alone. It can't be panned, and zooming it in hides the overlay once it passes the fitted scale.
+        private func hideOverlayIfZoomedIn(_ scrollView: UIScrollView) {
+            guard (scrollView as? ZoomImageScrollView)?.isZoomedIn == true, parent.isShowingOverlay else { return }
+            parent.isShowingOverlay = false
+        }
+        
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            hideOverlayIfZoomedIn(scrollView)
+        }
+        
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+            hideOverlayIfZoomedIn(scrollView)
         }
         
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {

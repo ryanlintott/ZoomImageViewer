@@ -9,40 +9,34 @@ import SwiftUI
 import Testing
 @testable import ZoomImageViewer
 
-/// A portrait phone frame in points, including its safe area.
+/// A portrait phone frame in points, including the safe area the image ignores.
 private let frame = CGSize(width: 393, height: 852)
 
-/// A portrait phone's safe area.
-private let insets = UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0)
-
-/// The size of the safe area.
-private let safeSize = CGSize(width: 393, height: 759)
-
-/// The step `ZoomImageViewRepresentable` scrolls by, half the safe area.
-private let step = safeSize / 2
+/// The step `ZoomImageViewRepresentable` scrolls by, half the frame.
+private let step = frame / 2
 
 @MainActor
 @Suite("Accessibility scrolling")
 struct AccessibilityScrollTests {
-    /// A scroll view showing an image zoomed to twice the size of the safe area, scrolled to its top left corner.
+    /// A scroll view showing an image zoomed to twice the size of the frame, scrolled to its top left corner.
     static func zoomedScrollView() -> ZoomImageScrollView {
         let scrollView = ZoomImageScrollView(image: UIImage(), maximumZoomScale: 2)
-        scrollView.setTargetFrame(SafeAreaFrame(size: frame, safeAreaInsets: insets))
+        scrollView.setTargetSize(frame)
         scrollView.frame = CGRect(origin: .zero, size: frame)
         scrollView.layoutIfNeeded()
-        scrollView.contentSize = safeSize * 2
+        scrollView.contentSize = frame * 2
         scrollView.updateInset()
-        scrollView.contentOffset = CGPoint(x: -insets.left, y: -insets.top)
+        scrollView.contentOffset = .zero
         return scrollView
     }
     
     @Test("Each step scrolls by the distance given")
-    func stepIsHalfTheSafeArea() {
+    func stepIsHalfTheFrame() {
         let scrollView = Self.zoomedScrollView()
         let start = scrollView.contentOffset
         
-        #expect(scrollView.contentOffset(scrollingTowards: .bottom, by: step) == CGPoint(x: start.x, y: start.y + safeSize.height / 2))
-        #expect(scrollView.contentOffset(scrollingTowards: .right, by: step) == CGPoint(x: start.x + safeSize.width / 2, y: start.y))
+        #expect(scrollView.contentOffset(scrollingTowards: .bottom, by: step) == CGPoint(x: start.x, y: start.y + frame.height / 2))
+        #expect(scrollView.contentOffset(scrollingTowards: .right, by: step) == CGPoint(x: start.x + frame.width / 2, y: start.y))
     }
     
     @Test("Scrolling stops at the edges of the image")
@@ -55,7 +49,8 @@ struct AccessibilityScrollTests {
         
         scrollView.contentOffset = scrollView.contentOffset(scrollingTowards: .bottom, by: step)
         scrollView.contentOffset = scrollView.contentOffset(scrollingTowards: .bottom, by: step)
-        #expect(scrollView.contentOffset.y == safeSize.height * 2 + insets.bottom - frame.height)
+        /// Scrolled to the very bottom of the image, with no safe area left below it.
+        #expect(scrollView.contentOffset.y == frame.height * 2 - frame.height)
         #expect(scrollView.contentOffset(scrollingTowards: .bottom, by: step) == scrollView.contentOffset)
     }
     
