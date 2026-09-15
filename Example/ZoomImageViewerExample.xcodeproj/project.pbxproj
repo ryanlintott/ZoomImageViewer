@@ -13,6 +13,7 @@
 		CF0D8C2425AF57980075FB2A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CF0D8C2325AF57980075FB2A /* Preview Assets.xcassets */; };
 		CF0D8C3525AF58600075FB2A /* TapToFullscreenImageScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */; };
 		CF0D8C4125AF58600075FB2A /* TestImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0D8C4025AF58600075FB2A /* TestImage.swift */; };
+		CF0D8C5125AF58600075FB2A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CF0D8C5025AF58600075FB2A /* Localizable.xcstrings */; };
 		CF1AB2AC2CB5BAE90049E553 /* ZoomImageViewer in Frameworks */ = {isa = PBXBuildFile; productRef = CF1AB2AB2CB5BAE90049E553 /* ZoomImageViewer */; };
 		CFF592A1283BC62D007141A3 /* FrameUp in Frameworks */ = {isa = PBXBuildFile; productRef = CFF592A0283BC62D007141A3 /* FrameUp */; };
 /* End PBXBuildFile section */
@@ -26,6 +27,7 @@
 		CF0D8C2525AF57980075FB2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TapToFullscreenImageScrollView.swift; sourceTree = "<group>"; };
 		CF0D8C4025AF58600075FB2A /* TestImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestImage.swift; sourceTree = "<group>"; };
+		CF0D8C5025AF58600075FB2A /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +67,7 @@
 				CF0D8C3425AF58600075FB2A /* TapToFullscreenImageScrollView.swift */,
 				CF0D8C4025AF58600075FB2A /* TestImage.swift */,
 				CF0D8C2025AF57980075FB2A /* Assets.xcassets */,
+				CF0D8C5025AF58600075FB2A /* Localizable.xcstrings */,
 				CF0D8C2525AF57980075FB2A /* Info.plist */,
 				CF0D8C2225AF57980075FB2A /* Preview Content */,
 			);
@@ -125,6 +128,7 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
 			);
 			mainGroup = CF0D8C1025AF57980075FB2A;
 			packageReferences = (
@@ -147,6 +151,7 @@
 			files = (
 				CF0D8C2425AF57980075FB2A /* Preview Assets.xcassets in Resources */,
 				CF0D8C2125AF57980075FB2A /* Assets.xcassets in Resources */,
+				CF0D8C5125AF58600075FB2A /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -304,12 +309,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abetterwaytodo.ZoomImageViewerExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -331,12 +338,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abetterwaytodo.ZoomImageViewerExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

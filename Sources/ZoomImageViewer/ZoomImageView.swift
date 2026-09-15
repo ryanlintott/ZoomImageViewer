@@ -12,17 +12,17 @@ import SwiftUI
 /// The close button is part of an overlay that can be restyled, or replaced with any views, like other controls or captions.
 public struct ZoomImageView<Overlay: View>: View {
     @Binding private var uiImage: UIImage?
-    let overlay: (ZoomImageOverlayContext) -> Overlay
+    let overlay: Overlay
     
     /// Creates a view with a zoomable image and a custom overlay.
     ///
     /// The overlay covers the viewer's frame inside its safe area, and fades in and out with the image. Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button.
     ///
-    /// The overlay is the only way to close the viewer other than dragging the image away, so include a button that calls the context's `close` action.
+    /// The overlay is the only way to close the viewer other than dragging the image away, so include a close button. ``ZoomImageCloseButton`` closes the viewer it is in, and your own buttons can do the same with the ``SwiftUICore/EnvironmentValues/closeZoomImage`` action.
     ///
     /// ```swift
-    /// ZoomImageView(uiImage: $uiImage) { viewer in
-    ///     ZoomImageDefaultOverlay(viewer, closeButtonPosition: .topTrailing)
+    /// ZoomImageView(uiImage: $uiImage) {
+    ///     ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
     ///
     ///     Text("Two eagles catching a fish")
     ///         .padding()
@@ -30,20 +30,20 @@ public struct ZoomImageView<Overlay: View>: View {
     /// }
     /// ```
     /// - Parameters:
-    ///   - uiImage: Image to present.
-    ///   - overlay: Builds the views shown over the image. Views are stacked on top of each other.
+    ///   - uiImage: Image to present. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer, fading it out.
+    ///   - overlay: The views shown over the image, stacked on top of each other.
     public init(
         uiImage: Binding<UIImage?>,
-        @ViewBuilder overlay: @escaping (_ viewer: ZoomImageOverlayContext) -> Overlay
+        @ViewBuilder overlay: () -> Overlay
     ) {
         self._uiImage = uiImage
-        self.overlay = overlay
+        /// Built here, while the view creating this one updates, so any state the overlay reads is tracked by that view and the overlay is rebuilt when it changes.
+        self.overlay = overlay()
     }
     
     public var body: some View {
-        if uiImage != nil {
-            _ZoomImageView(uiImage: $uiImage, overlay: overlay)
-        }
+        /// Always in the hierarchy, so a viewer can fade out after its binding is cleared rather than being removed with it.
+        _ZoomImageView(uiImage: $uiImage, overlay: overlay)
     }
 }
 
@@ -53,8 +53,8 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     ///   - uiImage: Image to present.
     ///   - closeButtonPosition: The close button position within the entire viewable frame.
     init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topLeading) {
-        self.init(uiImage: uiImage) { viewer in
-            ZoomImageDefaultOverlay(viewer, closeButtonPosition: closeButtonPosition)
+        self.init(uiImage: uiImage) {
+            ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
         }
     }
 }
@@ -65,16 +65,16 @@ public extension ZoomImageView<AnyView> {
     ///   - uiImage: Image to present.
     ///   - closeButtonStyle: Button style to use for close button.
     ///   - closeButtonPosition: The close button position within the entire viewable frame.
-    @available(*, deprecated, message: "Style the default overlay instead: ZoomImageView(uiImage:) { viewer in ZoomImageDefaultOverlay(viewer, closeButtonPosition: position).buttonStyle(style) }")
+    @available(*, deprecated, message: "Style the default overlay instead: ZoomImageView(uiImage:) { ZoomImageDefaultOverlay(closeButtonPosition: position).buttonStyle(style) }")
     init<CloseButtonStyle: ButtonStyle>(
         uiImage: Binding<UIImage?>,
         closeButtonStyle: CloseButtonStyle,
         closeButtonPosition: Alignment = .topLeading
     ) {
         /// Type erased because a style applied with `buttonStyle(_:)` has no type that can be named here.
-        self.init(uiImage: uiImage) { viewer in
+        self.init(uiImage: uiImage) {
             AnyView(
-                ZoomImageDefaultOverlay(viewer, closeButtonPosition: closeButtonPosition)
+                ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
                     .buttonStyle(closeButtonStyle)
             )
         }

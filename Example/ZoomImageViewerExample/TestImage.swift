@@ -28,28 +28,34 @@ enum TestImage: String, CaseIterable, Identifiable {
     
     var id: Self { self }
     
+    /// Localized with `String(localized:)` rather than `LocalizedStringResource`, which needs iOS 16.
     var name: String {
         switch self {
-        case .smaller: "Smaller"
-        case .tiny: "Tiny"
-        case .tallNarrow: "Tall and narrow"
-        case .shortWide: "Short and wide"
-        case .exactFit: "Exact fit"
-        case .larger: "Larger"
-        case .bundled: "Bundled asset"
+        case .smaller: String(localized: "Smaller", comment: "Name of a test image smaller than the screen.")
+        case .tiny: String(localized: "Tiny", comment: "Name of a very small test image.")
+        case .tallNarrow: String(localized: "Tall and narrow", comment: "Name of a test image taller and narrower than the screen.")
+        case .shortWide: String(localized: "Short and wide", comment: "Name of a test image shorter and wider than the screen.")
+        case .exactFit: String(localized: "Exact fit", comment: "Name of a test image the same size as the screen.")
+        case .larger: String(localized: "Larger", comment: "Name of a test image larger than the screen.")
+        case .bundled: String(localized: "Bundled asset", comment: "Name of the test image stored in the app's asset catalog.")
         }
     }
     
     var detail: String {
         switch self {
-        case .smaller: "Smaller than the frame in both dimensions"
-        case .tiny: "Small enough that fitting it is a large scale up"
-        case .tallNarrow: "Taller and narrower than the frame"
-        case .shortWide: "Shorter and wider than the frame"
-        case .exactFit: "The same size as the frame"
-        case .larger: "Larger than the frame in both dimensions"
-        case .bundled: "A fixed size that ignores the frame"
+        case .smaller: String(localized: "Smaller than the frame in both dimensions", comment: "Description of a test image.")
+        case .tiny: String(localized: "Small enough that fitting it is a large scale up", comment: "Description of a test image.")
+        case .tallNarrow: String(localized: "Taller and narrower than the frame", comment: "Description of a test image.")
+        case .shortWide: String(localized: "Shorter and wider than the frame", comment: "Description of a test image.")
+        case .exactFit: String(localized: "The same size as the frame", comment: "Description of a test image.")
+        case .larger: String(localized: "Larger than the frame in both dimensions", comment: "Description of a test image.")
+        case .bundled: String(localized: "A fixed size that ignores the frame", comment: "Description of the test image stored in the app's asset catalog.")
         }
+    }
+    
+    /// A size in points, with its width and height formatted for the current locale.
+    static func sizeDescription(_ size: CGSize) -> String {
+        String(localized: "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) pt", comment: "A size in points. The first variable is the width, the second the height.")
     }
     
     var color: Color {
@@ -148,7 +154,7 @@ enum TestImage: String, CaseIterable, Identifiable {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             let label = NSAttributedString(
-                string: "\(title)\n\(Int(size.width.rounded())) × \(Int(size.height.rounded())) pt",
+                string: "\(title)\n\(sizeDescription(size))",
                 attributes: [
                     .font: UIFont.systemFont(ofSize: min(max(shortestSide * 0.09, 8), 48), weight: .semibold),
                     .foregroundColor: UIColor.white,

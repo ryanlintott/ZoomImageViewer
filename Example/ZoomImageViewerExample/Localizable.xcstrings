@@ -1,0 +1,303 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld × %lld pt" : {
+      "comment" : "A size in points. The first variable is the width, the second the height.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld × %2$lld pt"
+          }
+        }
+      }
+    },
+    "A fixed size that ignores the frame" : {
+      "comment" : "Description of the test image stored in the app's asset catalog.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une taille fixe qui ignore le cadre"
+          }
+        }
+      }
+    },
+    "Bundled asset" : {
+      "comment" : "Name of the test image stored in the app's asset catalog.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ressource intégrée"
+          }
+        }
+      }
+    },
+    "Bye" : {
+      "comment" : "Title of a custom close button.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salut"
+          }
+        }
+      }
+    },
+    "Close button styles" : {
+      "comment" : "Header of the list of close button options.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styles du bouton Fermer"
+          }
+        }
+      }
+    },
+    "Custom Button Style" : {
+      "comment" : "Close button option using a button style defined by the example app.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style de bouton personnalisé"
+          }
+        }
+      }
+    },
+    "Custom ZoomImageCloseButtonStyle" : {
+      "comment" : "Close button option. ZoomImageCloseButtonStyle is a type name and is not translated.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ZoomImageCloseButtonStyle personnalisé"
+          }
+        }
+      }
+    },
+    "Default ZoomImageCloseButtonStyle" : {
+      "comment" : "Close button option. ZoomImageCloseButtonStyle is a type name and is not translated.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ZoomImageCloseButtonStyle par défaut"
+          }
+        }
+      }
+    },
+    "Exact fit" : {
+      "comment" : "Name of a test image the same size as the screen.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille exacte"
+          }
+        }
+      }
+    },
+    "Fallback: Default ZoomImageCloseButtonStyle" : {
+      "comment" : "Detail for the Liquid Glass option, naming the style used before iOS 26. ZoomImageCloseButtonStyle is a type name and is not translated.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solution de repli : ZoomImageCloseButtonStyle par défaut"
+          }
+        }
+      }
+    },
+    "Image sizes" : {
+      "comment" : "Header of the list of test images.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailles d’image"
+          }
+        }
+      }
+    },
+    "Larger" : {
+      "comment" : "Name of a test image larger than the screen.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus grande"
+          }
+        }
+      }
+    },
+    "Larger than the frame in both dimensions" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus grande que le cadre dans les deux dimensions"
+          }
+        }
+      }
+    },
+    "Liquid Glass" : {
+      "comment" : "Close button option using the Liquid Glass style.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liquid Glass"
+          }
+        }
+      }
+    },
+    "Medieval manuscript image of two eagles flying over a body of water. One eagle has a fish in its talons." : {
+      "comment" : "Alt text for the bundled test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image d’un manuscrit médiéval montrant deux aigles volant au-dessus d’une étendue d’eau. L’un des aigles tient un poisson dans ses serres."
+          }
+        }
+      }
+    },
+    "Next image" : {
+      "comment" : "Button that shows the next test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image suivante"
+          }
+        }
+      }
+    },
+    "Previous image" : {
+      "comment" : "Button that shows the previous test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image précédente"
+          }
+        }
+      }
+    },
+    "Short and wide" : {
+      "comment" : "Name of a test image shorter and wider than the screen.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basse et large"
+          }
+        }
+      }
+    },
+    "Shorter and wider than the frame" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moins haute et plus large que le cadre"
+          }
+        }
+      }
+    },
+    "Sizes are relative to the %@ viewer frame. Use the arrows while an image is showing to swap to the next or previous one." : {
+      "comment" : "Footer of the list of test images. The variable is the size of the viewer, like 402 × 874 pt.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les tailles sont relatives au cadre de la visionneuse de %@. Utilisez les flèches pendant qu’une image est affichée pour passer à l’image suivante ou précédente."
+          }
+        }
+      }
+    },
+    "Small enough that fitting it is a large scale up" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assez petite pour que l’ajuster demande un fort agrandissement"
+          }
+        }
+      }
+    },
+    "Smaller" : {
+      "comment" : "Name of a test image smaller than the screen.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus petite"
+          }
+        }
+      }
+    },
+    "Smaller than the frame in both dimensions" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus petite que le cadre dans les deux dimensions"
+          }
+        }
+      }
+    },
+    "Tall and narrow" : {
+      "comment" : "Name of a test image taller and narrower than the screen.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haute et étroite"
+          }
+        }
+      }
+    },
+    "Taller and narrower than the frame" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus haute et plus étroite que le cadre"
+          }
+        }
+      }
+    },
+    "The same size as the frame" : {
+      "comment" : "Description of a test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De la même taille que le cadre"
+          }
+        }
+      }
+    },
+    "Tiny" : {
+      "comment" : "Name of a very small test image.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minuscule"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -10,9 +10,11 @@
 
 ### Added
 
-- `ZoomImageView(uiImage:overlay:)` for replacing everything shown over the image, such as the close button, other controls or captions. The overlay is given a `ZoomImageOverlayContext` with a `close` action, fades in and out with the image, and can be reached with VoiceOver. Buttons in it can use any button style, including primitive styles like `.glass` and `.bordered` that `closeButtonStyle` cannot take.
+- `ZoomImageView(uiImage:overlay:)` for replacing everything shown over the image, such as the close button, other controls or captions. The overlay fades in and out with the image and can be reached with VoiceOver. Buttons in it can use any button style, including primitive styles like `.glass` and `.bordered` that `closeButtonStyle` cannot take.
+- Translations of the built-in close button's "Close" title, used before iOS 26, in the 48 languages SwiftUI translates it into, using the same words as the system close button.
 - `ZoomImageDefaultOverlay`, the default overlay, for keeping the default close button in a custom overlay. Restyle it with `buttonStyle(_:)` while keeping its localized label and position.
 - `ZoomImageCloseButton`, the built-in close button without a position, for placing yourself.
+- `closeZoomImage`, an environment action of type `ZoomImageCloseAction` that closes the viewer, for making your own close button in an overlay.
 - A public initializer for `ZoomImageDefaultButtonStyle`. The style had none, so it could not be created outside the package.
 - VoiceOver users can dismiss the image with the escape gesture.
 - The viewer is modal to VoiceOver. Focus moves into it when it appears and back out when it is dismissed, and the content behind it can no longer be reached.
@@ -27,14 +29,16 @@
 
 ### Deprecated
 
-- `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Put `ZoomImageCloseButton` with `buttonStyle(_:)` in an overlay instead.
+- `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Put `ZoomImageDefaultOverlay` with `buttonStyle(_:)` in an overlay instead.
 - `ZoomImageDefaultCloseButtonStyle`, renamed to `ZoomImageDefaultButtonStyle` as it now styles every button in the overlay.
 
 ### Changed
 
+- Setting the image binding to `nil` fades the viewer out like the close button does. It used to disappear immediately unless the change was animated. `ZoomImageView` stays in the view hierarchy as a clear view while no image is shown, so it can finish fading out.
 - On iOS 26 and up the built-in close button uses `ButtonRole.close` with the label the system provides, which is localized by the system.
 - Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
 - Rewrote the readme with badges, installation steps, and examples for each feature.
+- The example app is localized in French, with a string catalog, so the package's localized strings can be tested in another language.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
 - The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
 - Tests now use Swift Testing instead of XCTest.

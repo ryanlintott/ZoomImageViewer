@@ -12,9 +12,9 @@ struct _ZoomImageView<Overlay: View>: View {
     @Environment(\.layoutDirection) private var layoutDirection
     
     @Binding var uiImage: UIImage?
-    let overlay: (ZoomImageOverlayContext) -> Overlay
+    let overlay: Overlay
     
-    init(uiImage: Binding<UIImage?>, overlay: @escaping (ZoomImageOverlayContext) -> Overlay) {
+    init(uiImage: Binding<UIImage?>, overlay: Overlay) {
         self._uiImage = uiImage
         self.overlay = overlay
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
@@ -31,6 +31,10 @@ struct _ZoomImageView<Overlay: View>: View {
     @State private var backgroundOpacity: Double = .zero
     @State private var imageOpacity: Double = .zero
     @State private var overlayOpacity: Double = .zero
+    /// Identifies the removal of an image that is fading out, or is `nil` when nothing is fading out. Showing a new image clears it, which cancels the removal.
+    @State private var pendingRemoval: UUID? = nil
+    /// Identifies this viewer's close action, so the action compares equal across updates and views reading it do not update with every change to the viewer.
+    @State private var closeActionID = UUID()
     
     @GestureState private var isDragging = false
     
@@ -47,9 +51,12 @@ struct _ZoomImageView<Overlay: View>: View {
                 let viewerFrame = SafeAreaFrame(proxy, layoutDirection: layoutDirection)
                 
                 if let uiImage = displayedImage {
-                    ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
-                        /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
-                        .id(ObjectIdentifier(uiImage))
+                    ZStack {
+                        ZoomImageViewRepresentable(frame: viewerFrame, isInteractive: isInteractive, zoomState: $zoomState, maximumZoomScale: 2.0, uiImage: uiImage)
+                            /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
+                            .id(ObjectIdentifier(uiImage))
+                    }
+                    /// Keeps the identity change above inside the stack. Applied to the modifiers below, it would also rebuild the overlay with every replacement image, resetting any state in it.
                         .accessibilityIgnoresInvertColors()
                         /// VoiceOver focuses the image as a single element, so the viewer always has something to focus, even with no close button. It is described by the image's own accessibility label.
                         .accessibilityElement(children: .ignore)
@@ -75,11 +82,13 @@ struct _ZoomImageView<Overlay: View>: View {
                         .opacity(imageOpacity)
                         .overlay(
                             ZStack {
-                                overlay(ZoomImageOverlayContext(close: close))
+                                overlay
                             }
                             /// Styles every button in the overlay. A style a button sets for itself is closer to it, so it takes precedence.
                             .buttonStyle(ZoomImageDefaultButtonStyle())
                             .opacity(overlayOpacity)
+                            /// Views reading the action can keep one from an earlier update, as it compares equal to every later one. That is safe while `close()` only uses state, the image binding and constants.
+                            .environment(\.closeZoomImage, ZoomImageCloseAction(id: closeActionID, action: close))
                         )
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
                         .accessibilityElement(children: .contain)
@@ -105,34 +114,66 @@ struct _ZoomImageView<Overlay: View>: View {
         )
     }
     
+    /// Closes the viewer, fading it out.
     func close() {
+        fadeOut()
+        uiImage = nil
+    }
+    
+    /// Fades the viewer out, then removes the image once it can no longer be seen.
+    func fadeOut() {
+        guard displayedImage != nil, pendingRemoval == nil else { return }
         withAnimation(.spring) {
             overlayOpacity = 0
         }
         withAnimation(.linear(duration: animationSpeed)) {
             backgroundOpacity = .zero
             imageOpacity = .zero
-            uiImage = nil
+        }
+        removeImage(after: animationSpeed)
+    }
+    
+    /// Removes the image on screen after `delay`, unless a new image is shown first.
+    func removeImage(after delay: TimeInterval) {
+        let removal = UUID()
+        pendingRemoval = removal
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard pendingRemoval == removal else { return }
+            pendingRemoval = nil
+            displayedImage = nil
         }
     }
     
-    /// Shows `newImage`, fading it in only when there is nothing on screen to replace.
+    /// Shows `newImage`, fading it in only when there is nothing on screen to replace, or fades the viewer out when there is no image.
     ///
     /// Compared by identity, as two images with the same contents are still a replacement.
     @MainActor
     func apply(_ newImage: UIImage?) {
-        if displayedImage === newImage { return }
-        
         guard let newImage else {
-            /// Leave the image on screen. Dismissing it is animated by whoever cleared the binding, and this view is removed by its parent once that animation finishes, so clearing it here would make the image vanish before it could fade out.
-            onDisappear()
+            fadeOut()
             return
         }
         
-        if displayedImage == nil {
-            /// A first presentation fades in from nothing.
-            displayedImage = newImage
+        if pendingRemoval != nil {
+            /// An image shown while the viewer fades out cancels the removal and fades the viewer back in.
+            pendingRemoval = nil
+            if displayedImage !== newImage {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    displayedImage = newImage
+                }
+            }
             onAppear()
+            return
+        }
+        
+        if displayedImage === newImage { return }
+        
+        if displayedImage == nil {
+            /// A first presentation fades in from nothing, started by the image appearing.
+            displayedImage = newImage
             return
         }
         
@@ -224,9 +265,8 @@ struct _ZoomImageView<Overlay: View>: View {
             withAnimation(.linear(duration: animationSpeed * 0.5).delay(animationSpeed * 0.5)) {
                 imageOpacity = .zero
             }
-            withAnimation(Animation.linear(duration: 0.1).delay(animationSpeed)) {
-                uiImage = nil
-            }
+            removeImage(after: animationSpeed)
+            uiImage = nil
         } else {
             isInteractive = true
             withAnimation(Animation.easeOut) {
@@ -242,8 +282,8 @@ struct _ZoomImageView<Overlay: View>: View {
 #Preview {
     @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
     
-    ZoomImageView(uiImage: $uiImage) { viewer in
-        ZoomImageDefaultOverlay(viewer)
+    ZoomImageView(uiImage: $uiImage) {
+        ZoomImageDefaultOverlay()
             .buttonStyle(ZoomImageCloseButtonStyle())
     }
 

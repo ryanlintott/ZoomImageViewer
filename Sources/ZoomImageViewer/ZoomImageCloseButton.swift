@@ -14,20 +14,21 @@ import SwiftUI
 /// It has no button style or position of its own. Inside a ``ZoomImageView`` it uses ``ZoomImageDefaultButtonStyle`` unless you give it another with `buttonStyle(_:)`. Use ``ZoomImageDefaultOverlay`` for the button in its default position.
 ///
 /// ```swift
-/// ZoomImageView(uiImage: $uiImage) { viewer in
-///     ZoomImageCloseButton(action: viewer.close)
+/// ZoomImageView(uiImage: $uiImage) {
+///     ZoomImageCloseButton()
 ///         .buttonStyle(.glass)
 ///         .padding()
 ///         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 /// }
 /// ```
 public struct ZoomImageCloseButton: View {
-    let action: @MainActor () -> Void
+    @Environment(\.closeZoomImage) private var closeZoomImage
     
-    /// Creates the built-in close button.
-    /// - Parameter action: Dismisses the image. Pass the `close` action from the overlay's ``ZoomImageOverlayContext``.
-    public init(action: @escaping @MainActor () -> Void) {
-        self.action = action
+    /// Creates the built-in close button, which closes the ``ZoomImageView`` it is in.
+    public init() {}
+    
+    func action() {
+        closeZoomImage()
     }
     
     public var body: some View {
@@ -52,7 +53,6 @@ public struct ZoomImageCloseButton: View {
             }
         }
     }
-    
 }
 
 
@@ -63,20 +63,14 @@ public struct ZoomImageCloseButton: View {
             .ignoresSafeArea()
         
         VStack {
-            ZoomImageCloseButton {
-                /// Close
-            }
-            .buttonStyle(ZoomImageDefaultButtonStyle())
+            ZoomImageCloseButton()
+                .buttonStyle(ZoomImageDefaultButtonStyle())
             
-            ZoomImageCloseButton {
-                /// Close
-            }
-            .buttonStyle(ZoomImageCloseButtonStyle())
+            ZoomImageCloseButton()
+                .buttonStyle(ZoomImageCloseButtonStyle())
             
-            ZoomImageCloseButton {
-                /// Close
-            }
-            .buttonStyle(.borderedProminent)
+            ZoomImageCloseButton()
+                .buttonStyle(.borderedProminent)
         }
     }
 }
