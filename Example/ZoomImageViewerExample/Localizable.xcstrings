@@ -122,6 +122,17 @@
         }
       }
     },
+    "Images grow from these thumbnails and shrink back into them when closed." : {
+      "comment" : "Footer of the list of close button options, explaining the matched geometry effect.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les images s’agrandissent à partir de ces vignettes et y reviennent à la fermeture."
+          }
+        }
+      }
+    },
     "Larger" : {
       "comment" : "Name of a test image larger than the screen.",
       "localizations" : {

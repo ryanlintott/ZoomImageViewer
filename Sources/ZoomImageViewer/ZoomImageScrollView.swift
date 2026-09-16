@@ -24,6 +24,8 @@ final class ZoomImageScrollView: UIScrollView {
     private(set) var targetSize: CGSize = .zero
     
     /// The size an animated resize to ``targetSize`` started from, when the bounds were not already the target size as it was set.
+    ///
+    /// Cleared once the bounds reach the target, so the resize is over. Kept any longer, a later change to the bounds that SwiftUI makes without a new target, like matched geometry shrinking the image back into its source, would be read as part of the old resize and the image would keep its full size.
     private var resizeStart: CGSize?
     
     /// The size the current zoom scales, inset and offset were worked out for.
@@ -112,7 +114,11 @@ final class ZoomImageScrollView: UIScrollView {
     
     override func layoutSubviews() {
         let size = bounds.size
-        
+
+        if size == targetSize {
+            resizeStart = nil
+        }
+
         if size.width > 0, size.height > 0 {
             let minimumZoomScale = fittedZoomScale(at: size)
             let previousSize = layoutSize

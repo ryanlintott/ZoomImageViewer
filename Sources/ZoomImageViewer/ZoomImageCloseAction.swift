@@ -34,10 +34,21 @@ public struct ZoomImageCloseAction {
     /// Stored rather than a closure, as closures cannot be compared, so every view reading the action would update whenever the viewer does. Clearing the binding is all closing takes, as the viewer fades out when its image is set to `nil`.
     let uiImage: Binding<UIImage?>?
     
+    /// The animation the binding is cleared with, so an image with matched geometry shrinks back into its source, or `nil` to clear it in the current transaction.
+    var animation: Animation? = nil
+    
     /// Closes the viewer.
     @MainActor
     public func callAsFunction() {
-        uiImage?.wrappedValue = nil
+        guard let uiImage else { return }
+        
+        if let animation {
+            withAnimation(animation) {
+                uiImage.wrappedValue = nil
+            }
+        } else {
+            uiImage.wrappedValue = nil
+        }
     }
 }
 

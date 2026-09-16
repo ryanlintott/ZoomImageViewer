@@ -283,6 +283,22 @@ struct ScrollViewResizeTests {
         }
     }
 
+    /// Matched geometry shrinks the frame back into its source without SwiftUI announcing a new size. A resize still remembered from an earlier rotation read that as part of the rotation, and kept the image at its full size as it landed.
+    @Test("A zoomed out image is refitted to bounds changed after a rotation ends", arguments: largeSizes + smallSizes)
+    func refitsAfterRotationEnds(imageSize: CGSize) {
+        let delegate = ZoomDelegate()
+        let scrollView = Self.scrollView(imageSize: imageSize, delegate: delegate)
+        scrollView.setTargetSize(Self.landscapeFrame)
+        Self.setBounds(of: scrollView, progress: 0.5)
+        Self.setBounds(of: scrollView, progress: 1)
+
+        let thumbnail = CGSize(width: 80, height: 60)
+        scrollView.bounds.size = thumbnail
+        scrollView.layoutIfNeeded()
+
+        #expect(abs(scrollView.zoomScale - imageSize.zoomScaleToFit(thumbnail)) < 0.0001)
+    }
+
     @Test("A zoomed out image stays centred through a rotation", arguments: largeSizes + smallSizes)
     func staysCentredThroughRotation(imageSize: CGSize) {
         let delegate = ZoomDelegate()

@@ -13,10 +13,13 @@ struct _ZoomImageView<Overlay: View>: View {
     
     @Binding var uiImage: UIImage?
     let overlay: Overlay
+    /// The matched geometry effect the image grows from and shrinks back to, or `nil` to fade the image in and out.
+    let matchedGeometry: ZoomImageMatchedGeometry?
     
-    init(uiImage: Binding<UIImage?>, overlay: Overlay) {
+    init(uiImage: Binding<UIImage?>, overlay: Overlay, matchedGeometry: ZoomImageMatchedGeometry?) {
         self._uiImage = uiImage
         self.overlay = overlay
+        self.matchedGeometry = matchedGeometry
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
     }
     
@@ -39,6 +42,12 @@ struct _ZoomImageView<Overlay: View>: View {
     @State private var accessibilityScrollRequest: AccessibilityScrollRequest? = nil
     /// Identifies the removal of an image that is fading out, or is `nil` when nothing is fading out. Changing it cancels the removal task for the previous value, so showing a new image clears it to cancel the removal.
     @State private var removalID: UUID? = nil
+    /// Identifies one presentation of a matched image, from growing out of its source to shrinking back into it. Changed once the image is removed.
+    @State private var presentationID = UUID()
+    /// The matched geometry identifier used while the image has no source, which no other view shares.
+    @State private var unmatchedID = UUID()
+    /// How far the viewer is turned from the window by a container like `AutoRotatingView`, undone as a matched image lands on its source.
+    @State private var contentRotation = ZoomImageContentRotation()
     
     @GestureState private var isDragging = false
     
@@ -49,6 +58,8 @@ struct _ZoomImageView<Overlay: View>: View {
     let opacityAtDismissThreshold: Double = 0.8
     /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
     let dismissDistanceMultiplier: CGFloat = 2
+    /// How the image shrinks back to its matched geometry source when the viewer closes it without a drag to carry it there.
+    let matchedGeometryAnimation = ZoomImageMatchedGeometry.landingAnimation()
     
     var body: some View {
         /// This helps center animated rotations
@@ -57,11 +68,29 @@ struct _ZoomImageView<Overlay: View>: View {
                 /// The image fills the whole frame, safe area included, like in Photos.
                 let viewerSize = proxy.sizeIncludingSafeAreaInsets
                 
-                if let uiImage = displayedImage {
+                /// Always in the hierarchy, so the rotation of a viewer showing nothing is known by the time an image appears.
+                ZoomImageRotationReader(rotation: $contentRotation)
+                    .ignoresSafeArea()
+                
+                if let uiImage = presentedImage {
                     ZStack {
-                        ZoomImageViewRepresentable(frameSize: viewerSize, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
-                            /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
-                            .id(ObjectIdentifier(uiImage))
+                        /// Keeps the stack filling the frame while a matched image is being removed ahead of the rest of the viewer.
+                        Color.clear
+                        
+                        if isShowingImage {
+                            /// Fills the viewer's frame around the image, so the transition's turn has the same anchor point whatever size the image is at.
+                            ZStack {
+                                ZoomImageViewRepresentable(frameSize: viewerSize, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
+                                    /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
+                                    .id(ObjectIdentifier(uiImage))
+                                    /// Outside the identity above, so a replacement image doesn't grow from a source of its own.
+                                    .matchedGeometryEffect(matchedGeometry, unmatchedID: unmatchedID)
+                            }
+                            /// Applied here rather than around the whole viewer, so an image dragged away keeps the offset while it is removed. SwiftUI drops an offset applied outside a view it is removing, which drags the image back to the middle of the frame in a single frame before it sets off.
+                            .offset(presentationOffset)
+                            .id(presentationID)
+                            .transition(imageTransition)
+                        }
                     }
                     /// Keeps the identity change above inside the stack. Applied to the modifiers below, it would also rebuild the overlay with every replacement image, resetting any state in it.
                         .accessibilityIgnoresInvertColors()
@@ -88,7 +117,6 @@ struct _ZoomImageView<Overlay: View>: View {
                         ) {
                             toggleOverlay()
                         }
-                        .offset(offset)
                         /// Attached to the whole frame rather than just the image, so a zoomed out image can be pinched or dragged away from the empty space around it as well.
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
                         .onChange(of: isDragging) { newValue in
@@ -115,7 +143,7 @@ struct _ZoomImageView<Overlay: View>: View {
                             .opacity(isShowingOverlay ? 1 : 0)
                             .allowsHitTesting(isShowingOverlay)
                             .accessibilityHidden(!isShowingOverlay)
-                            .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage))
+                            .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage, animation: closeAnimation))
                         )
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
                         .accessibilityElement(children: .contain)
@@ -145,6 +173,8 @@ struct _ZoomImageView<Overlay: View>: View {
                             /// Moves VoiceOver focus back to the content the viewer covered.
                             UIAccessibility.post(notification: .screenChanged, argument: nil)
                         }
+                        /// A matched image is added in the transaction that sets the binding, which is usually animated. Only the image takes part in that animation, so the background and overlay fade in with their own.
+                        .transition(matchedGeometry == nil ? .opacity : .identity)
                 }
             }
             .onChange(of: uiImage) { uiImage in
@@ -154,11 +184,60 @@ struct _ZoomImageView<Overlay: View>: View {
         /// Removes a faded out image once it can no longer be seen. Cancelled when a new image is shown, or when the viewer leaves the view hierarchy.
         .task(id: removalID) {
             guard removalID != nil else { return }
-            try? await Task.sleep(nanoseconds: UInt64(animationSpeed * 1_000_000_000))
+            /// A matched image is still settling on its source after the rest of the viewer has faded out, and is only taken away once it has.
+            let wait = matchedGeometry?.id == nil ? animationSpeed : ZoomImageMatchedGeometry.settlingDuration
+            try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
             guard !Task.isCancelled else { return }
             removalID = nil
             displayedImage = nil
+            /// The next image starts from a clean slate. State left behind by the image just removed, like the offset it was thrown away with, would otherwise still be in place as the next one is added, and a matched image would grow from its source offset by it.
+            resetPresentation()
         }
+    }
+    
+    /// The image the viewer is built around.
+    ///
+    /// A viewer without matched geometry shows ``displayedImage``, which only catches up with the binding once its change has been handled. One with matched geometry falls back on the binding, so the image is added in the same transaction that removes its source and SwiftUI can animate between the two.
+    var presentedImage: UIImage? {
+        matchedGeometry == nil ? displayedImage : displayedImage ?? uiImage
+    }
+    
+    /// Whether the image itself is in the hierarchy.
+    ///
+    /// A matched image is removed in the same transaction that clears the binding, as its source comes back in that transaction and SwiftUI only shrinks the image back into it when both happen together. The background and overlay stay until they have faded out. An image without a source stays until the rest of the viewer is removed, so it can fade out or be thrown off the screen with the viewer.
+    var isShowingImage: Bool {
+        matchedGeometry?.id == nil || uiImage != nil
+    }
+    
+    /// How far the image is dragged from the middle of the frame.
+    ///
+    /// Dropped as soon as a different image is on its way in while this one is still being removed, as the offset belongs to the image that was dragged away rather than the one replacing it. The image being removed keeps it, so it carries on from where it was dropped rather than snapping back to the middle of the frame.
+    var presentationOffset: CGSize {
+        if removalID != nil, let uiImage, uiImage !== displayedImage { return .zero }
+        return offset
+    }
+    
+    /// How far the image moves as it lands on its source, from where a drag left it back to the middle of the frame, where matched geometry takes over.
+    var landingMove: CGSize {
+        -presentationOffset
+    }
+    
+    /// How the image is added and removed.
+    ///
+    /// An image with no source has nothing to land on, so it fades in and out with the animation that shows or clears it.
+    var imageTransition: AnyTransition {
+        guard matchedGeometry?.id != nil else { return .opacity }
+        
+        return ZoomImageMatchedGeometry.imageTransition(
+            undoing: contentRotation,
+            moving: landingMove,
+            startSpeed: ZoomImageMatchedGeometry.landingStartSpeed(move: landingMove, velocity: velocity)
+        )
+    }
+    
+    /// The animation the viewer closes itself with, so a matched image shrinks back into its source, or `nil` to fade out an image without a source.
+    var closeAnimation: Animation? {
+        matchedGeometry?.id == nil ? nil : matchedGeometryAnimation
     }
     
     /// Whether the status bar and home indicator are showing.
@@ -180,7 +259,7 @@ struct _ZoomImageView<Overlay: View>: View {
     
     /// Closes the viewer. Clearing the binding fades it out.
     func close() {
-        uiImage = nil
+        ZoomImageCloseAction(uiImage: $uiImage, animation: closeAnimation)()
     }
     
     /// Fades the viewer out, then removes the image once it can no longer be seen.
@@ -193,7 +272,10 @@ struct _ZoomImageView<Overlay: View>: View {
         }
         withAnimation(.linear(duration: animationSpeed)) {
             backgroundOpacity = .zero
-            imageOpacity = .zero
+            /// A matched image has already been removed and is shrinking back into its source.
+            if matchedGeometry?.id == nil {
+                imageOpacity = .zero
+            }
         }
         removalID = UUID()
     }
@@ -204,6 +286,10 @@ struct _ZoomImageView<Overlay: View>: View {
     @MainActor
     func apply(_ newImage: UIImage?) {
         guard let newImage else {
+            /// A matched image is removed as the binding is cleared, and may still be shrinking back into its source when the next one is shown. Added again with the same identity, SwiftUI would bring that image back from wherever it has got to rather than growing the next one from its own source. The image has already been removed by now, so the new identity only applies to the next one.
+            if matchedGeometry?.id != nil {
+                presentationID = UUID()
+            }
             fadeOut()
             return
         }
@@ -280,6 +366,7 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Puts an image on screen unmoved, zoomed out and interactive, never inheriting the state of the image before it.
     func resetPresentation() {
         offset = .zero
+        velocity = nil
         zoomState = .min
         /// A replacement image gets a new scroll view, which starts zoomed out without reporting a zoom, so the overlay is shown for it here.
         isZoomedIn = false
@@ -290,9 +377,18 @@ struct _ZoomImageView<Overlay: View>: View {
     
     func onAppear() {
         resetPresentation()
-        backgroundOpacity = 1
-        withAnimation(.easeIn(duration: animationSpeed)) {
+        /// An image without a source has nothing to grow from. SwiftUI doesn't fade in a matched image that appears on its own, so it fades in like one without matched geometry.
+        if matchedGeometry?.id == nil {
+            backgroundOpacity = 1
+            withAnimation(.easeIn(duration: animationSpeed)) {
+                imageOpacity = 1
+            }
+        } else {
+            /// The image grows from its source instead of fading in, so only the background behind it fades.
             imageOpacity = 1
+            withAnimation(.easeIn(duration: animationSpeed)) {
+                backgroundOpacity = 1
+            }
         }
         withAnimation(.easeIn(duration: animationSpeed).delay(animationSpeed)) {
             overlayOpacity = 1
@@ -336,7 +432,20 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Called when the drag's gesture state resets rather than from the gesture's `onEnded`, so a drag that is cancelled is put back too.
     /// - Parameter frameSize: The size of the viewer's frame including its safe area, which a dismissed image leaves.
     func onDragEnded(predictedEndTranslation: CGSize, velocity: CGSize?, frameSize: CGSize) {
-        if predictedEndTranslation.magnitude > dismissThreshold {
+        if predictedEndTranslation.magnitude > dismissThreshold, matchedGeometry?.id != nil {
+            withAnimation(.spring) {
+                overlayOpacity = 0
+            }
+            withAnimation(.linear(duration: animationSpeed)) {
+                backgroundOpacity = .zero
+            }
+            /// Starts the removal before clearing the binding, so the standard fade out skips this image.
+            removalID = UUID()
+            /// The image shrinks back into its source from wherever it was dragged to, rather than being thrown off screen. Its offset is left where the drag put it and taken back to nothing by the transition, which carries on at the speed the drag was let go at. A change to the offset here would be applied to the removed image at once rather than animated, dragging it back to the middle of the frame before it sets off.
+            withAnimation(matchedGeometryAnimation) {
+                uiImage = nil
+            }
+        } else if predictedEndTranslation.magnitude > dismissThreshold {
             /// Lasts as long as the background's fade, so the image is off the screen by the time the background is gone.
             let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: animationSpeed)
             withAnimation(toss.animation) {
