@@ -28,7 +28,7 @@
 - Swift Package Index configuration for building and hosting the package's documentation.
 - GitHub Actions workflow testing Swift 6.0 compatibility and building and testing on iOS with the current Swift version.
 - This changelog.
-- Unit tests for `ScaleToFitPadding`, the shape used to block gestures in the empty space around a scaled image, and for `CGSize.scaledToFit(_:)`.
+- Unit tests for `CGSize.scaledToFit(_:)`.
 - Unit tests for the zoom scale limits, vector normalization and zoom state equality.
 
 ### Deprecated
@@ -38,13 +38,14 @@
 
 ### Changed
 
+- The default close button position is now the top trailing corner instead of the top leading corner, in `ZoomImageDefaultOverlay` and every `ZoomImageView` initializer that takes a `closeButtonPosition`. Pass `closeButtonPosition: .topLeading` to keep it where it was.
 - Double tapping an image zoomed in by any amount, such as one pinched part way in, zooms it back out to fit. It used to zoom a partly zoomed image further in, and only zoomed out from the maximum.
 - Like in Photos, the image ignores the safe area. It is fitted and centred in the whole screen, and a zoomed in image can be panned right to the edges, under the status bar, Dynamic Island and home indicator. It used to be inset by the window's safe area, which stopped a zoomed in image short of the edges. The overlay is still laid out inside the safe area.
 - Setting the image binding to `nil` fades the viewer out like the close button does. It used to disappear immediately unless the change was animated. `ZoomImageView` stays in the view hierarchy as a clear view while no image is shown, so it can finish fading out.
 - On iOS 26 and up the built-in close button uses `ButtonRole.close` with the label the system provides, which is localized by the system.
 - Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
 - Rewrote the readme with badges, installation steps, and examples for each feature.
-- The example app is localized in French, with a string catalog, so the package's localized strings can be tested in another language.
+- The example app supports French, so the package's localized strings, like the close button's title and the Show Controls and Hide Controls actions, can be tested in another language. The example app's own strings are not translated.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
 - The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
 - Tests now use Swift Testing instead of XCTest.

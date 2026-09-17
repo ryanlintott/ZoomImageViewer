@@ -30,7 +30,7 @@ public struct ZoomImageView<Overlay: View>: View {
     ///
     /// ```swift
     /// ZoomImageView(uiImage: $uiImage) {
-    ///     ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+    ///     ZoomImageDefaultOverlay()
     ///
     ///     Text("Two eagles catching a fish")
     ///         .padding()
@@ -137,8 +137,8 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     /// Creates a view with a zoomable image and the built-in close button.
     /// - Parameters:
     ///   - uiImage: Image to present.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame.
-    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topLeading) {
+    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
+    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topTrailing) {
         self.init(uiImage: uiImage) {
             ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
         }
@@ -155,12 +155,12 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does.
     ///   - namespace: The namespace the source views are in.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
     init<Item: Identifiable & Equatable>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
         in namespace: Namespace.ID,
-        closeButtonPosition: Alignment = .topLeading
+        closeButtonPosition: Alignment = .topTrailing
     ) {
         self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
             ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
@@ -173,12 +173,12 @@ public extension ZoomImageView<AnyView> {
     /// - Parameters:
     ///   - uiImage: Image to present.
     ///   - closeButtonStyle: Button style to use for close button.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
     @available(*, deprecated, message: "Style the default overlay instead: ZoomImageView(uiImage:) { ZoomImageDefaultOverlay(closeButtonPosition: position).buttonStyle(style) }")
     init<CloseButtonStyle: ButtonStyle>(
         uiImage: Binding<UIImage?>,
         closeButtonStyle: CloseButtonStyle,
-        closeButtonPosition: Alignment = .topLeading
+        closeButtonPosition: Alignment = .topTrailing
     ) {
         /// Type erased because a style applied with `buttonStyle(_:)` has no type that can be named here.
         self.init(uiImage: uiImage) {

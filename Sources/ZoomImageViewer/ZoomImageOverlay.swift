@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The overlay a ``ZoomImageView`` shows by default: the built-in close button, placed in a corner or along an edge.
+/// The overlay a ``ZoomImageView`` shows by default: the built-in close button, placed in a corner or along an edge. It is in the top trailing corner unless given another position.
 ///
 /// The button is padded from the edges of the viewer and, on iOS 26 and up, offset clear of system UI in the container's corners, like the traffic lights on an iPad window.
 ///
@@ -15,7 +15,7 @@ import SwiftUI
 ///
 /// ```swift
 /// ZoomImageView(uiImage: $uiImage) {
-///     ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+///     ZoomImageDefaultOverlay()
 ///
 ///     Text("Two eagles catching a fish")
 ///         .padding()
@@ -26,8 +26,8 @@ public struct ZoomImageDefaultOverlay: View {
     let closeButtonPosition: Alignment
     
     /// Creates the default overlay.
-    /// - Parameter closeButtonPosition: The close button position within the entire viewable frame.
-    public init(closeButtonPosition: Alignment = .topLeading) {
+    /// - Parameter closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
+    public init(closeButtonPosition: Alignment = .topTrailing) {
         self.closeButtonPosition = closeButtonPosition
     }
     

@@ -108,7 +108,7 @@ A custom overlay goes in a trailing closure, like with the other initializers, a
 
 ```swift
 ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
-    ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+    ZoomImageDefaultOverlay()
 
     Text(photo.caption)
         .padding()
@@ -123,10 +123,10 @@ A viewer inside `AutoRotatingView` shrinks back correctly while it is turned, as
 The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image. The image is fitted to the frame it grows from, so a thumbnail showing the whole image with `scaledToFit()` matches it most closely.
 
 ## Close button position
-The close button sits in the top leading corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
+The close button sits in the top trailing corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
 
 ```swift
-ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topTrailing)
+ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topLeading)
 ```
 
 ## Close button
@@ -141,7 +141,7 @@ The overlay's views are stacked on top of each other inside the viewer's safe ar
 
 ```swift
 ZoomImageView(uiImage: $uiImage) {
-    ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+    ZoomImageDefaultOverlay()
 
     Text("Two eagles catching a fish")
         .padding()

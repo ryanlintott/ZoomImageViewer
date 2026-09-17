@@ -12,6 +12,7 @@ import ZoomImageViewer
 struct TapToFullscreenImageScrollView: View {
     enum CloseButtonOption: String, CaseIterable, Identifiable {
         case `default`
+        case defaultTopLeading
         case defaultZoomImageCloseButtonStyle
         case customZoomImageCloseButtonStyle
         case customButtonStyle
@@ -20,19 +21,20 @@ struct TapToFullscreenImageScrollView: View {
             self
         }
         
-        /// Localized with `String(localized:)` rather than `LocalizedStringResource`, which needs iOS 16.
         var name: String {
             switch self {
-            case .default: String(localized: "Liquid Glass", comment: "Close button option using the Liquid Glass style.")
-            case .defaultZoomImageCloseButtonStyle: String(localized: "Default ZoomImageCloseButtonStyle", comment: "Close button option. ZoomImageCloseButtonStyle is a type name and is not translated.")
-            case .customZoomImageCloseButtonStyle: String(localized: "Custom ZoomImageCloseButtonStyle", comment: "Close button option. ZoomImageCloseButtonStyle is a type name and is not translated.")
-            case .customButtonStyle: String(localized: "Custom Button Style", comment: "Close button option using a button style defined by the example app.")
+            case .default: "Liquid Glass"
+            case .defaultTopLeading: "Liquid Glass, top leading"
+            case .defaultZoomImageCloseButtonStyle: "Default ZoomImageCloseButtonStyle"
+            case .customZoomImageCloseButtonStyle: "Custom ZoomImageCloseButtonStyle"
+            case .customButtonStyle: "Custom Button Style"
             }
         }
         
         var detail: String? {
             switch self {
-            case .default: String(localized: "Fallback: Default ZoomImageCloseButtonStyle", comment: "Detail for the Liquid Glass option, naming the style used before iOS 26. ZoomImageCloseButtonStyle is a type name and is not translated.")
+            case .default: "Fallback: Default ZoomImageCloseButtonStyle"
+            case .defaultTopLeading: "The default close button moved to the top leading corner"
             default: nil
             }
         }
@@ -79,9 +81,9 @@ struct TapToFullscreenImageScrollView: View {
                 }
                 .padding(.vertical, 8)
             } header: {
-                Text("Thumbnails", comment: "Header of the grid of thumbnails that grow into the viewer.")
+                Text(verbatim: "Thumbnails")
             } footer: {
-                Text("Images grow from these thumbnails and shrink back into them when closed.", comment: "Footer of the grid of thumbnails, explaining the matched geometry effect.")
+                Text(verbatim: "Images grow from these thumbnails and shrink back into them when closed.")
             }
             
             Section {
@@ -107,7 +109,7 @@ struct TapToFullscreenImageScrollView: View {
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text("Close button styles", comment: "Header of the list of close button options.")
+                Text(verbatim: "Close button styles")
             }
             
             Section {
@@ -134,9 +136,9 @@ struct TapToFullscreenImageScrollView: View {
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text("Image sizes", comment: "Header of the list of test images.")
+                Text(verbatim: "Image sizes")
             } footer: {
-                Text("Sizes are relative to the \(TestImage.sizeDescription(viewerSize)) viewer frame. Use the arrows while an image is showing to swap to the next or previous one.", comment: "Footer of the list of test images. The variable is the size of the viewer, like 402 × 874 pt.")
+                Text(verbatim: "Sizes are relative to the \(TestImage.sizeDescription(viewerSize)) viewer frame. Use the arrows while an image is showing to swap to the next or previous one.")
             }
         }
         .overlay(
@@ -153,7 +155,9 @@ struct TapToFullscreenImageScrollView: View {
                     ZoomImageView(uiImage: $uiImage) {
                         switch closeButtonOption {
                         case .default:
-                            ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+                            ZoomImageDefaultOverlay()
+                        case .defaultTopLeading:
+                            ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
                         case .defaultZoomImageCloseButtonStyle:
                             ZoomImageDefaultOverlay()
                                 .buttonStyle(ZoomImageCloseButtonStyle())
@@ -194,7 +198,11 @@ struct TapToFullscreenImageScrollView: View {
             Button {
                 stepPhoto(from: photo, by: -1)
             } label: {
-                Label(String(localized: "Previous photo", comment: "Button that shows the previous thumbnail photo."), systemImage: "chevron.left")
+                Label {
+                    Text(verbatim: "Previous photo")
+                } icon: {
+                    Image(systemName: "chevron.left")
+                }
             }
             
             Text(photo.caption)
@@ -204,7 +212,11 @@ struct TapToFullscreenImageScrollView: View {
             Button {
                 stepPhoto(from: photo, by: 1)
             } label: {
-                Label(String(localized: "Next photo", comment: "Button that shows the next thumbnail photo."), systemImage: "chevron.right")
+                Label {
+                    Text(verbatim: "Next photo")
+                } icon: {
+                    Image(systemName: "chevron.right")
+                }
             }
         }
         /// Opts out of the overlay's default button style.
@@ -227,7 +239,11 @@ struct TapToFullscreenImageScrollView: View {
             Button {
                 step(by: -1)
             } label: {
-                Label(String(localized: "Previous image", comment: "Button that shows the previous test image."), systemImage: "chevron.left")
+                Label {
+                    Text(verbatim: "Previous image")
+                } icon: {
+                    Image(systemName: "chevron.left")
+                }
             }
             
             Text(testImage.name)
@@ -237,7 +253,11 @@ struct TapToFullscreenImageScrollView: View {
             Button {
                 step(by: 1)
             } label: {
-                Label(String(localized: "Next image", comment: "Button that shows the next test image."), systemImage: "chevron.right")
+                Label {
+                    Text(verbatim: "Next image")
+                } icon: {
+                    Image(systemName: "chevron.right")
+                }
             }
         }
         /// Opts out of the overlay's default button style.
@@ -262,7 +282,7 @@ struct TapToFullscreenImageScrollView: View {
 
 struct MyCustomButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
-        Text("Bye", comment: "Title of a custom close button.")
+        Text(verbatim: "Bye")
             .foregroundColor(.white)
             .padding()
             .background(Capsule().fill(.red))

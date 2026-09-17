@@ -28,34 +28,33 @@ enum TestImage: String, CaseIterable, Identifiable {
     
     var id: Self { self }
     
-    /// Localized with `String(localized:)` rather than `LocalizedStringResource`, which needs iOS 16.
     var name: String {
         switch self {
-        case .smaller: String(localized: "Smaller", comment: "Name of a test image smaller than the screen.")
-        case .tiny: String(localized: "Tiny", comment: "Name of a very small test image.")
-        case .tallNarrow: String(localized: "Tall and narrow", comment: "Name of a test image taller and narrower than the screen.")
-        case .shortWide: String(localized: "Short and wide", comment: "Name of a test image shorter and wider than the screen.")
-        case .exactFit: String(localized: "Exact fit", comment: "Name of a test image the same size as the screen.")
-        case .larger: String(localized: "Larger", comment: "Name of a test image larger than the screen.")
-        case .bundled: String(localized: "Bundled asset", comment: "Name of the test image stored in the app's asset catalog.")
+        case .smaller: "Smaller"
+        case .tiny: "Tiny"
+        case .tallNarrow: "Tall and narrow"
+        case .shortWide: "Short and wide"
+        case .exactFit: "Exact fit"
+        case .larger: "Larger"
+        case .bundled: "Bundled asset"
         }
     }
     
     var detail: String {
         switch self {
-        case .smaller: String(localized: "Smaller than the frame in both dimensions", comment: "Description of a test image.")
-        case .tiny: String(localized: "Small enough that fitting it is a large scale up", comment: "Description of a test image.")
-        case .tallNarrow: String(localized: "Taller and narrower than the frame", comment: "Description of a test image.")
-        case .shortWide: String(localized: "Shorter and wider than the frame", comment: "Description of a test image.")
-        case .exactFit: String(localized: "The same size as the frame", comment: "Description of a test image.")
-        case .larger: String(localized: "Larger than the frame in both dimensions", comment: "Description of a test image.")
-        case .bundled: String(localized: "A fixed size that ignores the frame", comment: "Description of the test image stored in the app's asset catalog.")
+        case .smaller: "Smaller than the frame in both dimensions"
+        case .tiny: "Small enough that fitting it is a large scale up"
+        case .tallNarrow: "Taller and narrower than the frame"
+        case .shortWide: "Shorter and wider than the frame"
+        case .exactFit: "The same size as the frame"
+        case .larger: "Larger than the frame in both dimensions"
+        case .bundled: "A fixed size that ignores the frame"
         }
     }
     
-    /// A size in points, with its width and height formatted for the current locale.
+    /// A size in points, as its width and height.
     static func sizeDescription(_ size: CGSize) -> String {
-        String(localized: "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) pt", comment: "A size in points. The first variable is the width, the second the height.")
+        "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) pt"
     }
     
     var color: Color {
@@ -79,10 +78,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     /// `UIImage(named:)` caches, so this is cheap to read repeatedly.
     static var bundledImage: UIImage {
         let image = UIImage(named: "testImage") ?? UIImage()
-        image.accessibilityLabel = String(
-            localized: "Medieval manuscript image of two eagles flying over a body of water. One eagle has a fish in its talons.",
-            comment: "Alt text for the bundled test image."
-        )
+        image.accessibilityLabel = "Medieval manuscript image of two eagles flying over a body of water. One eagle has a fish in its talons."
         return image
     }
     
@@ -202,12 +198,12 @@ struct ThumbnailPhoto: Identifiable, Equatable {
     /// Created once, so each photo keeps the same image instance. A range of aspect ratios, to check that the image lands on a `scaledToFit` thumbnail of each shape.
     @MainActor
     static let all: [ThumbnailPhoto] = [
-        ThumbnailPhoto(id: 0, caption: String(localized: "Square", comment: "Caption of a square thumbnail image."), size: CGSize(width: 800, height: 800), color: .systemTeal),
-        ThumbnailPhoto(id: 1, caption: String(localized: "Tall", comment: "Caption of a tall thumbnail image."), size: CGSize(width: 500, height: 1000), color: .systemIndigo),
-        ThumbnailPhoto(id: 2, caption: String(localized: "Wide", comment: "Caption of a wide thumbnail image."), size: CGSize(width: 1200, height: 600), color: .systemOrange),
-        ThumbnailPhoto(id: 3, caption: String(localized: "Two eagles catching a fish", comment: "Caption of the bundled thumbnail image."), image: TestImage.bundledImage),
-        ThumbnailPhoto(id: 4, caption: String(localized: "Very tall", comment: "Caption of a very tall thumbnail image."), size: CGSize(width: 300, height: 1200), color: .systemGreen),
-        ThumbnailPhoto(id: 5, caption: String(localized: "Panorama", comment: "Caption of a very wide thumbnail image."), size: CGSize(width: 1600, height: 400), color: .systemPurple)
+        ThumbnailPhoto(id: 0, caption: "Square", size: CGSize(width: 800, height: 800), color: .systemTeal),
+        ThumbnailPhoto(id: 1, caption: "Tall", size: CGSize(width: 500, height: 1000), color: .systemIndigo),
+        ThumbnailPhoto(id: 2, caption: "Wide", size: CGSize(width: 1200, height: 600), color: .systemOrange),
+        ThumbnailPhoto(id: 3, caption: "Two eagles catching a fish", image: TestImage.bundledImage),
+        ThumbnailPhoto(id: 4, caption: "Very tall", size: CGSize(width: 300, height: 1200), color: .systemGreen),
+        ThumbnailPhoto(id: 5, caption: "Panorama", size: CGSize(width: 1600, height: 400), color: .systemPurple)
     ]
 }
 
