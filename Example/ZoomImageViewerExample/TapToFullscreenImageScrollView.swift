@@ -13,8 +13,6 @@ struct TapToFullscreenImageScrollView: View {
     enum CloseButtonOption: String, CaseIterable, Identifiable {
         case `default`
         case defaultTopLeading
-        case defaultZoomImageCloseButtonStyle
-        case customZoomImageCloseButtonStyle
         case customButtonStyle
         
         var id: Self {
@@ -25,15 +23,13 @@ struct TapToFullscreenImageScrollView: View {
             switch self {
             case .default: "Liquid Glass"
             case .defaultTopLeading: "Liquid Glass, top leading"
-            case .defaultZoomImageCloseButtonStyle: "Default ZoomImageCloseButtonStyle"
-            case .customZoomImageCloseButtonStyle: "Custom ZoomImageCloseButtonStyle"
             case .customButtonStyle: "Custom Button Style"
             }
         }
         
         var detail: String? {
             switch self {
-            case .default: "Fallback: Default ZoomImageCloseButtonStyle"
+            case .default: "Before iOS 26: white xmark on a blurred dark circle"
             case .defaultTopLeading: "The default close button moved to the top leading corner"
             default: nil
             }
@@ -158,12 +154,6 @@ struct TapToFullscreenImageScrollView: View {
                             ZoomImageDefaultOverlay()
                         case .defaultTopLeading:
                             ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
-                        case .defaultZoomImageCloseButtonStyle:
-                            ZoomImageDefaultOverlay()
-                                .buttonStyle(ZoomImageCloseButtonStyle())
-                        case .customZoomImageCloseButtonStyle:
-                            ZoomImageDefaultOverlay()
-                                .buttonStyle(ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
                         case .customButtonStyle:
                             ZoomImageDefaultOverlay()
                                 .buttonStyle(MyCustomButtonStyle())

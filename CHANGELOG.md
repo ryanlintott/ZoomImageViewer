@@ -33,11 +33,13 @@
 
 ### Deprecated
 
+- `ZoomImageCloseButtonStyle`. The overlay now hides while the image is zoomed in, so the close button no longer needs a discreet style. Use `ZoomImageDefaultButtonStyle` or a system button style instead.
 - `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Put `ZoomImageDefaultOverlay` with `buttonStyle(_:)` in an overlay instead.
 - `ZoomImageDefaultCloseButtonStyle`, renamed to `ZoomImageDefaultButtonStyle` as it now styles every button in the overlay.
 
 ### Changed
 
+- Before iOS 26, the default close button is a white xmark on a blurred dark circle, like a standard close button over media, instead of a white xmark drawn with the `difference` blend mode. It is drawn in the dark colour scheme, so it looks the same in light and dark mode. Other icon buttons in the overlay are drawn in the primary colour without a circle.
 - The default close button position is now the top trailing corner instead of the top leading corner, in `ZoomImageDefaultOverlay` and every `ZoomImageView` initializer that takes a `closeButtonPosition`. Pass `closeButtonPosition: .topLeading` to keep it where it was.
 - Double tapping an image zoomed in by any amount, such as one pinched part way in, zooms it back out to fit. It used to zoom a partly zoomed image further in, and only zoomed out from the maximum.
 - Like in Photos, the image ignores the safe area. It is fitted and centred in the whole screen, and a zoomed in image can be panned right to the edges, under the status bar, Dynamic Island and home indicator. It used to be inset by the window's safe area, which stopped a zoomed in image short of the edges. The overlay is still laid out inside the safe area.

@@ -8,10 +8,13 @@
 import SwiftUI
 
 /// A button style that allows for color, blend mode and padding adjustments.
+///
+/// Deprecated, as the overlay now hides while the image is zoomed in, so the close button no longer needs a discreet style. Use ``ZoomImageDefaultButtonStyle`` or a system button style instead.
+@available(*, deprecated, message: "Use ZoomImageDefaultButtonStyle or a system button style, like .bordered.")
 public struct ZoomImageCloseButtonStyle: ButtonStyle {
-    let color: Color?
-    let blendMode: BlendMode?
-    let paddingAmount: CGFloat?
+    let color: Color
+    let blendMode: BlendMode
+    let paddingAmount: CGFloat
     
     /// Creates a button style that allows for color, blend mode and padding adjustments.
     /// - Parameters:
@@ -23,68 +26,19 @@ public struct ZoomImageCloseButtonStyle: ButtonStyle {
         blendmode: BlendMode? = nil,
         paddingAmount: CGFloat? = nil
     ) {
-        self.color = color
-        self.blendMode = blendmode
-        self.paddingAmount = paddingAmount
+        self.color = color ?? .white
+        self.blendMode = blendmode ?? .difference
+        self.paddingAmount = paddingAmount ?? 10
     }
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .modifier(
-                ZoomImageCloseButtonViewModifier(
-                    color: color,
-                    blendmode: blendMode,
-                    paddingAmount: paddingAmount,
-                    isPressed: configuration.isPressed
-                )
-            )
-    }
-}
-
-struct ZoomImageCloseButtonViewModifier: ViewModifier {
-    let color: Color
-    let blendMode: BlendMode
-    let paddingAmount: CGFloat
-    let isPressed: Bool
-    
-    /// Creates a button style that allows for color, blend mode and padding adjustments.
-    /// - Parameters:
-    ///   - color: Color of the button label.
-    ///   - blendmode: Defines how the button label will blend with the background.
-    ///   - paddingAmount: Amount of outer padding on the button.
-    init(
-        color: Color? = nil,
-        blendmode: BlendMode? = nil,
-        paddingAmount: CGFloat? = nil,
-        isPressed: Bool
-    ) {
-        self.color = color ?? .white
-        self.blendMode = blendmode ?? .difference
-        self.paddingAmount = paddingAmount ?? 10
-        self.isPressed = isPressed
-    }
-    
-    func body(content: Content) -> some View {
-        content
             .font(.title)
             .labelStyle(.iconOnly)
             .foregroundColor(color)
-            .opacity(isPressed ? 0.5 : 1)
+            .opacity(configuration.isPressed ? 0.5 : 1)
             .blendMode(blendMode)
             .padding(paddingAmount)
             .contentShape(Rectangle())
     }
-}
-
-#Preview {
-    Button {
-        
-    } label: {
-        Label {
-            Text(verbatim: "Hello")
-        } icon: {
-            Image(systemName: "xmark")
-        }
-    }
-    .buttonStyle(ZoomImageCloseButtonStyle(color: .blue, blendmode: .normal, paddingAmount: 10))
 }

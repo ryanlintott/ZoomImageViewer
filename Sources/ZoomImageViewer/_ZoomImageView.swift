@@ -52,9 +52,10 @@ struct _ZoomImageView<Overlay: View>: View {
     
     @GestureState private var isDragging = false
     
-    let animationSpeed = 0.4
+    /// How long the viewer takes to fade in or out, and a thrown image takes to leave the screen.
+    let fadeDuration: TimeInterval = 0.4
     /// How long the overlay, status bar and home indicator take to hide or show.
-    let chromeAnimationSpeed = 0.25
+    let chromeDuration: TimeInterval = 0.25
     let dismissThreshold: CGFloat = 200
     let opacityAtDismissThreshold: Double = 0.8
     /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
@@ -79,7 +80,7 @@ struct _ZoomImageView<Overlay: View>: View {
                         if isShowingImage {
                             /// Fills the viewer's frame around the image, so the transition's turn has the same anchor point whatever size the image is at.
                             ZStack {
-                                ZoomImageViewRepresentable(frameSize: viewerSize, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeAnimationSpeed)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeAnimationSpeed)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
+                                ZoomImageViewRepresentable(frameSize: viewerSize, isInteractive: isInteractive, zoomState: $zoomState, isZoomedIn: $isZoomedIn.animation(.easeInOut(duration: chromeDuration)), isShowingOverlay: $isShowingOverlay.animation(.easeInOut(duration: chromeDuration)), accessibilityScrollRequest: accessibilityScrollRequest, maximumZoomScale: 2.0, uiImage: uiImage)
                                     /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out. Only this view is rebuilt, leaving the opacities and gestures around it untouched so a replacement appears without any transition.
                                     .id(ObjectIdentifier(uiImage))
                                     /// Outside the identity above, so a replacement image doesn't grow from a source of its own.
@@ -190,7 +191,7 @@ struct _ZoomImageView<Overlay: View>: View {
         .task(id: removalID) {
             guard removalID != nil else { return }
             /// A matched image is still settling on its source after the rest of the viewer has faded out, and is only taken away once it has.
-            let wait = matchedGeometry == nil ? animationSpeed : ZoomImageMatchedGeometry.settlingDuration
+            let wait = matchedGeometry == nil ? fadeDuration : ZoomImageMatchedGeometry.settlingDuration
             try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
             guard !Task.isCancelled else { return }
             removalID = nil
@@ -262,7 +263,7 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Ignored while the image is being dragged away, which already fades the overlay out.
     func toggleOverlay() {
         guard isInteractive else { return }
-        withAnimation(.easeInOut(duration: chromeAnimationSpeed)) {
+        withAnimation(.easeInOut(duration: chromeDuration)) {
             isShowingOverlay.toggle()
         }
     }
@@ -280,7 +281,7 @@ struct _ZoomImageView<Overlay: View>: View {
         withAnimation(.spring) {
             overlayOpacity = 0
         }
-        withAnimation(.linear(duration: animationSpeed)) {
+        withAnimation(.linear(duration: fadeDuration)) {
             backgroundOpacity = .zero
             /// A matched image has already been removed and is shrinking back into its source.
             if matchedGeometry == nil {
@@ -390,17 +391,17 @@ struct _ZoomImageView<Overlay: View>: View {
         /// An image without a source has nothing to grow from, so it fades in.
         if matchedGeometry == nil {
             backgroundOpacity = 1
-            withAnimation(.easeIn(duration: animationSpeed)) {
+            withAnimation(.easeIn(duration: fadeDuration)) {
                 imageOpacity = 1
             }
         } else {
             /// The image grows from its source instead of fading in, so only the background behind it fades.
             imageOpacity = 1
-            withAnimation(.easeIn(duration: animationSpeed)) {
+            withAnimation(.easeIn(duration: fadeDuration)) {
                 backgroundOpacity = 1
             }
         }
-        withAnimation(.easeIn(duration: animationSpeed).delay(animationSpeed)) {
+        withAnimation(.easeIn(duration: fadeDuration).delay(fadeDuration)) {
             overlayOpacity = 1
         }
     }
@@ -446,7 +447,7 @@ struct _ZoomImageView<Overlay: View>: View {
             withAnimation(.spring) {
                 overlayOpacity = 0
             }
-            withAnimation(.linear(duration: animationSpeed)) {
+            withAnimation(.linear(duration: fadeDuration)) {
                 backgroundOpacity = .zero
             }
             /// Starts the removal before clearing the binding, so the standard fade out skips this image.
@@ -455,15 +456,15 @@ struct _ZoomImageView<Overlay: View>: View {
             uiImage = nil
         } else if predictedEndTranslation.magnitude > dismissThreshold {
             /// Lasts as long as the background's fade, so the image is off the screen by the time the background is gone.
-            let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: animationSpeed)
+            let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: fadeDuration)
             withAnimation(toss.animation) {
                 offset = toss.endOffset
                 overlayOpacity = 0
             }
-            withAnimation(.linear(duration: animationSpeed)) {
+            withAnimation(.linear(duration: fadeDuration)) {
                 backgroundOpacity = .zero
             }
-            withAnimation(.linear(duration: animationSpeed * 0.5).delay(animationSpeed * 0.5)) {
+            withAnimation(.linear(duration: fadeDuration * 0.5).delay(fadeDuration * 0.5)) {
                 imageOpacity = .zero
             }
             /// Starts the removal before clearing the binding, so the standard fade out skips this image.
@@ -486,7 +487,6 @@ struct _ZoomImageView<Overlay: View>: View {
     
     ZoomImageView(uiImage: $uiImage) {
         ZoomImageDefaultOverlay()
-            .buttonStyle(ZoomImageCloseButtonStyle())
     }
 
 }

@@ -9,7 +9,7 @@ import SwiftUI
 
 /// The built-in close button for a ``ZoomImageView``.
 ///
-/// On iOS 26 and up it uses the close role with the label the system provides, which the system localizes. Earlier versions use an xmark icon titled "Close", localized by this package.
+/// On iOS 26 and up it uses the close role with the label the system provides, which the system localizes. Earlier versions use an xmark in a filled circle titled "Close", localized by this package.
 ///
 /// It has no button style or position of its own. Inside a ``ZoomImageView`` it uses ``ZoomImageDefaultButtonStyle`` unless you give it another with `buttonStyle(_:)`. Use ``ZoomImageDefaultOverlay`` for the button in its default position.
 ///
@@ -49,7 +49,8 @@ public struct ZoomImageCloseButton: View {
             Label {
                 Text("Close", bundle: .module, comment: "Title of the button that dismisses the fullscreen image viewer. Shown as an xmark icon and read by VoiceOver.")
             } icon: {
-                Image(systemName: "xmark")
+                /// The circle comes from the icon rather than the button style, so other icon buttons in the overlay don't gain one.
+                Image(systemName: "xmark.circle.fill")
             }
         }
     }
@@ -65,9 +66,6 @@ public struct ZoomImageCloseButton: View {
         VStack {
             ZoomImageCloseButton()
                 .buttonStyle(ZoomImageDefaultButtonStyle())
-            
-            ZoomImageCloseButton()
-                .buttonStyle(ZoomImageCloseButtonStyle())
             
             ZoomImageCloseButton()
                 .buttonStyle(.borderedProminent)

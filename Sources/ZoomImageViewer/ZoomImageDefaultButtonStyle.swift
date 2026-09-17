@@ -9,27 +9,41 @@ import SwiftUI
 
 /// The button style a ``ZoomImageView`` gives the buttons in its overlay, unless they set their own.
 ///
-/// It looks like a Glass button in iOS 26 and ``ZoomImageCloseButtonStyle`` in its default mode in any earlier version.
+/// It looks like a Glass button in iOS 26. Earlier versions show the label's icon large in the dark colour scheme, which draws ``ZoomImageCloseButton`` as a white xmark on a blurred dark circle.
 public struct ZoomImageDefaultButtonStyle: ButtonStyle {
     /// Creates the default button style for a ``ZoomImageView`` overlay.
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
+        #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             configuration.label
-                #if compiler(>=6.2)
                 .font(.title3)
                 .labelStyle(.iconOnly)
                 .padding(12)
                 .contentShape(Circle())
                 .glassEffect(.regular.interactive(), in: .circle)
-                #else
-                .modifier(ZoomImageCloseButtonViewModifier(isPressed: configuration.isPressed))
-                #endif
         } else {
-            configuration.label
-                .modifier(ZoomImageCloseButtonViewModifier(isPressed: configuration.isPressed))
+            standardBody(configuration: configuration)
         }
+        #else
+        standardBody(configuration: configuration)
+        #endif
+    }
+    
+    /// The look used before iOS 26, like a standard close button over media.
+    ///
+    /// Always drawn in the dark colour scheme, as the viewer's background is black in both light and dark mode, so the semantic colours are the ones for a dark background. The palette puts the primary colour on the xmark and a material behind it, and a symbol with a single layer is drawn in the primary colour.
+    func standardBody(configuration: Configuration) -> some View {
+        configuration.label
+            .labelStyle(.iconOnly)
+            .font(.title)
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(.secondary, .ultraThinMaterial)
+            .opacity(configuration.isPressed ? 0.5 : 1)
+            .padding(10)
+            .contentShape(Rectangle())
+            .colorScheme(.dark)
     }
 }
 

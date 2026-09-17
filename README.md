@@ -130,9 +130,9 @@ ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topLeading)
 ```
 
 ## Close button
-The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions use an xmark icon titled "Close" from the package's string catalog.
+The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions use an xmark in a filled circle, titled "Close" from the package's string catalog.
 
-Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass button on iOS 26 and as `ZoomImageCloseButtonStyle` on earlier versions.
+Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass button on iOS 26. On earlier versions it shows the close button as a white xmark on a blurred dark circle, drawn in the dark colour scheme so it looks the same in light and dark mode.
 
 ## Overlay
 Everything shown over the image, including the close button, is an overlay you can replace. The viewer covers its frame with the overlay, fades it in and out with the image, and hides it while the image is zoomed in or after a single tap. The overlay is inside the viewer's VoiceOver modal, so anything you put in it can be reached.
@@ -165,16 +165,16 @@ ZoomImageView(uiImage: $uiImage) {
 }
 ```
 
-Use `ZoomImageCloseButtonStyle` to adjust the color, blend mode and padding of the classic close button. Its defaults are a white label drawn with the `difference` blend mode, which keeps it visible on top of any image.
+`ZoomImageCloseButtonStyle` is deprecated. Use `ZoomImageDefaultButtonStyle` or a system button style instead.
 
 ```swift
 ZoomImageView(uiImage: $uiImage) {
     ZoomImageDefaultOverlay()
-        .buttonStyle(ZoomImageCloseButtonStyle(color: .pink, blendmode: .normal, paddingAmount: 0))
+        .buttonStyle(.bordered)
 }
 ```
 
-A custom style given to the built-in close button receives the system close label on iOS 26 and up, and a `Label` with an xmark icon on earlier versions, so it can use the icon, the text, or both.
+A custom style given to the built-in close button receives the system close label on iOS 26 and up, and a `Label` with an xmark in a filled circle on earlier versions, so it can use the icon, the text, or both.
 
 ```swift
 struct MyCustomButtonStyle: ButtonStyle {
