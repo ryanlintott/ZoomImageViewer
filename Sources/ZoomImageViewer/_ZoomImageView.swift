@@ -100,6 +100,7 @@ struct _ZoomImageView<Overlay: View>: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isImage)
                         .accessibilityLabel(Text(uiImage.accessibilityLabel ?? ""))
+                        .accessibilityInputLabels(["Image", "Photo", "Picture"])
                         .ifAvailable {
                             if #available(iOS 16, *) {
                                 /// Lets assistive technologies such as VoiceOver zoom the image in and out, the same as a double tap.

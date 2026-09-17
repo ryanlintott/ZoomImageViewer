@@ -15,12 +15,16 @@ A fullscreen SwiftUI image viewer with smooth and bouncy pinch zooming, panning,
 # Demo App
 The `Example` folder has an app that demonstrates the features of this package.
 
-# Installation and Usage
-This package is compatible with iOS 15+.
+# Installation
+Requires iOS 15+ and Swift 6.0+ (Xcode 16+).
 
-1. In Xcode go to `File -> Add Package Dependencies`
-2. Paste in the repo's url: `https://github.com/ryanlintott/ZoomImageViewer` and select by version.
-3. Import the package using `import ZoomImageViewer`
+In Xcode, choose **File › Add Package Dependencies…** and enter `https://github.com/ryanlintott/ZoomImageViewer`. Or add it to `Package.swift`:
+
+```swift
+.package(url: "https://github.com/ryanlintott/ZoomImageViewer", from: "1.0.0")
+```
+
+Then `import ZoomImageViewer`.
 
 # Documentation
 Full API documentation is hosted on the [Swift Package Index](https://swiftpackageindex.com/ryanlintott/ZoomImageViewer/documentation/zoomimageviewer).
@@ -41,30 +45,49 @@ ZoomImageViewer is open source and free but if you like using it, please conside
 ## ZoomImageView
 Add `ZoomImageView` as an overlay and pass it a binding to an optional `UIImage`. The view shows nothing while the binding is `nil`, and presents the image fullscreen as soon as one is set. Closing the viewer sets the binding back to `nil`, and setting the binding to `nil` closes the viewer with the same fade.
 
+The viewer only fills the frame it is given, so overlay it on a view that covers the whole screen and add it as high up the hierarchy as you can. Overlaying a single button shows the image in that button's frame.
+
 ```swift
 @State private var uiImage: UIImage? = nil
 
 var body: some View {
-    Button("Show image") {
-        uiImage = UIImage(named: "testImage")
+    VStack {
+        Button("Show image") {
+            uiImage = UIImage(named: "testImage")
+        }
     }
-    .overlay(ZoomImageView(uiImage: $uiImage))
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .overlay {
+        ZoomImageView(uiImage: $uiImage)
+    }
 }
 ```
 
-Inside the viewer you can:
+Interactive behaviors:
 
-- Pinch to zoom, or double tap to zoom in. Double tapping an image zoomed in by any amount zooms it back out.
-- Pan around a zoomed-in image.
-- Drag a zoomed-out image away to dismiss it.
-- Tap once to show or hide the overlay.
-- Tap the close button.
+- Pinch to zoom and pan in the same gesture. Zooming is anchored to the center of your pinch.
+- Pan around a zoomed-in image in a smooth scroll view that bounces.
+- Double-tap to zoom in and out.
+- Tap the close button or drag a zoomed-out image and toss it away to dismiss it.
+- Tap to show or hide the overlay, status bar, and home indicator.
 
-Like in Photos, the image fills the whole screen, ignoring the safe area, and a zoomed-in image can be panned right to its edges. Zooming in hides the overlay, status bar and home indicator so nothing covers the image. They come back when the image is zoomed back out to fit. A single tap shows or hides the overlay at any zoom, taking the status bar and home indicator with it only while the image is zoomed out, so a zoomed in image keeps the whole screen. An overlay shown over a zoomed-in image hides again as soon as you pan or zoom. Dragging a zoomed-out image hides the overlay too, and it comes back if the image is put back rather than dismissed. Hiding the home indicator needs iOS 16.
+Automatic behaviors:
+- The overlay keeps the same safe area while the image ignores it and pans to the edges.
+- Zooming in or panning hides the overlay, status bar and home indicator so nothing covers the image. Zooming out brings everything back.
 
-Zooming and panning respect the reduce motion and smart invert accessibility settings.
-
-With VoiceOver, the viewer acts as a modal: focus moves into it when it appears, content behind it is hidden, and the escape gesture, a two-finger scrub, dismisses the image. The image is a single element described by the `UIImage`'s `accessibilityLabel`, read before anything in the overlay and announced when it replaces another image, so set one to tell VoiceOver users what it shows.
+Accessibility features:
+- Smart invert will not invert the image.
+- Voice Control labels.
+- VoiceOver support.
+  - The viewer acts as a modal.
+  - Support for zooming and panning on iOS 16 and up.
+  - Accessibility action for showing/hiding overlay controls.
+  - Escape gesture dismisses the image.
+  - `UIImage.accessibilityLabel` is used for the accessibility label and is announced the image appears.
+- Reduce motion
+  - Double-tap zooming will crossfade.
+  - Thumbnail transition is disabled.
+- Accessibility Text sizes for the close button.
 
 ```swift
 let image = UIImage(named: "testImage")
@@ -72,9 +95,7 @@ image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
 uiImage = image
 ```
 
-VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction. The image's Show Controls and Hide Controls actions do the same as a single tap, so an overlay hidden by zooming in can be brought back without zooming out.
-
-## Growing from a thumbnail
+## Thumbnail Transition
 Present an optional `Identifiable` and `Equatable` item instead of a `UIImage` to grow the image from the item's thumbnail and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
 Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the item binding, a key path to the item's image and the same namespace. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
@@ -84,29 +105,29 @@ Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its i
 @State private var selectedPhoto: Photo? = nil
 
 var body: some View {
-    VStack {
-        ForEach(photos) { photo in
-            Button {
-                selectedPhoto = photo
-            } label: {
-                Image(uiImage: photo.image)
-                    .resizable()
-                    .scaledToFit()
-                    .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+    ScrollView {
+        LazyVGrid(columns: [GridItem(), GridItem()]) {
+            ForEach(photos) { photo in
+                Button {
+                    selectedPhoto = photo
+                } label: {
+                    Image(uiImage: photo.image)
+                        .resizable()
+                        .scaledToFit()
+                        .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+                }
             }
         }
     }
-    .overlay(
+    .overlay {
         ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace)
-    )
+    }
 }
 ```
 
 The thumbnail is hidden while its image is showing and fades back in once the image has landed on it. It stays in place the whole time, so the layout around it doesn't change.
 
-With Reduce Motion on, the image fades in and out like a viewer without thumbnails, and a dragged image is thrown off screen. The thumbnail stays visible the whole time.
-
-A custom overlay goes in a trailing closure, like with the other initializers, and receives the item. It keeps showing the last item while the viewer fades out.
+A custom overlay goes in a trailing closure, like with the other initializers, and receives the item. Use this item when adding any 
 
 ```swift
 ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
@@ -118,32 +139,26 @@ ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
 }
 ```
 
-Setting the selection to another item while the viewer is open swaps the image, and closing shrinks it into that item's thumbnail.
-
-A viewer inside `AutoRotatingView` shrinks back correctly while it is turned, as the image turns back to match the thumbnail as it lands.
+Setting the selection to another item while the viewer is open swaps the image instantly, and closing shrinks it into that item's thumbnail.
 
 The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image. The image is fitted to the frame it grows from, so a thumbnail showing the whole image with `scaledToFit()` matches it most closely.
 
-## Close button position
-The close button sits in the top trailing corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
+## Overlay
+The default overlay is a close button in the top trailing corner but the `Alignment` can be customized.
 
 ```swift
 ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topLeading)
 ```
 
-## Close button
-The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions use an xmark in a filled circle, titled "Close" from the package's string catalog.
+The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions are titled "Close" from the package's string catalog.
 
 Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass button on iOS 26. On earlier versions it shows the close button as a white xmark on a blurred dark circle, drawn in the dark colour scheme so it looks the same in light and dark mode.
 
-## Overlay
-Everything shown over the image, including the close button, is an overlay you can replace. The viewer covers its frame with the overlay, fades it in and out with the image, and hides it while the image is zoomed in or after a single tap. The overlay is inside the viewer's VoiceOver modal, so anything you put in it can be reached.
-
-The overlay's views are stacked on top of each other inside the viewer's safe area, and placing and padding them is up to you. Use `ZoomImageDefaultOverlay` to keep the default close button, in its default position, alongside your own views.
+If you want a custom overlay you can use a trailing closure and add additional UI elements. Use `ZoomImageDefaultOverlay` to keep the default close button, alongside your own views.
 
 ```swift
 ZoomImageView(uiImage: $uiImage) {
-    ZoomImageDefaultOverlay()
+    ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
 
     Text("Two eagles catching a fish")
         .padding()
@@ -153,59 +168,7 @@ ZoomImageView(uiImage: $uiImage) {
 }
 ```
 
-A custom overlay replaces the default one, so include a close button unless dragging the image away is the only way you want to close it.
-
-On iOS 26 and up, windows can have system UI in their corners, like the traffic lights on an iPad window. The default overlay moves its close button clear of them. Do the same for views you place in a corner with `containerCornerOffset(_:sizeToFit:)`.
-
-### Button styles
-Buttons in the overlay use `ZoomImageDefaultButtonStyle` unless they set their own. Any button style will do, including system styles like `.glass` or `.bordered`. Use `.buttonStyle(.automatic)` for the system's usual look.
-
-```swift
-ZoomImageView(uiImage: $uiImage) {
-    ZoomImageDefaultOverlay()
-        .buttonStyle(.glass)
-}
-```
-
-`ZoomImageCloseButtonStyle` is deprecated. Use `ZoomImageDefaultButtonStyle` or a system button style instead.
-
-```swift
-ZoomImageView(uiImage: $uiImage) {
-    ZoomImageDefaultOverlay()
-        .buttonStyle(.bordered)
-}
-```
-
-A custom style given to the built-in close button receives the system close label on iOS 26 and up, and a `Label` with an xmark in a filled circle on earlier versions, so it can use the icon, the text, or both.
-
-```swift
-struct MyCustomButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Text("Bye")
-            .foregroundColor(.white)
-            .padding()
-            .background(Capsule().fill(.red))
-            .rotationEffect(.degrees(configuration.isPressed ? 180 : 0))
-            .padding()
-    }
-}
-
-ZoomImageView(uiImage: $uiImage) {
-    ZoomImageDefaultOverlay()
-        .buttonStyle(MyCustomButtonStyle())
-}
-```
-
-### Placing the close button yourself
-`ZoomImageCloseButton` is the built-in button on its own, without a position or padding.
-
-```swift
-ZoomImageView(uiImage: $uiImage) {
-    ZoomImageCloseButton()
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-}
-```
+`ZoomImageCloseButton` is the built-in button on its own, without a position or padding. All Buttons in the overlay use `ZoomImageDefaultButtonStyle` unless they set their own.
 
 ### Your own close button
 To change the title, role or accessibility too, make a button that sets your image binding to `nil`, or calls the `closeZoomImage` action from the environment when the button is its own view. Localize its title in your own bundle as you would any other `Text`.
@@ -227,8 +190,6 @@ ZoomImageView(uiImage: $uiImage) {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 }
 ```
-
-Use `closeZoomImage` rather than `dismiss`. The viewer is an overlay, not a presentation, so `dismiss` closes whatever presentation the viewer is in, like a sheet, and leaves the image showing.
 
 ## Rotation
 If your app is locked to portrait but you want fullscreen images to rotate, wrap the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp). The example app does this.
