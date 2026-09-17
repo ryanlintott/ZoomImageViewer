@@ -59,8 +59,6 @@ struct _ZoomImageView<Overlay: View>: View {
     let opacityAtDismissThreshold: Double = 0.8
     /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
     let dismissDistanceMultiplier: CGFloat = 2
-    /// How the image shrinks back to its matched geometry source when the viewer closes it without a drag to carry it there.
-    let matchedGeometryAnimation = ZoomImageMatchedGeometry.landingAnimation()
     
     var body: some View {
         /// This helps center animated rotations
@@ -144,7 +142,7 @@ struct _ZoomImageView<Overlay: View>: View {
                             .opacity(isShowingOverlay ? 1 : 0)
                             .allowsHitTesting(isShowingOverlay)
                             .accessibilityHidden(!isShowingOverlay)
-                            .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage, animation: closeAnimation))
+                            .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage))
                         )
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
                         .accessibilityElement(children: .contain)
@@ -251,10 +249,6 @@ struct _ZoomImageView<Overlay: View>: View {
         )
     }
     
-    /// The animation the viewer closes itself with, so a matched image shrinks back into its source, or `nil` to fade out an image without a source.
-    var closeAnimation: Animation? {
-        matchedGeometry == nil ? nil : matchedGeometryAnimation
-    }
     
     /// Whether the status bar and home indicator are showing.
     ///
@@ -275,7 +269,7 @@ struct _ZoomImageView<Overlay: View>: View {
     
     /// Closes the viewer. Clearing the binding fades it out.
     func close() {
-        ZoomImageCloseAction(uiImage: $uiImage, animation: closeAnimation)()
+        ZoomImageCloseAction(uiImage: $uiImage)()
     }
     
     /// Fades the viewer out, then removes the image once it can no longer be seen.
@@ -457,10 +451,8 @@ struct _ZoomImageView<Overlay: View>: View {
             }
             /// Starts the removal before clearing the binding, so the standard fade out skips this image.
             removalID = UUID()
-            /// The image shrinks back into its source from wherever it was dragged to, rather than being thrown off screen. Its offset is left where the drag put it and taken back to nothing by the transition, which carries on at the speed the drag was let go at. A change to the offset here would be applied to the removed image at once rather than animated, dragging it back to the middle of the frame before it sets off.
-            withAnimation(matchedGeometryAnimation) {
-                uiImage = nil
-            }
+            /// The image shrinks back into its source from wherever it was dragged to, rather than being thrown off screen, with the viewer's own landing animation. Its offset is left where the drag put it and taken back to nothing by the transition, which carries on at the speed the drag was let go at. A change to the offset here would be applied to the removed image at once rather than animated, dragging it back to the middle of the frame before it sets off.
+            uiImage = nil
         } else if predictedEndTranslation.magnitude > dismissThreshold {
             /// Lasts as long as the background's fade, so the image is off the screen by the time the background is gone.
             let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: animationSpeed)
