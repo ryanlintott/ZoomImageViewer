@@ -12,6 +12,8 @@ public extension View {
     ///
     /// Pass the item this view shows, the value of the viewer's item binding as the selection, and the viewer's namespace. The view is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
     ///
+    /// With Reduce Motion on, the image fades in and out rather than growing from this view, so the view stays visible the whole time.
+    ///
     /// Hiding and fading back in follow the viewer's own timing, not the animation the selection was changed with, so the selection doesn't need to be set inside `withAnimation`.
     ///
     /// ```swift
@@ -35,13 +37,16 @@ public extension View {
 ///
 /// Matched geometry only matches frames, so the view inserted and removed with the image doesn't have to be the content. The content stays where it is and only changes opacity, so it is built once and laid out once.
 struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
+    /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source stays visible.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    
     let id: ID
     let isPresenting: Bool
     let namespace: Namespace.ID
 
     func body(content: Content) -> some View {
         content
-            .opacity(isPresenting ? 0 : 1)
+            .opacity(isPresenting && !reduceMotion ? 0 : 1)
             /// Hidden at once as the image starts growing over it, and faded back in once the image has landed on it again.
             .animation(isPresenting ? nil : .linear(duration: ZoomImageMatchedGeometry.swapDuration).delay(ZoomImageMatchedGeometry.landingDelay), value: isPresenting)
             .overlay {

@@ -10,6 +10,8 @@ import SwiftUI
 struct _ZoomImageView<Overlay: View>: View {
     /// Used to resolve the leading and trailing edges VoiceOver scrolls towards before they are handed to UIKit.
     @Environment(\.layoutDirection) private var layoutDirection
+    /// With Reduce Motion on, an image with a source fades in and out rather than growing from it and shrinking back.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @Binding var uiImage: UIImage?
     let overlay: Overlay
@@ -205,9 +207,12 @@ struct _ZoomImageView<Overlay: View>: View {
     ///
     /// Clearing an item clears its identifier in the same transaction, while the image still has to shrink back into the source it came from. So once the binding is cleared, the matched geometry of the last image in it is used instead. A viewer with a namespace always has one while an image is on screen, as its binding only holds an image while it holds an item.
     ///
+    /// Always `nil` while Reduce Motion is on, so an image with a source takes the same path as one without: it fades in and out, and is thrown off screen when dragged away. Reduce Motion changing while an image is on screen isn't accounted for, and can only affect how that image leaves.
+    ///
     /// Read correctly from closures that see the view from before a change, like `onChange(of:perform:)` and `task(id:)`: the binding and ``displayedMatchedGeometry`` are read as they are now, and ``currentMatchedGeometry`` is only used while the binding holds an image, when it can only be out of date if the item changed in the same update.
     var matchedGeometry: ZoomImageMatchedGeometry? {
-        uiImage == nil ? displayedMatchedGeometry : currentMatchedGeometry
+        guard !reduceMotion else { return nil }
+        return uiImage == nil ? displayedMatchedGeometry : currentMatchedGeometry
     }
     
     /// The image the viewer is built around.

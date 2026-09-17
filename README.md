@@ -104,6 +104,8 @@ var body: some View {
 
 The thumbnail is hidden while its image is showing and fades back in once the image has landed on it. It stays in place the whole time, so the layout around it doesn't change.
 
+With Reduce Motion on, the image fades in and out like a viewer without thumbnails, and a dragged image is thrown off screen. The thumbnail stays visible the whole time.
+
 A custom overlay goes in a trailing closure, like with the other initializers, and receives the item. It keeps showing the last item while the viewer fades out.
 
 ```swift
