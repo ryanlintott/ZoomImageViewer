@@ -270,7 +270,7 @@ struct _ZoomImageView<Overlay: View>: View {
     
     /// Closes the viewer. Clearing the binding fades it out.
     func close() {
-        ZoomImageCloseAction(uiImage: $uiImage)()
+        uiImage = nil
     }
     
     /// Fades the viewer out, then removes the image once it can no longer be seen.
@@ -309,9 +309,7 @@ struct _ZoomImageView<Overlay: View>: View {
             /// An image shown while the viewer fades out cancels the removal and fades the viewer back in.
             removalID = nil
             if displayedImage !== newImage {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
+                withoutAnimation {
                     displayedImage = newImage
                 }
             }
@@ -328,9 +326,7 @@ struct _ZoomImageView<Overlay: View>: View {
         }
         
         /// An image already on screen is replaced immediately, with no fade in either direction. Only the state deciding how the image is laid out is reset, leaving the opacities as they are. Animations are disabled so the swap stays immediate even when the caller changed the binding inside `withAnimation`.
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
+        withoutAnimation {
             displayedImage = newImage
             resetPresentation()
         }
