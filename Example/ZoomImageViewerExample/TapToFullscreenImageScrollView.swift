@@ -184,78 +184,26 @@ struct TapToFullscreenImageScrollView: View {
     
     /// Steps between photos while one is on screen. Closing after a step shrinks the image into the thumbnail of the photo on screen.
     func photoControls(for photo: ThumbnailPhoto) -> some View {
-        HStack(spacing: 16) {
-            Button {
-                stepPhoto(from: photo, by: -1)
-            } label: {
-                Label {
-                    Text(verbatim: "Previous photo")
-                } icon: {
-                    Image(systemName: "chevron.left")
-                }
-            }
-            
-            Text(photo.caption)
-                .font(.subheadline)
-                .frame(minWidth: 140)
-            
-            Button {
-                stepPhoto(from: photo, by: 1)
-            } label: {
-                Label {
-                    Text(verbatim: "Next photo")
-                } icon: {
-                    Image(systemName: "chevron.right")
-                }
-            }
+        StepControls(title: photo.caption, previousTitle: "Previous photo", nextTitle: "Next photo") {
+            stepPhoto(from: photo, by: -1)
+        } next: {
+            stepPhoto(from: photo, by: 1)
         }
-        /// Opts out of the overlay's default button style.
-        .buttonStyle(.automatic)
-        .labelStyle(.iconOnly)
-        .font(.title3)
-        .padding()
-        .background(.ultraThinMaterial, in: Capsule())
     }
     
     func stepPhoto(from photo: ThumbnailPhoto, by offset: Int) {
         let all = ThumbnailPhoto.all
         guard let index = all.firstIndex(where: { $0.id == photo.id }) else { return }
-        selectedPhoto = all[(index + offset + all.count) % all.count]
+        selectedPhoto = all.element(at: index, offsetBy: offset)
     }
     
     /// Steps between test images while one is on screen, to check the swap animation.
     var imageSwapControls: some View {
-        HStack(spacing: 16) {
-            Button {
-                step(by: -1)
-            } label: {
-                Label {
-                    Text(verbatim: "Previous image")
-                } icon: {
-                    Image(systemName: "chevron.left")
-                }
-            }
-            
-            Text(testImage.name)
-                .font(.subheadline)
-                .frame(minWidth: 140)
-            
-            Button {
-                step(by: 1)
-            } label: {
-                Label {
-                    Text(verbatim: "Next image")
-                } icon: {
-                    Image(systemName: "chevron.right")
-                }
-            }
+        StepControls(title: testImage.name, previousTitle: "Previous image", nextTitle: "Next image") {
+            step(by: -1)
+        } next: {
+            step(by: 1)
         }
-        /// Opts out of the overlay's default button style.
-        .buttonStyle(.automatic)
-        .labelStyle(.iconOnly)
-        .font(.title3)
-        .padding()
-        .background(.ultraThinMaterial, in: Capsule())
     }
     
     func show(_ testImage: TestImage) {
@@ -266,7 +214,53 @@ struct TapToFullscreenImageScrollView: View {
     func step(by offset: Int) {
         let allCases = TestImage.allCases
         guard let index = allCases.firstIndex(of: testImage) else { return }
-        show(allCases[(index + offset + allCases.count) % allCases.count])
+        show(allCases.element(at: index, offsetBy: offset))
+    }
+}
+
+/// Previous and next buttons either side of a title, for stepping between images while one is on screen.
+struct StepControls: View {
+    let title: String
+    let previousTitle: String
+    let nextTitle: String
+    let previous: () -> Void
+    let next: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Button(action: previous) {
+                Label {
+                    Text(previousTitle)
+                } icon: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+            
+            Text(title)
+                .font(.subheadline)
+                .frame(minWidth: 140)
+            
+            Button(action: next) {
+                Label {
+                    Text(nextTitle)
+                } icon: {
+                    Image(systemName: "chevron.right")
+                }
+            }
+        }
+        /// Opts out of the overlay's default button style.
+        .buttonStyle(.automatic)
+        .labelStyle(.iconOnly)
+        .font(.title3)
+        .padding()
+        .background(.ultraThinMaterial, in: Capsule())
+    }
+}
+
+extension Array {
+    /// The element `offset` places from `index`, wrapping around either end.
+    func element(at index: Int, offsetBy offset: Int) -> Element {
+        self[((index + offset) % count + count) % count]
     }
 }
 

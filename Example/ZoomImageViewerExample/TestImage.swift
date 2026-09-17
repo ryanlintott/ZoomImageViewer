@@ -85,9 +85,14 @@ enum TestImage: String, CaseIterable, Identifiable {
     /// A frame size to fall back on before the viewer has been measured.
     static let placeholderFrameSize = CGSize(width: 390, height: 844)
     
+    /// `frameSize` once the viewer has been measured, or the placeholder while it has no area.
+    static func resolvedFrameSize(_ frameSize: CGSize) -> CGSize {
+        frameSize.width > 0 && frameSize.height > 0 ? frameSize : placeholderFrameSize
+    }
+    
     /// The size this image would be generated at when viewed in a frame of `frameSize`.
     func size(in frameSize: CGSize) -> CGSize {
-        let frameSize = frameSize.width > 0 && frameSize.height > 0 ? frameSize : Self.placeholderFrameSize
+        let frameSize = Self.resolvedFrameSize(frameSize)
         
         return switch self {
         case .smaller: CGSize(width: frameSize.width * 0.6, height: frameSize.height * 0.4)
@@ -216,7 +221,7 @@ struct TestImageDiagram: View {
     
     var body: some View {
         let imageSize = testImage.size(in: frameSize)
-        let frameSize = frameSize.width > 0 && frameSize.height > 0 ? frameSize : TestImage.placeholderFrameSize
+        let frameSize = TestImage.resolvedFrameSize(frameSize)
         let scale = maxSide / max(frameSize.width, frameSize.height, imageSize.width, imageSize.height)
         
         ZStack {
