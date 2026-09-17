@@ -179,7 +179,7 @@ enum TestImage: String, CaseIterable, Identifiable {
 }
 
 /// An image with a caption, shown as a thumbnail that grows into the viewer.
-struct ThumbnailPhoto: Identifiable {
+struct ThumbnailPhoto: Identifiable, Equatable {
     let id: Int
     let caption: String
     /// Stored rather than computed, so the viewer is given the same instance on every update.

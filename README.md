@@ -75,7 +75,7 @@ uiImage = image
 VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction. The image's Show Controls and Hide Controls actions do the same as a single tap, so an overlay hidden by zooming in can be brought back without zooming out.
 
 ## Growing from a thumbnail
-Present an optional `Identifiable` item instead of a `UIImage` to grow the image from the item's thumbnail and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
+Present an optional `Identifiable` and `Equatable` item instead of a `UIImage` to grow the image from the item's thumbnail and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
 Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the item binding, a key path to the item's image and the same namespace. Set the item inside `withAnimation` so SwiftUI animates between the two. The viewer animates its own closes.
 

@@ -83,11 +83,11 @@ public struct ZoomImageView<Overlay: View>: View {
     ///
     /// The overlay is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared.
     /// - Parameters:
-    ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
+    ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer. `Equatable`, so the overlay can tell when the item changes and fade out with its latest contents.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does, as a different instance is shown as a replacement image.
     ///   - namespace: The namespace the source views are in.
     ///   - overlay: The views shown over the image for an item, stacked on top of each other.
-    public init<Item: Identifiable, Content: View>(
+    public init<Item: Identifiable & Equatable, Content: View>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
         in namespace: Namespace.ID,
@@ -139,7 +139,7 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does.
     ///   - namespace: The namespace the source views are in.
     ///   - closeButtonPosition: The close button position within the entire viewable frame.
-    init<Item: Identifiable>(
+    init<Item: Identifiable & Equatable>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
         in namespace: Namespace.ID,
