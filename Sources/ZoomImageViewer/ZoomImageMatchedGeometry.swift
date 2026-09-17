@@ -9,15 +9,15 @@ import SwiftUI
 
 /// The matched geometry effect a viewer's image grows from when it opens and shrinks back to when it closes.
 struct ZoomImageMatchedGeometry: Equatable {
-    /// The identifier shared with the source view, or `nil` when the image on screen has no source.
+    /// The identifier shared with the source view.
     ///
     /// Kept as its own type rather than an `AnyHashable`, as SwiftUI only matches identifiers of the same type. An `AnyHashable` never matches the `Int` or `UUID` a source view was given, even when their values are equal.
-    let id: (any Hashable)?
+    let id: any Hashable
     let namespace: Namespace.ID
     
     /// Compares identifiers type erased, which is only for telling when they change. SwiftUI still matches a source by the identifier's own type.
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id.map { AnyHashable($0) } == rhs.id.map { AnyHashable($0) } && lhs.namespace == rhs.namespace
+        AnyHashable(lhs.id) == AnyHashable(rhs.id) && lhs.namespace == rhs.namespace
     }
     
     /// The spring the image lands on its source with.
@@ -108,17 +108,10 @@ struct ZoomImageMatchedGeometry: Equatable {
 
 extension View {
     /// Matches the geometry of views with the same identifier in `matchedGeometry`'s namespace, or leaves the view alone when there is none.
-    ///
-    /// Going from an identifier to none, or back, swaps the view for a new one, as the two are applied with different types. That only happens when the source of the image on screen changes.
-    /// - Parameter unmatchedID: Used when `matchedGeometry` has no identifier. Unique to one viewer, so its image never matches a view it wasn't given, including another viewer's image.
     @ViewBuilder
-    func matchedGeometryEffect(_ matchedGeometry: ZoomImageMatchedGeometry?, unmatchedID: UUID) -> some View {
+    func matchedGeometryEffect(_ matchedGeometry: ZoomImageMatchedGeometry?) -> some View {
         if let matchedGeometry {
-            if let id = matchedGeometry.id {
-                matchedGeometryEffect(opening: id, in: matchedGeometry.namespace)
-            } else {
-                self.matchedGeometryEffect(id: unmatchedID, in: matchedGeometry.namespace)
-            }
+            matchedGeometryEffect(opening: matchedGeometry.id, in: matchedGeometry.namespace)
         } else {
             self
         }

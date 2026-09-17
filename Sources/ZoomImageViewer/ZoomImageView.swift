@@ -17,7 +17,10 @@ import SwiftUI
 public struct ZoomImageView<Overlay: View>: View {
     @Binding private var uiImage: UIImage?
     let overlay: Overlay
-    let matchedGeometry: ZoomImageMatchedGeometry?
+    /// The namespace the image's source is in, or `nil` for a viewer that fades its image in and out.
+    let namespace: Namespace.ID?
+    /// The identifier of the source of the image in the binding, or `nil` when there is no image or no source.
+    let sourceID: (any Hashable)?
     
     /// Creates a view with a zoomable image and a custom overlay.
     ///
@@ -41,7 +44,7 @@ public struct ZoomImageView<Overlay: View>: View {
         uiImage: Binding<UIImage?>,
         @ViewBuilder overlay: () -> Overlay
     ) {
-        self.init(uiImage: uiImage, matchedGeometry: nil, overlay: overlay)
+        self.init(uiImage: uiImage, namespace: nil, sourceID: nil, overlay: overlay)
     }
     
     /// Creates a view with a zoomable image that grows from its item's source view, like a thumbnail, and a custom overlay that receives the item.
@@ -93,7 +96,7 @@ public struct ZoomImageView<Overlay: View>: View {
         in namespace: Namespace.ID,
         @ViewBuilder overlay: @escaping (Item) -> Content
     ) where Overlay == ZoomImageItemOverlay<Item, Content> {
-        self.init(uiImage: item.zoomImage(image), matchedGeometry: ZoomImageMatchedGeometry(id: item.wrappedValue?.id, namespace: namespace)) {
+        self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
             /// Reads the item while the view creating this one updates, so that view is updated whenever the item changes and the overlay is built for the new one.
             ZoomImageItemOverlay(item: item.wrappedValue, content: overlay)
         }
@@ -101,19 +104,27 @@ public struct ZoomImageView<Overlay: View>: View {
     
     init(
         uiImage: Binding<UIImage?>,
-        matchedGeometry: ZoomImageMatchedGeometry?,
+        namespace: Namespace.ID?,
+        sourceID: (any Hashable)?,
         @ViewBuilder overlay: () -> Overlay
     ) {
         self._uiImage = uiImage
-        self.matchedGeometry = matchedGeometry
+        self.namespace = namespace
+        self.sourceID = sourceID
         /// Built here, while the view creating this one updates, so any state the overlay reads is tracked by that view and the overlay is rebuilt when it changes.
         self.overlay = overlay()
     }
     
+    /// The matched geometry effect for the image in the binding, or `nil` when there is no image or no source.
+    var matchedGeometry: ZoomImageMatchedGeometry? {
+        guard let namespace, let sourceID else { return nil }
+        return ZoomImageMatchedGeometry(id: sourceID, namespace: namespace)
+    }
+    
     public var body: some View {
         /// Always in the hierarchy, so a viewer can fade out after its binding is cleared rather than being removed with it.
-        if matchedGeometry != nil {
-            /// Grows and shrinks the image with the landing spring whatever animation the binding was changed with, matching the one its source's stand-in is inserted and removed with. Only for viewers with matched geometry, whose initializer never changes, so the branch taken stays the same for the life of the viewer. A viewer without it keeps the caller's transaction.
+        if namespace != nil {
+            /// Grows and shrinks the image with the landing spring whatever animation the binding was changed with, matching the one its source's stand-in is inserted and removed with. Only for viewers with a namespace, which comes from the initializer and never changes, so the branch taken stays the same for the life of the viewer. A viewer without it keeps the caller's transaction.
             _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: matchedGeometry)
                 .animation(ZoomImageMatchedGeometry.landingAnimation(), value: uiImage != nil)
         } else {
@@ -151,7 +162,7 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
         in namespace: Namespace.ID,
         closeButtonPosition: Alignment = .topLeading
     ) {
-        self.init(uiImage: item.zoomImage(image), matchedGeometry: ZoomImageMatchedGeometry(id: item.wrappedValue?.id, namespace: namespace)) {
+        self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
             ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
         }
     }
