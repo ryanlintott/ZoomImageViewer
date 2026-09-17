@@ -8,12 +8,17 @@
 import SwiftUI
 
 /// The matched geometry effect a viewer's image grows from when it opens and shrinks back to when it closes.
-struct ZoomImageMatchedGeometry {
+struct ZoomImageMatchedGeometry: Equatable {
     /// The identifier shared with the source view, or `nil` when the image on screen has no source.
     ///
     /// Kept as its own type rather than an `AnyHashable`, as SwiftUI only matches identifiers of the same type. An `AnyHashable` never matches the `Int` or `UUID` a source view was given, even when their values are equal.
     let id: (any Hashable)?
     let namespace: Namespace.ID
+    
+    /// Compares identifiers type erased, which is only for telling when they change. SwiftUI still matches a source by the identifier's own type.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id.map { AnyHashable($0) } == rhs.id.map { AnyHashable($0) } && lhs.namespace == rhs.namespace
+    }
     
     /// The spring the image lands on its source with.
     ///
@@ -22,7 +27,7 @@ struct ZoomImageMatchedGeometry {
     
     /// How long the image takes to settle on its source before the source fades back in under it.
     ///
-    /// The source follows the image down with its own matched geometry, but is drawn a frame behind it, so while the image is still shrinking the source is slightly larger and its edges stick out from under the image like a copy. By this point the spring is within a point of its source and barely moving, so the two line up. The image is still left in place, on top of its source, until the viewer is taken away around it.
+    /// By this point the spring is within a point of its source and barely moving, so the two line up. The image is still left in place, on top of its source, until the viewer is taken away around it.
     static let landingDelay = 0.5
     
     /// How long the image and its source take to swap.
@@ -98,29 +103,6 @@ struct ZoomImageMatchedGeometry {
             identity: ZoomImageMoveModifier(progress: .zero, distance: distance, axis: axis)
         )
         .animation(landingAnimation(startSpeed: startSpeed))
-    }
-}
-
-public extension AnyTransition {
-    /// A transition for the source view a ``ZoomImageView`` image grows from and shrinks back to, like a thumbnail.
-    ///
-    /// The source disappears as soon as the image starts growing out of it, and comes back once the image has landed on it again. With the default fade, the source is seen moving towards the full size frame and back, out of step with the image, and clipped by containers like `List` rows.
-    ///
-    /// ```swift
-    /// if uiImage == nil {
-    ///     Image(uiImage: photo)
-    ///         .resizable()
-    ///         .scaledToFit()
-    ///         .matchedGeometryEffect(id: "photo", in: namespace)
-    ///         .transition(.zoomImageSource)
-    /// }
-    /// ```
-    static var zoomImageSource: AnyTransition {
-        .asymmetric(
-            insertion: .opacity.animation(.linear(duration: ZoomImageMatchedGeometry.swapDuration).delay(ZoomImageMatchedGeometry.landingDelay)),
-            /// Nothing to animate, so SwiftUI removes the source straight away, while the image growing out of it covers where it was.
-            removal: .identity
-        )
     }
 }
 

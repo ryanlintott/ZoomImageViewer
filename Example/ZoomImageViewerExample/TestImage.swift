@@ -113,7 +113,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     }
     
     /// Draws an image that makes its own edges, centre and corners easy to pick out while zooming.
-    private static func render(size: CGSize, title: String, color: UIColor) -> UIImage {
+    static func render(size: CGSize, title: String, color: UIColor) -> UIImage {
         let format = UIGraphicsImageRendererFormat.preferred()
         /// A scale of 1 means points and pixels match, so the image reports exactly `size`.
         format.scale = 1
@@ -176,6 +176,39 @@ enum TestImage: String, CaseIterable, Identifiable {
             }
         }
     }
+}
+
+/// An image with a caption, shown as a thumbnail that grows into the viewer.
+struct ThumbnailPhoto: Identifiable {
+    let id: Int
+    let caption: String
+    /// Stored rather than computed, so the viewer is given the same instance on every update.
+    let image: UIImage
+    
+    /// Drawn with the test image colours, so it is obvious which thumbnail an image lands in.
+    @MainActor
+    init(id: Int, caption: String, size: CGSize, color: UIColor) {
+        let image = TestImage.render(size: size, title: caption, color: color)
+        image.accessibilityLabel = caption
+        self.init(id: id, caption: caption, image: image)
+    }
+    
+    init(id: Int, caption: String, image: UIImage) {
+        self.id = id
+        self.caption = caption
+        self.image = image
+    }
+    
+    /// Created once, so each photo keeps the same image instance. A range of aspect ratios, to check that the image lands on a `scaledToFit` thumbnail of each shape.
+    @MainActor
+    static let all: [ThumbnailPhoto] = [
+        ThumbnailPhoto(id: 0, caption: String(localized: "Square", comment: "Caption of a square thumbnail image."), size: CGSize(width: 800, height: 800), color: .systemTeal),
+        ThumbnailPhoto(id: 1, caption: String(localized: "Tall", comment: "Caption of a tall thumbnail image."), size: CGSize(width: 500, height: 1000), color: .systemIndigo),
+        ThumbnailPhoto(id: 2, caption: String(localized: "Wide", comment: "Caption of a wide thumbnail image."), size: CGSize(width: 1200, height: 600), color: .systemOrange),
+        ThumbnailPhoto(id: 3, caption: String(localized: "Two eagles catching a fish", comment: "Caption of the bundled thumbnail image."), image: TestImage.bundledImage),
+        ThumbnailPhoto(id: 4, caption: String(localized: "Very tall", comment: "Caption of a very tall thumbnail image."), size: CGSize(width: 300, height: 1200), color: .systemGreen),
+        ThumbnailPhoto(id: 5, caption: String(localized: "Panorama", comment: "Caption of a very wide thumbnail image."), size: CGSize(width: 1600, height: 400), color: .systemPurple)
+    ]
 }
 
 /// A scale drawing of a test image inside the frame it will be viewed in.

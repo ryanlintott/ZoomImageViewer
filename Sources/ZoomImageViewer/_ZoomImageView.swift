@@ -13,18 +13,21 @@ struct _ZoomImageView<Overlay: View>: View {
     
     @Binding var uiImage: UIImage?
     let overlay: Overlay
-    /// The matched geometry effect the image grows from and shrinks back to, or `nil` to fade the image in and out.
-    let matchedGeometry: ZoomImageMatchedGeometry?
+    /// The matched geometry effect for the image in the binding, or `nil` to fade the image in and out.
+    let currentMatchedGeometry: ZoomImageMatchedGeometry?
     
     init(uiImage: Binding<UIImage?>, overlay: Overlay, matchedGeometry: ZoomImageMatchedGeometry?) {
         self._uiImage = uiImage
         self.overlay = overlay
-        self.matchedGeometry = matchedGeometry
+        self.currentMatchedGeometry = matchedGeometry
         self._displayedImage = State(initialValue: uiImage.wrappedValue)
+        self._displayedMatchedGeometryID = State(initialValue: matchedGeometry?.id)
     }
     
     /// The image on screen, which lags ``uiImage`` so a dismissed image can fade out before it is removed.
     @State private var displayedImage: UIImage?
+    /// The source identifier of the last image in the binding, kept once the binding is cleared.
+    @State private var displayedMatchedGeometryID: (any Hashable)?
     
     @State private var isInteractive: Bool = true
     @State private var zoomState: ZoomState = .min
@@ -180,6 +183,12 @@ struct _ZoomImageView<Overlay: View>: View {
             .onChange(of: uiImage) { uiImage in
                 apply(uiImage)
             }
+            .onChange(of: currentMatchedGeometry) { matchedGeometry in
+                /// Read from the new value, as this closure sees the view from before the change. Left alone when the identifier is cleared along with the binding.
+                if let id = matchedGeometry?.id {
+                    displayedMatchedGeometryID = id
+                }
+            }
         )
         /// Removes a faded out image once it can no longer be seen. Cancelled when a new image is shown, or when the viewer leaves the view hierarchy.
         .task(id: removalID) {
@@ -193,6 +202,14 @@ struct _ZoomImageView<Overlay: View>: View {
             /// The next image starts from a clean slate. State left behind by the image just removed, like the offset it was thrown away with, would otherwise still be in place as the next one is added, and a matched image would grow from its source offset by it.
             resetPresentation()
         }
+    }
+    
+    /// The matched geometry effect the image on screen grows from and shrinks back to, or `nil` to fade the image in and out.
+    ///
+    /// Clearing an item clears its identifier in the same transaction, while the image still has to shrink back into the source it came from. So once the binding is cleared, the identifier of the last image in it is used instead.
+    var matchedGeometry: ZoomImageMatchedGeometry? {
+        guard let currentMatchedGeometry, uiImage == nil else { return currentMatchedGeometry }
+        return ZoomImageMatchedGeometry(id: displayedMatchedGeometryID, namespace: currentMatchedGeometry.namespace)
     }
     
     /// The image the viewer is built around.

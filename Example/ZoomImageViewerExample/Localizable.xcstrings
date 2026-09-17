@@ -123,7 +123,7 @@
       }
     },
     "Images grow from these thumbnails and shrink back into them when closed." : {
-      "comment" : "Footer of the list of close button options, explaining the matched geometry effect.",
+      "comment" : "Footer of the grid of thumbnails, explaining the matched geometry effect.",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -188,6 +188,12 @@
         }
       }
     },
+    "Next photo" : {
+      "comment" : "Button that shows the next thumbnail photo."
+    },
+    "Panorama" : {
+      "comment" : "Caption of a very wide thumbnail image."
+    },
     "Previous image" : {
       "comment" : "Button that shows the previous test image.",
       "localizations" : {
@@ -198,6 +204,9 @@
           }
         }
       }
+    },
+    "Previous photo" : {
+      "comment" : "Button that shows the previous thumbnail photo."
     },
     "Short and wide" : {
       "comment" : "Name of a test image shorter and wider than the screen.",
@@ -265,6 +274,12 @@
         }
       }
     },
+    "Square" : {
+      "comment" : "Caption of a square thumbnail image."
+    },
+    "Tall" : {
+      "comment" : "Caption of a tall thumbnail image."
+    },
     "Tall and narrow" : {
       "comment" : "Name of a test image taller and narrower than the screen.",
       "localizations" : {
@@ -298,6 +313,9 @@
         }
       }
     },
+    "Thumbnails" : {
+      "comment" : "Header of the grid of thumbnails that grow into the viewer."
+    },
     "Tiny" : {
       "comment" : "Name of a very small test image.",
       "localizations" : {
@@ -308,6 +326,15 @@
           }
         }
       }
+    },
+    "Two eagles catching a fish" : {
+      "comment" : "Caption of the bundled thumbnail image."
+    },
+    "Very tall" : {
+      "comment" : "Caption of a very tall thumbnail image."
+    },
+    "Wide" : {
+      "comment" : "Caption of a wide thumbnail image."
     }
   },
   "version" : "1.0"

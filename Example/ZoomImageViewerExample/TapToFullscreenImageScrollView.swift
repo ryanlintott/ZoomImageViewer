@@ -44,8 +44,8 @@ struct TapToFullscreenImageScrollView: View {
     @State private var testImage: TestImage = .bundled
     /// The size of the frame the viewer shows images in, so test images can be sized relative to it.
     @State private var viewerSize: CGSize = .zero
-    /// The close button option whose thumbnail the image on screen grew from, or `nil` when it didn't grow from one.
-    @State private var thumbnailSource: CloseButtonOption? = nil
+    /// The photo shown in the second viewer, which grows from its thumbnail.
+    @State private var selectedPhoto: ThumbnailPhoto? = nil
     
     @Namespace private var namespace
     
@@ -54,34 +54,46 @@ struct TapToFullscreenImageScrollView: View {
             .resizable()
             .scaledToFit()
             .accessibilityIgnoresInvertColors()
-    }
-    
-    /// A thumbnail the viewer's image grows from, hidden while its image is showing so the two don't appear at once.
-    ///
-    /// Reads the image binding, so the thumbnail comes back in the same transaction as the viewer clears it and the image can shrink back into it.
-    func thumbnail(for option: CloseButtonOption) -> some View {
-        ZStack {
-            if uiImage != nil && thumbnailSource == option {
-                Color.clear
-            } else {
-                thumbnailImage
-                    .matchedGeometryEffect(id: option, in: namespace)
-                    .transition(.zoomImageSource)
-            }
-        }
-        .frame(width: 80, height: 60)
+            .frame(width: 80)
     }
     
     var body: some View {
         Form {
             Section {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3)) {
+                    ForEach(ThumbnailPhoto.all) { photo in
+                        Button {
+                            withAnimation {
+                                selectedPhoto = photo
+                            }
+                        } label: {
+                            Image(uiImage: photo.image)
+                                .resizable()
+                                .scaledToFit()
+                                .accessibilityIgnoresInvertColors()
+                                .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+                                .frame(height: 80)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(photo.caption)
+                    }
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("Thumbnails", comment: "Header of the grid of thumbnails that grow into the viewer.")
+            } footer: {
+                Text("Images grow from these thumbnails and shrink back into them when closed.", comment: "Footer of the grid of thumbnails, explaining the matched geometry effect.")
+            }
+            
+            Section {
                 ForEach(CloseButtonOption.allCases) { option in
                     Button {
                         closeButtonOption = option
-                        show(.bundled, from: option)
+                        show(.bundled)
                     } label: {
                         HStack {
-                            thumbnail(for: option)
+                            thumbnailImage
                             
                             VStack(alignment: .leading) {
                                 Text(option.name)
@@ -98,8 +110,6 @@ struct TapToFullscreenImageScrollView: View {
                 }
             } header: {
                 Text("Close button styles", comment: "Header of the list of close button options.")
-            } footer: {
-                Text("Images grow from these thumbnails and shrink back into them when closed.", comment: "Footer of the list of close button options, explaining the matched geometry effect.")
             }
             
             Section {
@@ -142,7 +152,7 @@ struct TapToFullscreenImageScrollView: View {
                         }
                         .ignoresSafeArea()
                     
-                    ZoomImageView(uiImage: $uiImage, matchedGeometryID: thumbnailSource, in: namespace) {
+                    ZoomImageView(uiImage: $uiImage) {
                         switch closeButtonOption {
                         case .default:
                             ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
@@ -165,6 +175,52 @@ struct TapToFullscreenImageScrollView: View {
                 }
             }
         )
+        .overlay(
+            /// A second viewer for the thumbnails, with its own selection. Turned by `AutoRotatingView` too, so the image is seen turning back to match its thumbnail as it lands.
+            AutoRotatingView {
+                ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
+                    ZoomImageDefaultOverlay()
+                    
+                    /// Built for the photo on screen, and kept while the viewer fades out.
+                    photoControls(for: photo)
+                        .padding()
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+            }
+        )
+    }
+    
+    /// Steps between photos while one is on screen. Closing after a step shrinks the image into the thumbnail of the photo on screen.
+    func photoControls(for photo: ThumbnailPhoto) -> some View {
+        HStack(spacing: 16) {
+            Button {
+                stepPhoto(from: photo, by: -1)
+            } label: {
+                Label(String(localized: "Previous photo", comment: "Button that shows the previous thumbnail photo."), systemImage: "chevron.left")
+            }
+            
+            Text(photo.caption)
+                .font(.subheadline)
+                .frame(minWidth: 140)
+            
+            Button {
+                stepPhoto(from: photo, by: 1)
+            } label: {
+                Label(String(localized: "Next photo", comment: "Button that shows the next thumbnail photo."), systemImage: "chevron.right")
+            }
+        }
+        /// Opts out of the overlay's default button style.
+        .buttonStyle(.automatic)
+        .labelStyle(.iconOnly)
+        .font(.title3)
+        .padding()
+        .background(.ultraThinMaterial, in: Capsule())
+    }
+    
+    func stepPhoto(from photo: ThumbnailPhoto, by offset: Int) {
+        let all = ThumbnailPhoto.all
+        guard let index = all.firstIndex(where: { $0.id == photo.id }) else { return }
+        selectedPhoto = all[(index + offset + all.count) % all.count]
     }
     
     /// Steps between test images while one is on screen, to check the swap animation.
@@ -194,15 +250,9 @@ struct TapToFullscreenImageScrollView: View {
         .background(.ultraThinMaterial, in: Capsule())
     }
     
-    /// Shows a test image, growing it from a close button option's thumbnail when one is given.
-    ///
-    /// Animated, so an image with a thumbnail grows from it and one without fades in with the same timing.
-    func show(_ testImage: TestImage, from thumbnailSource: CloseButtonOption? = nil) {
+    func show(_ testImage: TestImage) {
         self.testImage = testImage
-        withAnimation {
-            self.thumbnailSource = thumbnailSource
-            uiImage = testImage.image(in: viewerSize)
-        }
+        uiImage = testImage.image(in: viewerSize)
     }
     
     func step(by offset: Int) {

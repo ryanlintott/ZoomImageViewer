@@ -75,48 +75,54 @@ uiImage = image
 VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zoom action zooms in and out like a double tap, always centring on the middle of the screen, as a VoiceOver gesture can be made anywhere. A three-finger swipe moves a zoomed-in image half a screen at a time, and VoiceOver plays its border sound when the image cannot move any further in that direction. The image's Show Controls and Hide Controls actions do the same as a single tap, so an overlay hidden by zooming in can be brought back without zooming out.
 
 ## Growing from a thumbnail
-Pass a `matchedGeometryID` and namespace to grow the image from a view with a matching `matchedGeometryEffect`, like a thumbnail, and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
+Present an optional `Identifiable` item instead of a `UIImage` to grow the image from the item's thumbnail and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
-Remove the thumbnail while its image is showing, and set the binding inside `withAnimation` so SwiftUI animates between the two. Give the thumbnail the `zoomImageSource` transition, which hides it while the image grows out of it and shrinks back. With the default fade, the thumbnail is seen moving out of step with the image, and cropped by containers like `List` rows. Decide whether to show the thumbnail from the binding, so it comes back in the same transaction as the viewer clears it. The viewer animates its own closes.
+Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the item binding, a key path to the item's image and the same namespace. Set the item inside `withAnimation` so SwiftUI animates between the two. The viewer animates its own closes.
 
 ```swift
 @Namespace private var namespace
-@State private var uiImage: UIImage? = nil
+@State private var selectedPhoto: Photo? = nil
 
 var body: some View {
-    Button {
-        withAnimation {
-            uiImage = photo
-        }
-    } label: {
-        if uiImage == nil {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFit()
-                .matchedGeometryEffect(id: "photo", in: namespace)
-                .transition(.zoomImageSource)
-        } else {
-            Color.clear
+    VStack {
+        ForEach(photos) { photo in
+            Button {
+                withAnimation {
+                    selectedPhoto = photo
+                }
+            } label: {
+                Image(uiImage: photo.image)
+                    .resizable()
+                    .scaledToFit()
+                    .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+            }
         }
     }
-    .frame(width: 100, height: 100)
     .overlay(
-        ZoomImageView(uiImage: $uiImage, matchedGeometryID: "photo", in: namespace)
+        ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace)
     )
 }
 ```
 
-A custom overlay goes in a trailing closure, like with the other initializers.
+The thumbnail is hidden while its image is showing and fades back in once the image has landed on it. It stays in place the whole time, so the layout around it doesn't change.
+
+A custom overlay goes in a trailing closure, like with the other initializers, and receives the item. It keeps showing the last item while the viewer fades out.
 
 ```swift
-ZoomImageView(uiImage: $uiImage, matchedGeometryID: "photo", in: namespace) {
+ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
     ZoomImageDefaultOverlay(closeButtonPosition: .topTrailing)
+
+    Text(photo.caption)
+        .padding()
+        .frame(maxHeight: .infinity, alignment: .bottom)
 }
 ```
 
+Setting the selection to another item while the viewer is open swaps the image, and closing shrinks it into that item's thumbnail.
+
 A viewer inside `AutoRotatingView` shrinks back correctly while it is turned, as the image turns back to match the thumbnail as it lands.
 
-SwiftUI only matches identifiers of the same type, so use the thumbnail's identifier type. An optional identifier is unwrapped, and a `nil` one fades the image in and out instead. The image is fitted to the frame it grows from, so a thumbnail showing the whole image with `scaledToFit()` matches it most closely.
+The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image. The image is fitted to the frame it grows from, so a thumbnail showing the whole image with `scaledToFit()` matches it most closely.
 
 ## Close button position
 The close button sits in the top leading corner by default and can be moved to any `Alignment`. On iOS 26 and up it is also moved clear of system UI in the window's corners, like the traffic lights on an iPad window.
