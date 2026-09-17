@@ -121,7 +121,7 @@ struct _ZoomImageView<Overlay: View>: View {
                         .simultaneousGesture(dragImageGesture, isEnabled: zoomState == ZoomState.min)
                         .onChange(of: isDragging) { newValue in
                             if !newValue {
-                                onDragEnded(predictedEndTranslation: predictedEndTranslation, velocity: velocity, frameSize: viewerSize)
+                                onDragEnded(frameSize: viewerSize)
                             }
                         }
                         .ignoresSafeArea()
@@ -414,18 +414,21 @@ struct _ZoomImageView<Overlay: View>: View {
                 gestureState = true
             }
             .onChanged { value in
-                if #available(iOS 17, *) {
-                    velocity = value.velocity
-                }
-                predictedEndTranslation = value.predictedEndTranslation
+                recordDragValue(value)
                 onDrag(translation: value.translation)
             }
+            /// Records the drag's final velocity, which the last `onChanged` may not have had.
             .onEnded { value in
-                if #available(iOS 17, *) {
-                    velocity = value.velocity
-                }
-                predictedEndTranslation = value.predictedEndTranslation
+                recordDragValue(value)
             }
+    }
+    
+    /// Keeps where the drag is heading and how fast, for when it ends.
+    func recordDragValue(_ value: DragGesture.Value) {
+        if #available(iOS 17, *) {
+            velocity = value.velocity
+        }
+        predictedEndTranslation = value.predictedEndTranslation
     }
     
     func onDrag(translation: CGSize) {
@@ -437,8 +440,10 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Dismisses the image when the drag was heading far enough away, or puts it back otherwise.
     ///
     /// Called when the drag's gesture state resets rather than from the gesture's `onEnded`, so a drag that is cancelled is put back too.
+    ///
+    /// Reads the drag's predicted end and velocity from state, which is current even from the `onChange(of:perform:)` closure that calls this.
     /// - Parameter frameSize: The size of the viewer's frame including its safe area, which a dismissed image leaves.
-    func onDragEnded(predictedEndTranslation: CGSize, velocity: CGSize?, frameSize: CGSize) {
+    func onDragEnded(frameSize: CGSize) {
         if predictedEndTranslation.magnitude > dismissThreshold, matchedGeometry != nil {
             withAnimation(.spring) {
                 overlayOpacity = 0
@@ -471,7 +476,7 @@ struct _ZoomImageView<Overlay: View>: View {
             withAnimation(Animation.easeOut) {
                 backgroundOpacity = 1
                 offset = .zero
-                self.velocity = nil
+                velocity = nil
             }
         }
     }
