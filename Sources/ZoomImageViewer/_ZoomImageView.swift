@@ -278,15 +278,24 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Does nothing while a removal is already under way, such as after dragging the image away, which has its own animation.
     func fadeOut() {
         guard displayedImage != nil, removalID == nil else { return }
+        beginRemoval()
+        /// A matched image has already been removed and is shrinking back into its source.
+        if matchedGeometry == nil {
+            withAnimation(.linear(duration: fadeDuration)) {
+                imageOpacity = .zero
+            }
+        }
+    }
+    
+    /// Fades the background and overlay out and starts the removal, so the standard fade out skips this image.
+    ///
+    /// Shared by every way of closing the viewer. Moving or fading the image itself is left to each of them.
+    func beginRemoval() {
         withAnimation(.spring) {
             overlayOpacity = 0
         }
         withAnimation(.linear(duration: fadeDuration)) {
             backgroundOpacity = .zero
-            /// A matched image has already been removed and is shrinking back into its source.
-            if matchedGeometry == nil {
-                imageOpacity = .zero
-            }
         }
         removalID = UUID()
     }
@@ -432,6 +441,12 @@ struct _ZoomImageView<Overlay: View>: View {
     }
     
     func onDrag(translation: CGSize) {
+        /// Hides the overlay as the drag starts, so nothing moves around over the image while it is dragged. It only comes back if the image is put back.
+        if isInteractive {
+            withAnimation(.easeInOut(duration: chromeDuration)) {
+                overlayOpacity = 0
+            }
+        }
         isInteractive = false
         offset = translation
         backgroundOpacity = 1 - Double(offset.magnitude / dismissThreshold) * (1 - opacityAtDismissThreshold)
@@ -444,41 +459,31 @@ struct _ZoomImageView<Overlay: View>: View {
     /// Reads the drag's predicted end and velocity from state, which is current even from the `onChange(of:perform:)` closure that calls this.
     /// - Parameter frameSize: The size of the viewer's frame including its safe area, which a dismissed image leaves.
     func onDragEnded(frameSize: CGSize) {
-        if predictedEndTranslation.magnitude > dismissThreshold, matchedGeometry != nil {
-            withAnimation(.spring) {
-                overlayOpacity = 0
+        guard predictedEndTranslation.magnitude > dismissThreshold else {
+            isInteractive = true
+            withAnimation(.easeOut) {
+                backgroundOpacity = 1
+                overlayOpacity = 1
+                offset = .zero
+                velocity = nil
             }
-            withAnimation(.linear(duration: fadeDuration)) {
-                backgroundOpacity = .zero
-            }
-            /// Starts the removal before clearing the binding, so the standard fade out skips this image.
-            removalID = UUID()
-            /// The image shrinks back into its source from wherever it was dragged to, rather than being thrown off screen, with the viewer's own landing animation. Its offset is left where the drag put it and taken back to nothing by the transition, which carries on at the speed the drag was let go at. A change to the offset here would be applied to the removed image at once rather than animated, dragging it back to the middle of the frame before it sets off.
-            uiImage = nil
-        } else if predictedEndTranslation.magnitude > dismissThreshold {
+            return
+        }
+        
+        /// A matched image shrinks back into its source from wherever it was dragged to, rather than being thrown off screen, with the viewer's own landing animation. Its offset is left where the drag put it and taken back to nothing by the transition, which carries on at the speed the drag was let go at. A change to the offset here would be applied to the removed image at once rather than animated, dragging it back to the middle of the frame before it sets off.
+        if matchedGeometry == nil {
             /// Lasts as long as the background's fade, so the image is off the screen by the time the background is gone.
             let toss = DismissToss(offset: offset, velocity: velocity, predictedEndTranslation: predictedEndTranslation, minimumDistance: Swift.max(frameSize.width, frameSize.height) * dismissDistanceMultiplier, duration: fadeDuration)
             withAnimation(toss.animation) {
                 offset = toss.endOffset
-                overlayOpacity = 0
-            }
-            withAnimation(.linear(duration: fadeDuration)) {
-                backgroundOpacity = .zero
             }
             withAnimation(.linear(duration: fadeDuration * 0.5).delay(fadeDuration * 0.5)) {
                 imageOpacity = .zero
             }
-            /// Starts the removal before clearing the binding, so the standard fade out skips this image.
-            removalID = UUID()
-            uiImage = nil
-        } else {
-            isInteractive = true
-            withAnimation(Animation.easeOut) {
-                backgroundOpacity = 1
-                offset = .zero
-                velocity = nil
-            }
         }
+        /// Started before clearing the binding, so the standard fade out skips this image.
+        beginRemoval()
+        uiImage = nil
     }
 }
 
