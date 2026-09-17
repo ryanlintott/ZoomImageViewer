@@ -77,7 +77,7 @@ VoiceOver users can zoom and pan the image too. On iOS 16 and up, VoiceOver's zo
 ## Growing from a thumbnail
 Present an optional `Identifiable` and `Equatable` item instead of a `UIImage` to grow the image from the item's thumbnail and shrink it back when the viewer closes. Dragging the image away shrinks it back into the thumbnail too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
-Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the item binding, a key path to the item's image and the same namespace. Set the item inside `withAnimation` so SwiftUI animates between the two. The viewer animates its own closes.
+Give each thumbnail the `zoomImageSource(for:selection:in:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the item binding, a key path to the item's image and the same namespace. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
 
 ```swift
 @Namespace private var namespace
@@ -87,9 +87,7 @@ var body: some View {
     VStack {
         ForEach(photos) { photo in
             Button {
-                withAnimation {
-                    selectedPhoto = photo
-                }
+                selectedPhoto = photo
             } label: {
                 Image(uiImage: photo.image)
                     .resizable()

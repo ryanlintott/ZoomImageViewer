@@ -46,7 +46,7 @@ public struct ZoomImageView<Overlay: View>: View {
     
     /// Creates a view with a zoomable image that grows from its item's source view, like a thumbnail, and a custom overlay that receives the item.
     ///
-    /// Give each source view the ``SwiftUICore/View/zoomImageSource(for:selection:in:)`` modifier with its item, the same item binding's value as the selection, and the same namespace. The item's `id` matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. Set the item inside `withAnimation` so SwiftUI animates between the two. The viewer animates its own closes, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
+    /// Give each source view the ``SwiftUICore/View/zoomImageSource(for:selection:in:)`` modifier with its item, the same item binding's value as the selection, and the same namespace. The item's `id` matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
     ///
     /// Only the image is matched. The background and overlay fade in and out as usual. A viewer inside a container that turns its content, like `AutoRotatingView` from FrameUp, turns the image back as it lands on its source, so it arrives square with it. The image is fitted to the frame it grows from, so a source that shows the whole image, like one with `scaledToFit()`, matches it most closely.
     ///
@@ -58,9 +58,7 @@ public struct ZoomImageView<Overlay: View>: View {
     ///     VStack {
     ///         ForEach(photos) { photo in
     ///             Button {
-    ///                 withAnimation {
-    ///                     selectedPhoto = photo
-    ///                 }
+    ///                 selectedPhoto = photo
     ///             } label: {
     ///                 Image(uiImage: photo.image)
     ///                     .resizable()
@@ -80,6 +78,8 @@ public struct ZoomImageView<Overlay: View>: View {
     ///     )
     /// }
     /// ```
+    ///
+    /// Setting or clearing the item always grows or shrinks the image with the viewer's own spring. An animation the item is changed with, like one from `withAnimation`, is ignored for this, and there is no way to show or hide the image without animating.
     ///
     /// The overlay is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared.
     /// - Parameters:
@@ -112,7 +112,13 @@ public struct ZoomImageView<Overlay: View>: View {
     
     public var body: some View {
         /// Always in the hierarchy, so a viewer can fade out after its binding is cleared rather than being removed with it.
-        _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: matchedGeometry)
+        if matchedGeometry != nil {
+            /// Grows and shrinks the image with the landing spring whatever animation the binding was changed with, matching the one its source's stand-in is inserted and removed with. Only for viewers with matched geometry, whose initializer never changes, so the branch taken stays the same for the life of the viewer. A viewer without it keeps the caller's transaction.
+            _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: matchedGeometry)
+                .animation(ZoomImageMatchedGeometry.landingAnimation(), value: uiImage != nil)
+        } else {
+            _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: matchedGeometry)
+        }
     }
 }
 

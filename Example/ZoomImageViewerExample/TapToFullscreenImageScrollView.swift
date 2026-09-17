@@ -63,9 +63,7 @@ struct TapToFullscreenImageScrollView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3)) {
                     ForEach(ThumbnailPhoto.all) { photo in
                         Button {
-                            withAnimation {
-                                selectedPhoto = photo
-                            }
+                            selectedPhoto = photo
                         } label: {
                             Image(uiImage: photo.image)
                                 .resizable()

@@ -12,6 +12,8 @@ public extension View {
     ///
     /// Pass the item this view shows, the value of the viewer's item binding as the selection, and the viewer's namespace. The view is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
     ///
+    /// Hiding and fading back in follow the viewer's own timing, not the animation the selection was changed with, so the selection doesn't need to be set inside `withAnimation`.
+    ///
     /// ```swift
     /// Image(uiImage: photo.image)
     ///     .resizable()
@@ -51,5 +53,7 @@ struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
                         .matchedGeometryEffect(id: id, in: namespace)
                 }
             }
+            /// Inserts and removes the stand-in with the same spring the viewer grows and shrinks the image with, whatever animation the selection was changed with, so the two sides of the match always animate together.
+            .animation(ZoomImageMatchedGeometry.landingAnimation(), value: isPresenting)
     }
 }
