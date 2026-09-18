@@ -178,10 +178,12 @@ There are three ways to give the viewer a close button, depending on how much yo
 | The standard close button, placed and padded yourself, or restyled | `ZoomImageCloseButton` |
 | Your own button with your own label | `closeZoomImage` |
 
-The default overlay is a close button in the top trailing corner but the `Alignment` can be customized.
+The default overlay is a close button in the top trailing corner. To move it, put `ZoomImageDefaultOverlay` in the overlay with another `Alignment`.
 
 ```swift
-ZoomImageView(uiImage: $uiImage, closeButtonPosition: .topLeading)
+ZoomImageView(uiImage: $uiImage) { _ in
+    ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
+}
 ```
 
 The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions are titled "Close" from the package's string catalog.

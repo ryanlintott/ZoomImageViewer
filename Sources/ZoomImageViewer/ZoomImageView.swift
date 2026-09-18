@@ -167,19 +167,20 @@ public struct ZoomImageView<Overlay: View>: View {
 }
 
 public extension ZoomImageView<ZoomImageDefaultOverlay> {
-    /// Creates a view with a zoomable image and the built-in close button.
+    /// Creates a view with a zoomable image and the built-in close button in the top trailing corner.
+    ///
+    /// Use ``init(uiImage:overlay:)`` with ``ZoomImageDefaultOverlay`` to put the close button somewhere else.
     /// - Parameters:
     ///   - uiImage: Image to present.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
-    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topTrailing) {
+    init(uiImage: Binding<UIImage?>) {
         self.init(uiImage: uiImage, namespace: nil, sourceID: nil) {
-            ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
+            ZoomImageDefaultOverlay()
         }
     }
 
-    /// Creates a view with a zoomable image for an item, fading the image in and out, and the built-in close button.
+    /// Creates a view with a zoomable image for an item, fading the image in and out, and the built-in close button in the top trailing corner.
     ///
-    /// Use ``init(item:image:namespace:closeButtonPosition:)`` to grow the image from a source view instead of fading it in.
+    /// Use ``init(item:image:namespace:)`` to grow the image from a source view instead of fading it in.
     ///
     /// ```swift
     /// ZoomImageView(item: $selectedPhoto, image: \.image)
@@ -187,18 +188,16 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     /// - Parameters:
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
     init<Item: Equatable>(
         item: Binding<Item?>,
-        image: KeyPath<Item, UIImage>,
-        closeButtonPosition: Alignment = .topTrailing
+        image: KeyPath<Item, UIImage>
     ) {
         self.init(uiImage: item.zoomImage(image), namespace: nil, sourceID: nil) {
-            ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
+            ZoomImageDefaultOverlay()
         }
     }
 
-    /// Creates a view with a zoomable image that grows from its item's source view, usually a thumbnail, and the built-in close button.
+    /// Creates a view with a zoomable image that grows from its item's source view, usually a thumbnail, and the built-in close button in the top trailing corner.
     ///
     /// See ``init(item:image:namespace:overlay:)`` for how to set up the source views.
     ///
@@ -209,14 +208,23 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does.
     ///   - namespace: The namespace the source views are in.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
     init<Item: Identifiable & Equatable>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
-        namespace: Namespace.ID,
-        closeButtonPosition: Alignment = .topTrailing
+        namespace: Namespace.ID
     ) {
         self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
+            ZoomImageDefaultOverlay()
+        }
+    }
+
+    /// Creates a view with a zoomable image and the built-in close button.
+    /// - Parameters:
+    ///   - uiImage: Image to present.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame.
+    @available(*, deprecated, message: "Position the default overlay instead: ZoomImageView(uiImage:) { _ in ZoomImageDefaultOverlay(closeButtonPosition: position) }")
+    init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment) {
+        self.init(uiImage: uiImage, namespace: nil, sourceID: nil) {
             ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
         }
     }
