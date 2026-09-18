@@ -198,8 +198,8 @@ struct _ZoomImageView<Overlay: View>: View {
                 apply(uiImage)
             }
             .onChange(of: currentMatchedGeometry) { matchedGeometry in
-                /// Read from the new value, as this closure sees the view from before the change. Left alone when it is cleared along with the binding.
-                if let matchedGeometry {
+                /// Read from the new value, as this closure sees the view from before the change. Left alone when it is cleared along with the binding. Cleared while the binding still holds an image, which is stepping to an item whose source isn't on screen, so closing fades that image out rather than shrinking it into the source of the item before it.
+                if matchedGeometry != nil || uiImage != nil {
                     displayedMatchedGeometry = matchedGeometry
                 }
             }
@@ -512,9 +512,7 @@ struct _ZoomImageView<Overlay: View>: View {
 @available(iOS 17, *)
 #Preview {
     @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
-    
-    ZoomImageView(uiImage: $uiImage) { _ in
-        ZoomImageDefaultOverlay()
-    }
 
+    Color.clear
+        .zoomImageViewer(uiImage: $uiImage)
 }

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// An action that closes the ``ZoomImageView`` a view is in.
+/// An action that closes the zoom image viewer a view is in.
 ///
 /// For the built-in close button in a place of your choosing, use ``ZoomImageCloseButton``, which is already wired to this action and carries the system's localized label. Reach for this action when you want your own button with your own title, role or accessibility.
 ///
@@ -46,6 +46,6 @@ public struct ZoomImageCloseAction {
 }
 
 public extension EnvironmentValues {
-    /// Closes the ``ZoomImageView`` this environment is in, or does nothing outside of one.
+    /// Closes the zoom image viewer this environment is in, or does nothing outside of one.
     @Entry var closeZoomImage = ZoomImageCloseAction(uiImage: nil)
 }

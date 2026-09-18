@@ -47,8 +47,6 @@ struct TapToFullscreenImageScrollView: View {
     /// The photo shown in the third viewer, which fades in and out with no thumbnail to grow from.
     @State private var fadedPhoto: ThumbnailPhoto? = nil
     
-    @Namespace private var namespace
-    
     var thumbnailImage: some View {
         Image(uiImage: TestImage.bundledImage)
             .resizable()
@@ -69,7 +67,7 @@ struct TapToFullscreenImageScrollView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .accessibilityIgnoresInvertColors()
-                                .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
+                                .zoomImageSource(for: photo)
                                 .frame(height: 80)
                                 .frame(maxWidth: .infinity)
                         }
@@ -103,9 +101,9 @@ struct TapToFullscreenImageScrollView: View {
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text(verbatim: "Items without a namespace")
+                Text(verbatim: "Items without source views")
             } footer: {
-                Text(verbatim: "The same photos in a viewer with no namespace. The image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
+                Text(verbatim: "The same photos in a second viewer, attached further out than the one for the thumbnails, so the thumbnails don't belong to it. The image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
             }
 
             Section {
@@ -163,64 +161,53 @@ struct TapToFullscreenImageScrollView: View {
                 Text(verbatim: "Sizes are relative to the \(TestImage.sizeDescription(viewerSize)) viewer frame. Use the arrows while an image is showing to swap to the next or previous one.")
             }
         }
-        .overlay(
-            /// Auto rotating modifier is from FrameUp and is optional if you have an app that only uses portrait but you want to be able to view fullscreen images in landscape as well.
+        .background(
+            /// Measures the frame the viewers show images in, turned the same way they are by the wrapper in `ZoomImageViewerExampleApp`, even while no image is showing.
             AutoRotatingView {
-                ZStack {
-                    /// Holds the overlay at full size so the viewer frame can be measured even while no image is showing.
-                    Color.clear
-                        .onSizeChange {
-                            viewerSize = $0
-                        }
-                        .ignoresSafeArea()
-                    
-                    ZoomImageView(uiImage: $uiImage) { _ in
-                        switch closeButtonOption {
-                        case .default:
-                            ZoomImageDefaultOverlay()
-                        case .defaultTopLeading:
-                            ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
-                        case .customButtonStyle:
-                            ZoomImageDefaultOverlay()
-                                .buttonStyle(MyCustomButtonStyle())
-                        }
-                        
-                        /// Inside the overlay so VoiceOver can reach it and it fades out with the image.
-                        imageSwapControls
-                            .padding()
-                            .frame(maxHeight: .infinity, alignment: .bottom)
+                Color.clear
+                    .onSizeChange {
+                        viewerSize = $0
                     }
-                }
+                    .ignoresSafeArea()
             }
         )
-        .overlay(
-            /// A second viewer for the thumbnails, with its own selection. Turned by `AutoRotatingView` too, so the image is seen turning back to match its thumbnail as it lands.
-            AutoRotatingView {
-                ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace) { photo in
-                    ZoomImageDefaultOverlay()
-                    
-                    /// Built for the photo on screen, and kept while the viewer fades out.
-                    photoControls(for: photo)
-                        .padding()
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                }
-            }
-        )
-        .overlay(
-            /// A third viewer taking the same items with no namespace, so the image fades in and out rather than growing from a thumbnail.
-            AutoRotatingView {
-                ZoomImageView(item: $fadedPhoto, image: \.image) { photo in
-                    ZoomImageDefaultOverlay()
+        /// The viewer for the thumbnails. Turned by `AutoRotatingView` from the wrapper in `ZoomImageViewerExampleApp`, so the image is seen turning back to match its thumbnail as it lands.
+        .zoomImageViewer(item: $selectedPhoto, image: \.image) { photo in
+            ZoomImageDefaultOverlay()
+            
+            /// Built for the photo on screen, and kept while the viewer fades out.
+            photoControls(for: photo)
+                .padding()
+                .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+        /// A second viewer taking the same items. Attached further out than the one for the thumbnails, so the thumbnails belong to that one and this viewer's image fades in and out rather than growing from a thumbnail.
+        .zoomImageViewer(item: $fadedPhoto, image: \.image) { photo in
+            ZoomImageDefaultOverlay()
 
-                    /// A plain caption in the viewer's own semantic colours. The viewer forces the dark colour scheme, so `.secondary` is the one for a dark background even while the app is in light mode.
-                    Text(photo.caption)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding()
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                }
+            /// A plain caption in the viewer's own semantic colours. The viewer forces the dark colour scheme, so `.secondary` is the one for a dark background even while the app is in light mode.
+            Text(photo.caption)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding()
+                .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+        /// A `UIImage` has nothing to match a source view by, so it fades in and out.
+        .zoomImageViewer(uiImage: $uiImage) { _ in
+            switch closeButtonOption {
+            case .default:
+                ZoomImageDefaultOverlay()
+            case .defaultTopLeading:
+                ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
+            case .customButtonStyle:
+                ZoomImageDefaultOverlay()
+                    .buttonStyle(MyCustomButtonStyle())
             }
-        )
+            
+            /// Inside the overlay so VoiceOver can reach it and it fades out with the image.
+            imageSwapControls
+                .padding()
+                .frame(maxHeight: .infinity, alignment: .bottom)
+        }
     }
     
     /// Steps between photos while one is on screen. Closing after a step shrinks the image into the thumbnail of the photo on screen.

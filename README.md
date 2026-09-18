@@ -42,10 +42,10 @@ ZoomImageViewer is open source and free but if you like using it, please conside
 - - -
 # Features
 
-## ZoomImageView
-Add `ZoomImageView` as an overlay and pass it a binding to an optional `UIImage`. The view shows nothing while the binding is `nil`, and presents the image fullscreen as soon as one is set. Closing the viewer sets the binding back to `nil`, and setting the binding to `nil` closes the viewer with the same fade.
+## zoomImageViewer
+Attach the `zoomImageViewer(uiImage:)` modifier to a view and pass it a binding to an optional `UIImage`. The viewer shows nothing while the binding is `nil`, and presents the image fullscreen as soon as one is set. Closing the viewer sets the binding back to `nil`, and setting the binding to `nil` closes the viewer with the same fade.
 
-The viewer only fills the frame it is given, so overlay it on a view that covers the whole screen and add it as high up the hierarchy as you can. Overlaying a single button shows the image in that button's frame.
+The viewer covers the view it is attached to, so attach it to a view that covers the whole screen and add it as high up the hierarchy as you can. Attaching it to a single button shows the image in that button's frame.
 
 ```swift
 @State private var uiImage: UIImage? = nil
@@ -57,9 +57,7 @@ var body: some View {
         }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .overlay {
-        ZoomImageView(uiImage: $uiImage)
-    }
+    .zoomImageViewer(uiImage: $uiImage)
 }
 ```
 
@@ -96,38 +94,35 @@ uiImage = image
 ```
 
 ## Items
-Present an optional `Equatable` item instead of a `UIImage` when the overlay needs more than the image itself, like a caption. Pass the item binding and a key path to the item's image, and the overlay closure receives the item.
+Present an optional item instead of a `UIImage` when the overlay needs more than the image itself, like a caption. The item has to be `Identifiable` and `Equatable`. Pass the item binding and a key path to the item's image, and the overlay closure receives the item.
 
 ```swift
 @State private var selectedPhoto: Photo? = nil
 
 var body: some View {
     content
-        .overlay {
-            ZoomImageView(item: $selectedPhoto, image: \.image) { photo in
-                ZoomImageDefaultOverlay()
+        .zoomImageViewer(item: $selectedPhoto, image: \.image) { photo in
+            ZoomImageDefaultOverlay()
 
-                Text(photo.caption)
-                    .padding()
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-            }
+            Text(photo.caption)
+                .padding()
+                .frame(maxHeight: .infinity, alignment: .bottom)
         }
 }
 ```
 
-The image fades in and out, the same as a viewer given a `UIImage`. Add a namespace to grow it from a source view instead.
+With no source view on screen, the image fades in and out, the same as a viewer given a `UIImage`. Give the item a source view to grow the image from it instead.
 
 The overlay is built for the item on screen and keeps showing the last one while the viewer fades out, so a caption doesn't blank out as the viewer closes. Setting the item to another one while the viewer is open swaps the image instantly and rebuilds the overlay for it.
 
 The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image.
 
 ## Growing from a Source View
-Add a namespace to an item viewer to grow the image from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrink it back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
+An item's image grows from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrinks back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
-Give each source view the `zoomImageSource(for:selection:namespace:)` modifier with its item, the viewer's selection and a namespace, and pass the viewer the same namespace. The image is matched to its source by the item's `id`, so this form needs `Identifiable` as well as `Equatable`. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
+Give each source view inside the view the viewer is attached to the `zoomImageSource(for:)` modifier with its item. The image is matched to its source by the item's `id`. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
 
 ```swift
-@Namespace private var namespace
 @State private var selectedPhoto: Photo? = nil
 
 var body: some View {
@@ -140,34 +135,26 @@ var body: some View {
                     Image(uiImage: photo.image)
                         .resizable()
                         .scaledToFit()
-                        .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
+                        .zoomImageSource(for: photo)
                 }
             }
         }
     }
-    .overlay {
-        ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace)
-    }
+    .zoomImageViewer(item: $selectedPhoto, image: \.image)
 }
 ```
 
 The source view is hidden while its image is showing and fades back in once the image has landed on it. It stays in place the whole time, so the layout around it doesn't change.
 
-A custom overlay goes in a trailing closure and receives the item, the same as without a namespace.
+An item with no source view on screen, like one scrolled out of a lazy grid, fades in and out instead.
 
-```swift
-ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace) { photo in
-    ZoomImageDefaultOverlay()
+Setting the item to another one while the viewer is open swaps the image instantly, and closing shrinks it into that item's source view.
 
-    Text(photo.caption)
-        .padding()
-        .frame(maxHeight: .infinity, alignment: .bottom)
-}
-```
+The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
 
-Setting the selection to another item while the viewer is open swaps the image instantly, and closing shrinks it into that item's source view.
+A source view belongs to the nearest viewer above it presenting the same type of item. A second viewer of the same type attached further out doesn't see those sources, and fades its images in and out.
 
-The image is fitted to the frame it grows from, so a source view showing the whole image with `scaledToFit()` matches it most closely.
+Sources in a sheet need a viewer attached inside the sheet, as a viewer outside it is drawn behind the sheet. For navigation, attach the viewer outside the `NavigationStack`, so it covers every pushed view.
 
 ## Overlay
 There are three ways to give the viewer a close button, depending on how much you want to control.
@@ -178,13 +165,13 @@ There are three ways to give the viewer a close button, depending on how much yo
 | The standard close button, placed and padded yourself, or restyled | `ZoomImageCloseButton` |
 | Your own button with your own label | `closeZoomImage` |
 
-The default overlay is a close button in the top trailing corner. To move it, put `ZoomImageDefaultOverlay` in the overlay with another `Alignment`.
+The default overlay is a close button in the top trailing corner. To move it, pass another `Alignment` as the close button position.
 
 ```swift
-ZoomImageView(uiImage: $uiImage) { _ in
-    ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
-}
+.zoomImageViewer(uiImage: $uiImage, closeButtonPosition: .topLeading)
 ```
+
+In a custom overlay, give `ZoomImageDefaultOverlay` the position instead.
 
 The built-in close button, `ZoomImageCloseButton`, uses `ButtonRole.close` on iOS 26 and up, so its label comes from the system and is already localized. Earlier versions are titled "Close" from the package's string catalog.
 
@@ -193,7 +180,7 @@ Its default style, `ZoomImageDefaultButtonStyle`, renders as a Liquid Glass butt
 If you want a custom overlay you can use a trailing closure and add additional UI elements. Use `ZoomImageDefaultOverlay` to keep the default close button, alongside your own views. The closure receives the image on screen, so an overlay describing it doesn't have to reach outside for it.
 
 ```swift
-ZoomImageView(uiImage: $uiImage) { uiImage in
+.zoomImageViewer(uiImage: $uiImage) { uiImage in
     ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
 
     Text(uiImage.accessibilityLabel ?? "")
@@ -225,7 +212,7 @@ struct DoneButton: View {
     }
 }
 
-ZoomImageView(uiImage: $uiImage) { _ in
+.zoomImageViewer(uiImage: $uiImage) { _ in
     DoneButton()
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
@@ -233,12 +220,17 @@ ZoomImageView(uiImage: $uiImage) { _ in
 ```
 
 ## Rotation
-If your app is locked to portrait but you want fullscreen images to rotate, wrap the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp). The example app does this.
+If your app is locked to portrait but you want fullscreen images to rotate, wrap every viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp) with the `zoomImageViewerWrapper(_:)` modifier. Set it once near the root of the app, and it wraps every viewer below it. The example app does this.
 
 ```swift
-.overlay(
-    AutoRotatingView {
-        ZoomImageView(uiImage: $uiImage)
-    }
-)
+WindowGroup {
+    ContentView()
+        .zoomImageViewerWrapper { viewer in
+            AutoRotatingView { viewer }
+        }
+}
 ```
+
+An image growing from a source view turns back as it lands, so it arrives square with its source whichever way the wrapper has turned it.
+
+The wrapper can be any view, so it can also add a background or measure the viewer's frame.

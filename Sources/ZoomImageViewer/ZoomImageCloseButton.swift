@@ -7,14 +7,14 @@
 
 import SwiftUI
 
-/// The built-in close button for a ``ZoomImageView``.
+/// The built-in close button for a zoom image viewer.
 ///
 /// On iOS 26 and up it uses the close role with the label the system provides, which the system localizes. Earlier versions use an xmark in a filled circle titled "Close", localized by this package.
 ///
-/// It has no button style or position of its own. Inside a ``ZoomImageView`` it uses ``ZoomImageDefaultButtonStyle`` unless you give it another with `buttonStyle(_:)`. Use ``ZoomImageDefaultOverlay`` for the button in its default position.
+/// It has no button style or position of its own. Inside a viewer it uses ``ZoomImageDefaultButtonStyle`` unless you give it another with `buttonStyle(_:)`. Use ``ZoomImageDefaultOverlay`` for the button in its default position.
 ///
 /// ```swift
-/// ZoomImageView(uiImage: $uiImage) {
+/// .zoomImageViewer(uiImage: $uiImage) { _ in
 ///     ZoomImageCloseButton()
 ///         .buttonStyle(.glass)
 ///         .padding()
@@ -24,7 +24,7 @@ import SwiftUI
 public struct ZoomImageCloseButton: View {
     @Environment(\.closeZoomImage) private var closeZoomImage
     
-    /// Creates the built-in close button, which closes the ``ZoomImageView`` it is in.
+    /// Creates the built-in close button, which closes the zoom image viewer it is in.
     public init() {}
     
     func action() {
