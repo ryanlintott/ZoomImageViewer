@@ -9,7 +9,7 @@ import SwiftUI
 
 /// The overlay of a ``ZoomImageView`` presenting an item, built for the item on screen.
 ///
-/// Created by ``ZoomImageView/init(item:image:in:overlay:)``, which builds the overlay for the current item while the view creating the viewer updates, so any state the overlay reads is tracked by that view from its first update. Clearing the item fades the viewer out, and the overlay keeps showing the last item it had until it is gone rather than going blank.
+/// Created by ``ZoomImageView/init(item:image:overlay:)`` and ``ZoomImageView/init(item:image:namespace:overlay:)``, which build the overlay for the current item while the view creating the viewer updates, so any state the overlay reads is tracked by that view from its first update. Clearing the item fades the viewer out, and the overlay keeps showing the last item it had until it is gone rather than going blank.
 public struct ZoomImageItemOverlay<Item: Equatable, Content: View>: View {
     /// The overlay built for the current item, or `nil` once the item is cleared.
     let content: Content?

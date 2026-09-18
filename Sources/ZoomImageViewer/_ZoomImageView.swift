@@ -62,6 +62,10 @@ struct _ZoomImageView<Overlay: View>: View {
     let opacityAtDismissThreshold: Double = 0.8
     /// How far a dismissed image travels at least, as a multiple of the viewer's longest side. An image inside the frame needs at most the frame's diagonal, about 1.41 times its longest side, to leave in any direction, so this leaves room for how far it had already been dragged.
     let dismissDistanceMultiplier: CGFloat = 2
+    /// How wide the background is, as a multiple of the frame's diagonal.
+    ///
+    /// The diagonal on its own is exactly enough to cover the frame at any angle, as the frame's corners land on the background square's inscribed circle. Exactly enough leaves nothing for rounding, so the corners touch the edge rather than clearing it. This clears them by a twentieth of the diagonal, around 46pt on a 393×852 frame, and is still a fraction of the frame-sized padding it replaced.
+    let backgroundDiagonalMultiplier: CGFloat = 1.1
     
     var body: some View {
         /// This helps center animated rotations
@@ -69,6 +73,8 @@ struct _ZoomImageView<Overlay: View>: View {
             GeometryReader { proxy in
                 /// The image fills the whole frame, safe area included, like in Photos.
                 let viewerSize = proxy.sizeIncludingSafeAreaInsets
+                /// The side of the square painted behind the image, which covers the frame whichever way a container has turned it.
+                let backgroundSide = viewerSize.magnitude * backgroundDiagonalMultiplier
                 
                 /// Always in the hierarchy, so the rotation of a viewer showing nothing is known by the time an image appears.
                 ZoomImageRotationReader(rotation: $contentRotation)
@@ -128,14 +134,17 @@ struct _ZoomImageView<Overlay: View>: View {
                             }
                         }
                         .ignoresSafeArea()
-                        .background(
-                            Color.black
-                                .padding(-.maximum(proxy.size.height, proxy.size.width))
+                        .background {
+                            /// A centred square a little wider than the frame's diagonal, so a container that turns the viewer never exposes a corner at any angle.
+                            ///
+                            /// Resolves to black, as the viewer forces the dark colour scheme on everything inside it.
+                            Color(uiColor: .systemBackground)
+                                .frame(width: backgroundSide, height: backgroundSide)
                                 .ignoresSafeArea()
                                 .opacity(backgroundOpacity)
-                        )
+                        }
                         .opacity(imageOpacity)
-                        .overlay(
+                        .overlay {
                             ZStack {
                                 overlay
                             }
@@ -147,7 +156,7 @@ struct _ZoomImageView<Overlay: View>: View {
                             .allowsHitTesting(isShowingOverlay)
                             .accessibilityHidden(!isShowingOverlay)
                             .environment(\.closeZoomImage, ZoomImageCloseAction(uiImage: $uiImage))
-                        )
+                        }
                         /// Keeps VoiceOver inside the viewer while it covers the content behind it, and lets VoiceOver users dismiss the image with the escape gesture.
                         .accessibilityElement(children: .contain)
                         .accessibilityAddTraits(.isModal)
@@ -202,6 +211,8 @@ struct _ZoomImageView<Overlay: View>: View {
             /// The next image starts from a clean slate. State left behind by the image just removed, like the offset it was thrown away with, would otherwise still be in place as the next one is added, and a matched image would grow from its source offset by it.
             resetPresentation()
         }
+        /// Everything in the viewer resolves against the dark colour scheme, whatever the app's appearance: the background, which is `systemBackground`, and the overlay, so a caption's `.secondary` or a button's tint is the one for a dark background rather than the app's. Forced rather than read from the environment, so the background and the views over it can never disagree.
+        .colorScheme(.dark)
     }
     
     /// The matched geometry effect the image on screen grows from and shrinks back to, or `nil` to fade the image in and out.
@@ -497,7 +508,7 @@ struct _ZoomImageView<Overlay: View>: View {
 #Preview {
     @Previewable @State var uiImage: UIImage? = UIImage(systemName: "gear")
     
-    ZoomImageView(uiImage: $uiImage) {
+    ZoomImageView(uiImage: $uiImage) { _ in
         ZoomImageDefaultOverlay()
     }
 

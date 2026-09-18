@@ -8,7 +8,7 @@
 import SwiftUI
 
 public extension View {
-    /// Makes this view the source a ``ZoomImageView`` image grows from and shrinks back into, like a thumbnail.
+    /// Makes this view the source a ``ZoomImageView`` image grows from and shrinks back into, usually a thumbnail.
     ///
     /// Pass the item this view shows, the value of the viewer's item binding as the selection, and the viewer's namespace. The view is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
     ///
@@ -20,15 +20,15 @@ public extension View {
     /// Image(uiImage: photo.image)
     ///     .resizable()
     ///     .scaledToFit()
-    ///     .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+    ///     .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
     /// ```
     ///
-    /// The image is fitted to this view's frame, so a view that shows the whole image, like one with `scaledToFit()`, matches it most closely. See ``ZoomImageView/init(item:image:in:overlay:)`` for setting up the viewer.
+    /// The image is fitted to this view's frame, so a source view that shows the whole image, like one with `scaledToFit()`, matches it most closely. See ``ZoomImageView/init(item:image:namespace:overlay:)`` for setting up the viewer.
     /// - Parameters:
     ///   - item: The item this view shows.
     ///   - selection: The item the viewer is presenting, or `nil` when it is closed.
     ///   - namespace: The namespace the viewer is in.
-    func zoomImageSource<Item: Identifiable>(for item: Item, selection: Item?, in namespace: Namespace.ID) -> some View {
+    func zoomImageSource<Item: Identifiable>(for item: Item, selection: Item?, namespace: Namespace.ID) -> some View {
         modifier(ZoomImageSourceModifier(id: item.id, isPresenting: selection?.id == item.id, namespace: namespace))
     }
 }
@@ -37,7 +37,7 @@ public extension View {
 ///
 /// Matched geometry only matches frames, so the view inserted and removed with the image doesn't have to be the content. The content stays where it is and only changes opacity, so it is built once and laid out once.
 struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
-    /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source stays visible.
+    /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source view stays visible.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     let id: ID

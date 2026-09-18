@@ -44,6 +44,8 @@ struct TapToFullscreenImageScrollView: View {
     @State private var viewerSize: CGSize = .zero
     /// The photo shown in the second viewer, which grows from its thumbnail.
     @State private var selectedPhoto: ThumbnailPhoto? = nil
+    /// The photo shown in the third viewer, which fades in and out with no thumbnail to grow from.
+    @State private var fadedPhoto: ThumbnailPhoto? = nil
     
     @Namespace private var namespace
     
@@ -67,7 +69,7 @@ struct TapToFullscreenImageScrollView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .accessibilityIgnoresInvertColors()
-                                .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+                                .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
                                 .frame(height: 80)
                                 .frame(maxWidth: .infinity)
                         }
@@ -79,9 +81,33 @@ struct TapToFullscreenImageScrollView: View {
             } header: {
                 Text(verbatim: "Thumbnails")
             } footer: {
-                Text(verbatim: "Images grow from these thumbnails and shrink back into them when closed.")
+                Text(verbatim: "Each thumbnail is a source view, marked with zoomImageSource. Images grow from them and shrink back into them when closed.")
             }
             
+            Section {
+                ForEach(ThumbnailPhoto.all) { photo in
+                    Button {
+                        fadedPhoto = photo
+                    } label: {
+                        HStack {
+                            Image(uiImage: photo.image)
+                                .resizable()
+                                .scaledToFit()
+                                .accessibilityIgnoresInvertColors()
+                                .frame(width: 80, height: 44)
+
+                            Text(photo.caption)
+                                .font(.headline)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text(verbatim: "Items without a namespace")
+            } footer: {
+                Text(verbatim: "The same photos in a viewer with no namespace. The image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
+            }
+
             Section {
                 ForEach(CloseButtonOption.allCases) { option in
                     Button {
@@ -148,7 +174,7 @@ struct TapToFullscreenImageScrollView: View {
                         }
                         .ignoresSafeArea()
                     
-                    ZoomImageView(uiImage: $uiImage) {
+                    ZoomImageView(uiImage: $uiImage) { _ in
                         switch closeButtonOption {
                         case .default:
                             ZoomImageDefaultOverlay()
@@ -170,11 +196,26 @@ struct TapToFullscreenImageScrollView: View {
         .overlay(
             /// A second viewer for the thumbnails, with its own selection. Turned by `AutoRotatingView` too, so the image is seen turning back to match its thumbnail as it lands.
             AutoRotatingView {
-                ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
+                ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace) { photo in
                     ZoomImageDefaultOverlay()
                     
                     /// Built for the photo on screen, and kept while the viewer fades out.
                     photoControls(for: photo)
+                        .padding()
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+            }
+        )
+        .overlay(
+            /// A third viewer taking the same items with no namespace, so the image fades in and out rather than growing from a thumbnail.
+            AutoRotatingView {
+                ZoomImageView(item: $fadedPhoto, image: \.image) { photo in
+                    ZoomImageDefaultOverlay()
+
+                    /// A plain caption in the viewer's own semantic colours. The viewer forces the dark colour scheme, so `.secondary` is the one for a dark background even while the app is in light mode.
+                    Text(photo.caption)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .padding()
                         .frame(maxHeight: .infinity, alignment: .bottom)
                 }

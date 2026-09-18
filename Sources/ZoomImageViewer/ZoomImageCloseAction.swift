@@ -9,6 +9,8 @@ import SwiftUI
 
 /// An action that closes the ``ZoomImageView`` a view is in.
 ///
+/// For the built-in close button in a place of your choosing, use ``ZoomImageCloseButton``, which is already wired to this action and carries the system's localized label. Reach for this action when you want your own button with your own title, role or accessibility.
+///
 /// Read it from the environment in a view inside the viewer's overlay, then call it like a function.
 ///
 /// ```swift

@@ -24,18 +24,26 @@ var body: some View {
 }
 ```
 
-Present an `Identifiable` item instead of an image to grow the image from its thumbnail and shrink it back when the viewer closes. Give each thumbnail ``SwiftUICore/View/zoomImageSource(for:selection:in:)`` and pass the viewer the same namespace.
+Present an `Equatable` item instead of an image when the overlay needs more than the image itself, like a caption. The item's image is read through a key path, and the overlay closure receives the item.
+
+```swift
+ZoomImageView(item: $selectedPhoto, image: \.image)
+```
+
+Add a namespace to grow the image from its source view, usually a thumbnail, and shrink it back when the viewer closes, instead of fading it in and out. Give each source view ``SwiftUICore/View/zoomImageSource(for:selection:namespace:)`` and pass the viewer the same namespace. The image is matched to its source by the item's `id`, so this form also needs `Identifiable`.
 
 ```swift
 Image(uiImage: photo.image)
     .resizable()
     .scaledToFit()
-    .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+    .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
 
-ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace)
+ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace)
 ```
 
 Everything shown over the image is an overlay you can replace. Keep the built-in close button with ``ZoomImageDefaultOverlay``, place ``ZoomImageCloseButton`` yourself, or make your own button that calls ``SwiftUICore/EnvironmentValues/closeZoomImage``. Buttons in the overlay use ``ZoomImageDefaultButtonStyle`` unless they set their own.
+
+The background is black in both light and dark mode and the viewer forces the dark colour scheme on everything inside it.
 
 The viewer supports VoiceOver, Reduce Motion and Smart Invert.
 
@@ -49,9 +57,9 @@ For a feature-by-feature guide with examples, see the [README](https://github.co
 
 - ``ZoomImageView``
 
-### Growing from a Thumbnail
+### Growing from a Source View
 
-- ``SwiftUICore/View/zoomImageSource(for:selection:in:)``
+- ``SwiftUICore/View/zoomImageSource(for:selection:namespace:)``
 - ``ZoomImageItemOverlay``
 
 ### Overlay

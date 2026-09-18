@@ -13,26 +13,30 @@ import SwiftUI
 ///
 /// Like in Photos, the image ignores the safe area, filling the whole frame and panning to its edges when zoomed in, while the overlay stays inside the safe area. Zooming the image in hides the overlay, status bar and home indicator, and zooming back out to fit shows them again. A single tap shows or hides the overlay at any zoom, and the status bar and home indicator with it while the image is zoomed out. Panning or zooming a zoomed in image hides the overlay again. Dragging the image away hides the overlay, which comes back if the image is put back. The home indicator is only hidden on iOS 16 and up.
 ///
+/// The background is black in both light and dark mode, like in Photos, and the viewer forces the dark colour scheme on everything inside it, so the semantic colours in the overlay are the ones for a dark background whatever the app's appearance.
+///
 /// With VoiceOver the viewer is modal and the image is a single element, described by the `UIImage`'s `accessibilityLabel`. The escape gesture closes the viewer. On iOS 16 and up, VoiceOver's zoom action zooms in on the middle of the screen and back out, and three-finger swipes pan a zoomed in image half a screen at a time. The image's Show Controls and Hide Controls actions do the same as a single tap.
 public struct ZoomImageView<Overlay: View>: View {
     @Binding private var uiImage: UIImage?
     let overlay: Overlay
-    /// The namespace the image's source is in, or `nil` for a viewer that fades its image in and out.
+    /// The namespace the image's source view is in, or `nil` for a viewer that fades its image in and out.
     let namespace: Namespace.ID?
-    /// The identifier of the source of the image in the binding, or `nil` when there is no image or no source.
+    /// The identifier of the source view of the image in the binding, or `nil` when there is no image or no source view.
     let sourceID: (any Hashable)?
-    
-    /// Creates a view with a zoomable image and a custom overlay.
+
+    /// Creates a view with a zoomable image and a custom overlay that receives the image.
     ///
     /// The overlay covers the viewer's frame inside its safe area, fades in and out with the image, and is hidden while the image is zoomed in or after a single tap. Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button.
     ///
     /// The overlay is the only way to close the viewer other than dragging the image away, so include a close button. ``ZoomImageCloseButton`` closes the viewer it is in, and your own buttons can do the same with the ``SwiftUICore/EnvironmentValues/closeZoomImage`` action.
     ///
+    /// The image is passed in so the overlay can describe what is on screen. It is the image the viewer is showing, which keeps showing the last one while the viewer fades out rather than going blank. Anything else the overlay needs, like a caption, belongs to an item, so use ``init(item:image:overlay:)`` instead of reaching outside this closure for it.
+    ///
     /// ```swift
-    /// ZoomImageView(uiImage: $uiImage) {
+    /// ZoomImageView(uiImage: $uiImage) { uiImage in
     ///     ZoomImageDefaultOverlay()
     ///
-    ///     Text("Two eagles catching a fish")
+    ///     Text(uiImage.accessibilityLabel ?? "")
     ///         .padding()
     ///         .frame(maxHeight: .infinity, alignment: .bottom)
     /// }
@@ -40,18 +44,47 @@ public struct ZoomImageView<Overlay: View>: View {
     /// - Parameters:
     ///   - uiImage: Image to present. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer, fading it out.
     ///   - overlay: The views shown over the image, stacked on top of each other.
-    public init(
+    public init<Content: View>(
         uiImage: Binding<UIImage?>,
-        @ViewBuilder overlay: () -> Overlay
-    ) {
-        self.init(uiImage: uiImage, namespace: nil, sourceID: nil, overlay: overlay)
+        @ViewBuilder overlay: @escaping (UIImage) -> Content
+    ) where Overlay == ZoomImageItemOverlay<UIImage, Content> {
+        /// The image is its own item, so this is the item viewer with nothing to look the image up by.
+        self.init(item: uiImage, image: \.self, overlay: overlay)
     }
-    
-    /// Creates a view with a zoomable image that grows from its item's source view, like a thumbnail, and a custom overlay that receives the item.
+
+    /// Creates a view with a zoomable image for an item, fading the image in and out, and a custom overlay that receives the item.
     ///
-    /// Give each source view the ``SwiftUICore/View/zoomImageSource(for:selection:in:)`` modifier with its item, the same item binding's value as the selection, and the same namespace. The item's `id` matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
+    /// The overlay is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared. Use ``init(item:image:namespace:overlay:)`` to grow the image from a source view instead of fading it in.
     ///
-    /// Only the image is matched. The background and overlay fade in and out as usual. A viewer inside a container that turns its content, like `AutoRotatingView` from FrameUp, turns the image back as it lands on its source, so it arrives square with it. The image is fitted to the frame it grows from, so a source that shows the whole image, like one with `scaledToFit()`, matches it most closely.
+    /// ```swift
+    /// ZoomImageView(item: $selectedPhoto, image: \.image) { photo in
+    ///     ZoomImageDefaultOverlay()
+    ///
+    ///     Text(photo.caption)
+    ///         .padding()
+    ///         .frame(maxHeight: .infinity, alignment: .bottom)
+    /// }
+    /// ```
+    /// - Parameters:
+    ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer. `Equatable`, so the overlay can tell when the item changes and fade out with its latest contents.
+    ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does, as a different instance is shown as a replacement image.
+    ///   - overlay: The views shown over the image for an item, stacked on top of each other.
+    public init<Item: Equatable, Content: View>(
+        item: Binding<Item?>,
+        image: KeyPath<Item, UIImage>,
+        @ViewBuilder overlay: @escaping (Item) -> Content
+    ) where Overlay == ZoomImageItemOverlay<Item, Content> {
+        self.init(uiImage: item.zoomImage(image), namespace: nil, sourceID: nil) {
+            /// Reads the item while the view creating this one updates, so that view is updated whenever the item changes and the overlay is built for the new one.
+            ZoomImageItemOverlay(item: item.wrappedValue, content: overlay)
+        }
+    }
+
+    /// Creates a view with a zoomable image that grows from its item's source view, usually a thumbnail, and a custom overlay that receives the item.
+    ///
+    /// Give each source view the ``SwiftUICore/View/zoomImageSource(for:selection:namespace:)`` modifier with its item, the same item binding's value as the selection, and the same namespace. The item's `id` matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
+    ///
+    /// Only the image takes part in the transition. The background and overlay fade in and out as usual. A viewer inside a container that turns its content, like `AutoRotatingView` from FrameUp, turns the image back as it lands on its source, so it arrives square with it. The image is fitted to the frame it grows from, so a source view that shows the whole image, like one with `scaledToFit()`, matches it most closely.
     ///
     /// ```swift
     /// @Namespace private var namespace
@@ -66,12 +99,12 @@ public struct ZoomImageView<Overlay: View>: View {
     ///                 Image(uiImage: photo.image)
     ///                     .resizable()
     ///                     .scaledToFit()
-    ///                     .zoomImageSource(for: photo, selection: selectedPhoto, in: namespace)
+    ///                     .zoomImageSource(for: photo, selection: selectedPhoto, namespace: namespace)
     ///             }
     ///         }
     ///     }
     ///     .overlay(
-    ///         ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace) { photo in
+    ///         ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace) { photo in
     ///             ZoomImageDefaultOverlay()
     ///
     ///             Text(photo.caption)
@@ -93,7 +126,7 @@ public struct ZoomImageView<Overlay: View>: View {
     public init<Item: Identifiable & Equatable, Content: View>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
-        in namespace: Namespace.ID,
+        namespace: Namespace.ID,
         @ViewBuilder overlay: @escaping (Item) -> Content
     ) where Overlay == ZoomImageItemOverlay<Item, Content> {
         self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
@@ -101,7 +134,7 @@ public struct ZoomImageView<Overlay: View>: View {
             ZoomImageItemOverlay(item: item.wrappedValue, content: overlay)
         }
     }
-    
+
     init(
         uiImage: Binding<UIImage?>,
         namespace: Namespace.ID?,
@@ -115,7 +148,7 @@ public struct ZoomImageView<Overlay: View>: View {
         self.overlay = overlay()
     }
     
-    /// The matched geometry effect for the image in the binding, or `nil` when there is no image or no source.
+    /// The matched geometry effect for the image in the binding, or `nil` when there is no image or no source view.
     var matchedGeometry: ZoomImageMatchedGeometry? {
         guard let namespace, let sourceID else { return nil }
         return ZoomImageMatchedGeometry(id: sourceID, namespace: namespace)
@@ -139,17 +172,38 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     ///   - uiImage: Image to present.
     ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
     init(uiImage: Binding<UIImage?>, closeButtonPosition: Alignment = .topTrailing) {
-        self.init(uiImage: uiImage) {
+        self.init(uiImage: uiImage, namespace: nil, sourceID: nil) {
             ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
         }
     }
-    
-    /// Creates a view with a zoomable image that grows from its item's source view, like a thumbnail, and the built-in close button.
+
+    /// Creates a view with a zoomable image for an item, fading the image in and out, and the built-in close button.
     ///
-    /// See ``init(item:image:in:overlay:)`` for how to set up the source views.
+    /// Use ``init(item:image:namespace:closeButtonPosition:)`` to grow the image from a source view instead of fading it in.
     ///
     /// ```swift
-    /// ZoomImageView(item: $selectedPhoto, image: \.image, in: namespace)
+    /// ZoomImageView(item: $selectedPhoto, image: \.image)
+    /// ```
+    /// - Parameters:
+    ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
+    ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
+    init<Item: Equatable>(
+        item: Binding<Item?>,
+        image: KeyPath<Item, UIImage>,
+        closeButtonPosition: Alignment = .topTrailing
+    ) {
+        self.init(uiImage: item.zoomImage(image), namespace: nil, sourceID: nil) {
+            ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
+        }
+    }
+
+    /// Creates a view with a zoomable image that grows from its item's source view, usually a thumbnail, and the built-in close button.
+    ///
+    /// See ``init(item:image:namespace:overlay:)`` for how to set up the source views.
+    ///
+    /// ```swift
+    /// ZoomImageView(item: $selectedPhoto, image: \.image, namespace: namespace)
     /// ```
     /// - Parameters:
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
@@ -159,7 +213,7 @@ public extension ZoomImageView<ZoomImageDefaultOverlay> {
     init<Item: Identifiable & Equatable>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
-        in namespace: Namespace.ID,
+        namespace: Namespace.ID,
         closeButtonPosition: Alignment = .topTrailing
     ) {
         self.init(uiImage: item.zoomImage(image), namespace: namespace, sourceID: item.wrappedValue?.id) {
@@ -174,14 +228,14 @@ public extension ZoomImageView<AnyView> {
     ///   - uiImage: Image to present.
     ///   - closeButtonStyle: Button style to use for close button.
     ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
-    @available(*, deprecated, message: "Style the default overlay instead: ZoomImageView(uiImage:) { ZoomImageDefaultOverlay(closeButtonPosition: position).buttonStyle(style) }")
+    @available(*, deprecated, message: "Style the default overlay instead: ZoomImageView(uiImage:) { _ in ZoomImageDefaultOverlay(closeButtonPosition: position).buttonStyle(style) }")
     init<CloseButtonStyle: ButtonStyle>(
         uiImage: Binding<UIImage?>,
         closeButtonStyle: CloseButtonStyle,
         closeButtonPosition: Alignment = .topTrailing
     ) {
         /// Type erased because a style applied with `buttonStyle(_:)` has no type that can be named here.
-        self.init(uiImage: uiImage) {
+        self.init(uiImage: uiImage, namespace: nil, sourceID: nil) {
             AnyView(
                 ZoomImageDefaultOverlay(closeButtonPosition: closeButtonPosition)
                     .buttonStyle(closeButtonStyle)
