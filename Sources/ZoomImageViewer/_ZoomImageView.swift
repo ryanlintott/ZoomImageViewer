@@ -106,7 +106,12 @@ struct _ZoomImageView<Overlay: View>: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityAddTraits(.isImage)
                         .accessibilityLabel(Text(uiImage.accessibilityLabel ?? ""))
-                        .accessibilityInputLabels(["Image", "Photo", "Picture"])
+                        /// Names Voice Control users can say to target the image. Built with `Text` from the package bundle, as string literals would be looked up in the app's bundle.
+                        .accessibilityInputLabels([
+                            Text("Image", bundle: .module, comment: "Voice Control input label for the fullscreen image, a name people can say to target it, as in “Tap Image”. Photo and Picture are alternative names for it, so a different common word for each works best."),
+                            Text("Photo", bundle: .module, comment: "Voice Control input label for the fullscreen image, a name people can say to target it, as in “Tap Photo”. Image and Picture are alternative names for it, so a different common word for each works best."),
+                            Text("Picture", bundle: .module, comment: "Voice Control input label for the fullscreen image, a name people can say to target it, as in “Tap Picture”. Image and Photo are alternative names for it, so a different common word for each works best.")
+                        ])
                         .ifAvailable {
                             if #available(iOS 16, *) {
                                 /// Lets assistive technologies such as VoiceOver zoom the image in and out, the same as a double tap.
