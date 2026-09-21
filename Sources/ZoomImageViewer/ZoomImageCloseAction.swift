@@ -31,21 +31,41 @@ import SwiftUI
 ///
 /// Outside of a viewer it does nothing.
 public struct ZoomImageCloseAction {
-    /// The image binding of the viewer the action closes, or `nil` outside of a viewer.
-    ///
-    /// Stored rather than a closure, as closures cannot be compared, so every view reading the action would update whenever the viewer does. Clearing the binding is all closing takes, as the viewer fades out when its image is set to `nil`.
-    let uiImage: Binding<UIImage?>?
+    /// The optional binding of the viewer this action closes, type erased without storing an escaping closure.
+    private let binding: (any ZoomImageDismissibleBinding)?
+
+    init<Value>(binding: Binding<Value?>) {
+        self.binding = ZoomImageOptionalBinding(binding: binding)
+    }
+
+    init() {
+        binding = nil
+    }
     
     /// Closes the viewer.
     ///
     /// The viewer animates closing itself, including shrinking an image back into its source, so the binding is cleared in the current transaction.
     @MainActor
     public func callAsFunction() {
-        uiImage?.wrappedValue = nil
+        binding?.dismiss()
     }
 }
 
 public extension EnvironmentValues {
     /// Closes the zoom image viewer this environment is in, or does nothing outside of one.
-    @Entry var closeZoomImage = ZoomImageCloseAction(uiImage: nil)
+    @Entry var closeZoomImage = ZoomImageCloseAction()
+}
+
+/// A type-erased optional binding that can clear itself.
+private protocol ZoomImageDismissibleBinding {
+    @MainActor func dismiss()
+}
+
+private struct ZoomImageOptionalBinding<Value>: ZoomImageDismissibleBinding {
+    let binding: Binding<Value?>
+
+    @MainActor
+    func dismiss() {
+        binding.wrappedValue = nil
+    }
 }

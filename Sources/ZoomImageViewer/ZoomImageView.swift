@@ -12,6 +12,7 @@ import SwiftUI
 /// Replaced by the ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:)`` modifier, which places the viewer over the view it is attached to.
 @available(*, deprecated, message: "Use the zoomImageViewer(uiImage:) modifier instead.")
 public struct ZoomImageView<Overlay: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var uiImage: UIImage?
     let overlay: Overlay
 
@@ -21,7 +22,13 @@ public struct ZoomImageView<Overlay: View>: View {
     }
 
     public var body: some View {
-        _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: nil)
+        ZoomImageViewerHost(
+            uiImage: $uiImage,
+            closeAction: ZoomImageCloseAction(binding: $uiImage),
+            overlay: overlay,
+            matchedGeometry: nil,
+            reduceMotionAtInsertion: reduceMotion
+        )
     }
 }
 

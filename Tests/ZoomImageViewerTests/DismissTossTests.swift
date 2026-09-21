@@ -14,7 +14,7 @@ private let duration: TimeInterval = 0.4
 /// A portrait phone's viewer, including its safe area.
 private let bounds = CGRect(x: 0, y: 0, width: 402, height: 874)
 
-/// The minimum distance `_ZoomImageView` asks for: twice the viewer's longest side.
+/// The minimum distance `ZoomImageViewerHost` asks for: twice the viewer's longest side.
 private let minimumDistance: CGFloat = 874 * 2
 
 /// A wide image fitted to the width of the viewer and centred vertically.

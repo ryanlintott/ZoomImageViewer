@@ -12,7 +12,7 @@ import Testing
 /// A portrait phone frame in points.
 private let frame = CGSize(width: 393, height: 852)
 
-/// The maximum zoom scale `_ZoomImageView` requests.
+/// The maximum zoom scale `ZoomImageViewerHost` requests.
 private let requestedMaximumZoomScale: CGFloat = 2
 
 /// Image sizes at least as large as the frame, which fit at a zoom scale of 1 or less.

@@ -67,6 +67,7 @@ public extension View {
         modifier(
             ZoomImageViewerModifier(
                 uiImage: item.zoomImage(image),
+                closeAction: ZoomImageCloseAction(binding: item),
                 /// Built here, while the view this modifies updates, so that view is updated whenever the item changes, and any state the overlay reads is tracked by it.
                 overlay: ZoomImageItemOverlay(item: item.wrappedValue, content: overlay),
                 sources: ZoomImageViewerSources(itemType: ObjectIdentifier(Item.self), presentedID: item.wrappedValue?.id)
@@ -120,6 +121,7 @@ public extension View {
         modifier(
             ZoomImageViewerModifier(
                 uiImage: uiImage,
+                closeAction: ZoomImageCloseAction(binding: uiImage),
                 /// Built here, while the view this modifies updates, so that view is updated whenever the image changes, and any state the overlay reads is tracked by it.
                 overlay: ZoomImageItemOverlay(item: uiImage.wrappedValue, content: overlay),
                 sources: nil
@@ -146,125 +148,4 @@ public extension View {
         }
     }
 
-    /// Wraps every zoom image viewer inside this view in another view, like `AutoRotatingView` from FrameUp.
-    ///
-    /// Set it once near the root of the app, and every viewer attached with ``SwiftUICore/View/zoomImageViewer(item:image:overlay:)`` or its other forms below it is placed in the wrapper. The wrapper fills the view the viewer is attached to, and the viewer fills the wrapper.
-    ///
-    /// An app locked to portrait can let fullscreen images rotate by wrapping its viewers in `AutoRotatingView`:
-    ///
-    /// ```swift
-    /// WindowGroup {
-    ///     ContentView()
-    ///         .zoomImageViewerWrapper { viewer in
-    ///             AutoRotatingView { viewer }
-    ///         }
-    /// }
-    /// ```
-    ///
-    /// A viewer that grows its image from a source view turns the image back as it lands, so it arrives square with its source whichever way the wrapper has turned it.
-    ///
-    /// A wrapper set further in replaces this one for the viewers inside it.
-    /// - Parameter wrapper: Builds the view the viewer is placed in, from the viewer.
-    func zoomImageViewerWrapper<Wrapper: View>(
-        @ViewBuilder _ wrapper: @escaping (ZoomImageViewerContent) -> Wrapper
-    ) -> some View {
-        environment(\.zoomImageViewerWrapper, ZoomImageViewerWrapper { AnyView(wrapper($0)) })
-    }
-}
-
-/// A zoom image viewer, as passed to the closure given to ``SwiftUICore/View/zoomImageViewerWrapper(_:)`` to place in a wrapper.
-public struct ZoomImageViewerContent: View {
-    /// Type erased, as the wrapper is stored in the environment and so can't know the type of any one viewer.
-    let viewer: AnyView
-
-    init(_ viewer: some View) {
-        self.viewer = AnyView(viewer)
-    }
-
-    public var body: some View {
-        viewer
-    }
-}
-
-/// The view every zoom image viewer below it is placed in.
-struct ZoomImageViewerWrapper {
-    let wrap: @MainActor (ZoomImageViewerContent) -> AnyView
-}
-
-extension EnvironmentValues {
-    /// The view every zoom image viewer below it is placed in, or `nil` to place viewers directly over the view they are attached to.
-    @Entry var zoomImageViewerWrapper: ZoomImageViewerWrapper? = nil
-}
-
-/// The item type and presented item of a viewer that grows its images from source views.
-struct ZoomImageViewerSources {
-    /// The type of item the viewer presents, which its source views show.
-    let itemType: ObjectIdentifier
-    /// The identifier of the item being presented, or `nil` when the viewer is closed.
-    ///
-    /// Kept as its own type rather than an `AnyHashable`, as SwiftUI only matches identifiers of the same type.
-    let presentedID: (any Hashable)?
-}
-
-/// Places a viewer over the view it modifies and, for a viewer with source views, hands the sources inside that view the viewer's namespace and presented item.
-///
-/// The sources are inside the view this modifies and the viewer is in its overlay, so both are inside this modifier and share its namespace without the caller declaring one.
-struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
-    /// The viewers above this view that grow their images from source views, by the type of item they present. A viewer replaces the one for its type of item for the sources inside it.
-    @Environment(\.zoomImageSourceViewers) private var viewers
-    @Environment(\.zoomImageViewerWrapper) private var wrapper
-    @Namespace private var namespace
-
-    @Binding var uiImage: UIImage?
-    let overlay: Overlay
-    /// The item type and presented item of a viewer that grows its images from source views, or `nil` for one that fades them in and out. Comes from the modifier's form, so it is only ever `nil` or never `nil` for the life of the viewer.
-    let sources: ZoomImageViewerSources?
-
-    func body(content: Content) -> some View {
-        if let sources {
-            content
-                /// Set in the same update that sets the item, so each source removes its stand-in in the transaction that inserts the image and SwiftUI grows the image from it.
-                .environment(\.zoomImageSourceViewers, viewers.merging([sources.itemType: sourceViewer(for: sources)]) { $1 })
-                .overlayPreferenceValue(ZoomImageSourceIDs.self) { sourceIDs in
-                    wrapped(
-                        _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: matchedGeometry(for: sources, onScreen: sourceIDs[sources.itemType] ?? []))
-                            /// Grows and shrinks the image with the landing spring whatever animation the binding was changed with, matching the one its source's stand-in is inserted and removed with.
-                            .animation(ZoomImageMatchedGeometry.landingAnimation(), value: uiImage != nil)
-                    )
-                }
-                /// The sources inside belong to this viewer, so a viewer of the same type further out doesn't see them and fades its images in and out.
-                .transformPreference(ZoomImageSourceIDs.self) { sourceIDs in
-                    sourceIDs[sources.itemType] = nil
-                }
-        } else {
-            content
-                .overlay {
-                    wrapped(
-                        _ZoomImageView(uiImage: $uiImage, overlay: overlay, matchedGeometry: nil)
-                    )
-                }
-        }
-    }
-
-    /// This viewer as seen by the sources inside the view it modifies.
-    func sourceViewer(for sources: ZoomImageViewerSources) -> ZoomImageSourceViewer {
-        ZoomImageSourceViewer(namespace: namespace, presentedID: sources.presentedID.map { AnyHashable($0) })
-    }
-
-    /// The matched geometry effect for the presented item, or `nil` when there is none or its source isn't on screen.
-    /// - Parameter onScreen: The identifiers of this viewer's sources that are on screen.
-    func matchedGeometry(for sources: ZoomImageViewerSources, onScreen: Set<AnyHashable>) -> ZoomImageMatchedGeometry? {
-        guard let id = sources.presentedID, onScreen.contains(AnyHashable(id)) else { return nil }
-        return ZoomImageMatchedGeometry(id: id, namespace: namespace)
-    }
-
-    /// Places the viewer in the wrapper from the environment, if there is one.
-    @ViewBuilder
-    func wrapped(_ viewer: some View) -> some View {
-        if let wrapper {
-            wrapper.wrap(ZoomImageViewerContent(viewer))
-        } else {
-            viewer
-        }
-    }
 }
