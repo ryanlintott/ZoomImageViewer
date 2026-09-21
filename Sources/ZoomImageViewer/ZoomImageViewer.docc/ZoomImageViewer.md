@@ -42,9 +42,11 @@ LazyVGrid(columns: columns) {
 .zoomImageViewer(item: $selectedPhoto, image: \.image)
 ```
 
+One viewer can present several kinds of item when they are wrapped in one `Identifiable` and `Equatable` enum. Give each case its own identifier case so identifiers from different model types cannot collide, expose their images through one property, and pass the corresponding enum case to both `zoomImageSource(for:)` and the viewer binding. Attach only one viewer to a view hierarchy containing source views.
+
 Everything shown over the image is an overlay you can replace. Keep the built-in close button with ``ZoomImageDefaultOverlay``, place ``ZoomImageCloseButton`` yourself, or make your own button that calls ``SwiftUICore/EnvironmentValues/dismissZoomImage``. Buttons in the overlay use ``ZoomImageDefaultButtonStyle`` unless they set their own.
 
-Wrap every viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait, with ``SwiftUICore/View/zoomImageViewerWrapper(_:)``.
+Wrap the viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait, with ``SwiftUICore/View/zoomImageViewerWrapper(_:)``.
 
 The background is black in both light and dark mode and the viewer forces the dark colour scheme on everything inside it.
 
@@ -61,7 +63,6 @@ For a feature-by-feature guide with examples, see the [README](https://github.co
 - ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:)``
 - ``SwiftUICore/View/zoomImageViewer(uiImage:overlay:)``
 - ``SwiftUICore/View/zoomImageViewerWrapper(_:)``
-- ``ZoomImageViewerContent``
 
 ### Items and Source Views
 

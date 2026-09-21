@@ -15,7 +15,10 @@ struct PresentationRequestTests {
     @Test("A newly resolved source triggers reconciliation for the same image")
     func sourceChangeTriggersReconciliation() {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
-        let matchedGeometry = ZoomImageMatchedGeometry(id: 1, namespace: Namespace().wrappedValue)
+        let matchedGeometry = ZoomImageMatchedGeometry(
+            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            namespace: Namespace().wrappedValue
+        )
         let before = ZoomImagePresentationRequest(image: image, matchedGeometry: nil, reduceMotion: false)
         let after = ZoomImagePresentationRequest(image: image, matchedGeometry: matchedGeometry, reduceMotion: false)
 

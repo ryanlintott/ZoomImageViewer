@@ -117,6 +117,8 @@ The overlay is built for the item on screen and keeps showing the last one while
 
 The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image.
 
+One viewer can present several kinds of item when they are wrapped in one `Identifiable` and `Equatable` enum. Give each case its own identifier case so identifiers from different model types cannot collide, expose their images through one property, and use that property as the viewer's image key path. Source views pass the corresponding enum case to `zoomImageSource(for:)`, and the overlay switches over the presented case.
+
 ## Growing from a Source View
 An item's image grows from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrinks back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
@@ -152,7 +154,7 @@ Setting the item to another one while the viewer is open swaps the image instant
 
 The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
 
-A source view belongs to the nearest viewer above it presenting the same type of item. A second viewer of the same type attached further out doesn't see those sources, and fades its images in and out.
+Attach only one viewer to a view hierarchy containing source views. Every source beneath it must use the same item representation as the viewer, including the corresponding wrapper-enum case when the viewer presents several kinds of item.
 
 Sources in a sheet need a viewer attached inside the sheet, as a viewer outside it is drawn behind the sheet. For navigation, attach the viewer outside the `NavigationStack`, so it covers every pushed view.
 
@@ -220,7 +222,7 @@ struct DoneButton: View {
 ```
 
 ## Rotation
-If your app is locked to portrait but you want fullscreen images to rotate, wrap every viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp) with the `zoomImageViewerWrapper(_:)` modifier. Set it once near the root of the app, and it wraps every viewer below it. The example app does this.
+If your app is locked to portrait but you want fullscreen images to rotate, wrap the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp) with the `zoomImageViewerWrapper(_:)` modifier. Set it once above the viewer. The example app does this.
 
 ```swift
 WindowGroup {

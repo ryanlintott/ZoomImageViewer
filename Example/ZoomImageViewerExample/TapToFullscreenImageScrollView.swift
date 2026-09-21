@@ -36,17 +36,13 @@ struct TapToFullscreenImageScrollView: View {
         }
     }
     
-    @State private var uiImage: UIImage? = nil
+    /// The item shown by the example's single viewer.
+    @State private var presentedImage: PresentedImage? = nil
     @State private var closeButtonOption: CloseButtonOption = .default
     /// The test image on screen, used to step to the next or previous one.
     @State private var testImage: TestImage = .bundled
     /// The size of the frame the viewer shows images in, so test images can be sized relative to it.
     @State private var viewerSize: CGSize = .zero
-    /// The photo shown in the second viewer, which grows from its thumbnail.
-    @State private var selectedPhoto: ThumbnailPhoto? = nil
-    /// The photo shown in the third viewer, which fades in and out with no thumbnail to grow from.
-    @State private var fadedPhoto: ThumbnailPhoto? = nil
-    
     var thumbnailImage: some View {
         Image(uiImage: TestImage.bundledImage)
             .resizable()
@@ -61,13 +57,13 @@ struct TapToFullscreenImageScrollView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3)) {
                     ForEach(ThumbnailPhoto.all) { photo in
                         Button {
-                            selectedPhoto = photo
+                            presentedImage = .sourcedPhoto(photo)
                         } label: {
                             Image(uiImage: photo.image)
                                 .resizable()
                                 .scaledToFit()
                                 .accessibilityIgnoresInvertColors()
-                                .zoomImageSource(for: photo)
+                                .zoomImageSource(for: PresentedImage.sourcedPhoto(photo))
                                 .frame(height: 80)
                                 .frame(maxWidth: .infinity)
                         }
@@ -85,7 +81,7 @@ struct TapToFullscreenImageScrollView: View {
             Section {
                 ForEach(ThumbnailPhoto.all) { photo in
                     Button {
-                        fadedPhoto = photo
+                        presentedImage = .sourceLessPhoto(photo)
                     } label: {
                         HStack {
                             Image(uiImage: photo.image)
@@ -103,7 +99,7 @@ struct TapToFullscreenImageScrollView: View {
             } header: {
                 Text(verbatim: "Items without source views")
             } footer: {
-                Text(verbatim: "The same photos in a second viewer, attached further out than the one for the thumbnails, so the thumbnails don't belong to it. The image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
+                Text(verbatim: "The same viewer presents these as a different kind of item with no source view, so the image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
             }
 
             Section {
@@ -162,7 +158,7 @@ struct TapToFullscreenImageScrollView: View {
             }
         }
         .background(
-            /// Measures the frame the viewers show images in, turned the same way they are by the wrapper in `ZoomImageViewerExampleApp`, even while no image is showing.
+            /// Measures the frame the viewer shows images in, turned the same way it is by the wrapper in `ZoomImageViewerExampleApp`, even while no image is showing.
             AutoRotatingView {
                 Color.clear
                     .onSizeChange {
@@ -171,42 +167,43 @@ struct TapToFullscreenImageScrollView: View {
                     .ignoresSafeArea()
             }
         )
-        /// The viewer for the thumbnails. Turned by `AutoRotatingView` from the wrapper in `ZoomImageViewerExampleApp`, so the image is seen turning back to match its thumbnail as it lands.
-        .zoomImageViewer(item: $selectedPhoto, image: \.image) { photo in
-            ZoomImageDefaultOverlay()
-            
-            /// Built for the photo on screen, and kept while the viewer fades out.
-            photoControls(for: photo)
-                .padding()
-                .frame(maxHeight: .infinity, alignment: .bottom)
-        }
-        /// A second viewer taking the same items. Attached further out than the one for the thumbnails, so the thumbnails belong to that one and this viewer's image fades in and out rather than growing from a thumbnail.
-        .zoomImageViewer(item: $fadedPhoto, image: \.image) { photo in
-            ZoomImageDefaultOverlay()
+        /// One viewer presents every kind of item in the example. It is turned by `AutoRotatingView` from the wrapper in `ZoomImageViewerExampleApp`, so a sourced image is seen turning back to match its thumbnail as it lands.
+        .zoomImageViewer(item: $presentedImage, image: \.image) { item in
+            switch item {
+            case .sourcedPhoto(let photo):
+                ZoomImageDefaultOverlay()
 
-            /// A plain caption in the viewer's own semantic colours. The viewer forces the dark colour scheme, so `.secondary` is the one for a dark background even while the app is in light mode.
-            Text(photo.caption)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding()
-                .frame(maxHeight: .infinity, alignment: .bottom)
-        }
-        /// A `UIImage` has nothing to match a source view by, so it fades in and out.
-        .zoomImageViewer(uiImage: $uiImage) { _ in
-            switch closeButtonOption {
-            case .default:
+                /// Built for the photo on screen, and kept while the viewer fades out.
+                photoControls(for: photo)
+                    .padding()
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+
+            case .sourceLessPhoto(let photo):
                 ZoomImageDefaultOverlay()
-            case .defaultTopLeading:
-                ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
-            case .customButtonStyle:
-                ZoomImageDefaultOverlay()
-                    .buttonStyle(MyCustomButtonStyle())
+
+                /// A plain caption in the viewer's own semantic colours. The viewer forces the dark colour scheme, so `.secondary` is the one for a dark background even while the app is in light mode.
+                Text(photo.caption)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding()
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+
+            case .testImage:
+                switch closeButtonOption {
+                case .default:
+                    ZoomImageDefaultOverlay()
+                case .defaultTopLeading:
+                    ZoomImageDefaultOverlay(closeButtonPosition: .topLeading)
+                case .customButtonStyle:
+                    ZoomImageDefaultOverlay()
+                        .buttonStyle(MyCustomButtonStyle())
+                }
+
+                /// Inside the overlay so VoiceOver can reach it and it fades out with the image.
+                imageSwapControls
+                    .padding()
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             }
-            
-            /// Inside the overlay so VoiceOver can reach it and it fades out with the image.
-            imageSwapControls
-                .padding()
-                .frame(maxHeight: .infinity, alignment: .bottom)
         }
     }
     
@@ -222,7 +219,7 @@ struct TapToFullscreenImageScrollView: View {
     func stepPhoto(from photo: ThumbnailPhoto, by offset: Int) {
         let all = ThumbnailPhoto.all
         guard let index = all.firstIndex(where: { $0.id == photo.id }) else { return }
-        selectedPhoto = all.element(at: index, offsetBy: offset)
+        presentedImage = .sourcedPhoto(all.element(at: index, offsetBy: offset))
     }
     
     /// Steps between test images while one is on screen, to check the swap animation.
@@ -236,7 +233,7 @@ struct TapToFullscreenImageScrollView: View {
     
     func show(_ testImage: TestImage) {
         self.testImage = testImage
-        uiImage = testImage.image(in: viewerSize)
+        presentedImage = .testImage(testImage, testImage.image(in: viewerSize))
     }
     
     func step(by offset: Int) {

@@ -10,7 +10,7 @@ import SwiftUI
 public extension View {
     /// Makes this view the source a zoom image viewer's image grows from and shrinks back into, usually a thumbnail.
     ///
-    /// Pass the item this view shows. The view belongs to the nearest ``SwiftUICore/View/zoomImageViewer(item:image:overlay:)`` above it presenting the same type of item, and is matched to that viewer's image by the item's `id`. The view is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
+    /// Pass the item this view shows, using the same item type as the ``SwiftUICore/View/zoomImageViewer(item:image:overlay:)`` above it. The view is matched to the viewer's image by the item's type and `id`. It is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
     ///
     /// With Reduce Motion on, the image fades in and out rather than growing from this view, so the view stays visible the whole time.
     ///
@@ -25,10 +25,10 @@ public extension View {
     ///
     /// The image is fitted to this view's frame, so the view has to show the whole image, like one with `scaledToFit()`. A cropped view, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
     ///
-    /// A view with no viewer for its type of item above it is left as it is.
+    /// A view with no item-based viewer above it is left as it is. Attach only one viewer to a hierarchy containing source views. To present several kinds of item, wrap them in one enum and pass the corresponding enum case to both the viewer and each source.
     /// - Parameter item: The item this view shows.
     func zoomImageSource<Item: Identifiable>(for item: Item) -> some View {
-        modifier(ZoomImageSourceModifier(itemType: ObjectIdentifier(Item.self), id: item.id))
+        modifier(ZoomImageSourceModifier(id: ZoomImageSourceID(item)))
     }
 }
 
@@ -37,20 +37,18 @@ public extension View {
 /// Matched geometry only matches frames, so the view inserted and removed with the image doesn't have to be the content. The content stays where it is and only changes opacity, so it is built once and laid out once.
 ///
 /// Reports its identifier to the viewer it belongs to, so the viewer only grows an image from a source that is on screen.
-struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
+struct ZoomImageSourceModifier: ViewModifier {
     /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source view stays visible.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The viewers above this view that grow their images from source views, by the type of item they present.
-    @Environment(\.zoomImageViewers) private var viewers
+    /// The viewer above this view that grows its image from source views.
+    @Environment(\.zoomImageViewer) private var viewer
 
-    /// The type of item this view shows, which picks the viewer it belongs to.
-    let itemType: ObjectIdentifier
-    let id: ID
+    let id: ZoomImageSourceID
 
     func body(content: Content) -> some View {
-        /// Whether there is a viewer for this type of item only changes if one is added or removed above this view, so the branch taken normally stays the same.
-        if let viewer = viewers[itemType] {
-            let isPresenting = viewer.presentedID == AnyHashable(id)
+        /// Whether there is an item-based viewer only changes if one is added or removed above this view, so the branch taken normally stays the same.
+        if let viewer {
+            let isPresenting = viewer.presentedID == id
 
             content
                 .opacity(isPresenting && !reduceMotion ? 0 : 1)
@@ -67,20 +65,20 @@ struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
                 }
                 /// Inserts and removes the stand-in with the same spring the viewer grows and shrinks the image with, whatever animation the item was changed with, so the two sides of the match always animate together.
                 .animation(ZoomImageMatchedGeometry.landingAnimation(), value: isPresenting)
-                .preference(key: ZoomImageSourceIDs.self, value: [itemType: [AnyHashable(id)]])
+                .preference(key: ZoomImageSourceIDs.self, value: [id])
         } else {
             content
         }
     }
 }
 
-/// The identifiers of the source views on screen, by the type of item they show.
+/// The identifiers of the source views on screen.
 ///
-/// Read by the viewer of that type of item, which fades its image in and out when the item it presents has no source on screen, such as one scrolled out of a lazy grid, rather than growing it from nowhere.
+/// Read by the viewer, which fades its image in and out when the item it presents has no source on screen, such as one scrolled out of a lazy grid, rather than growing it from nowhere.
 struct ZoomImageSourceIDs: PreferenceKey {
-    static var defaultValue: [ObjectIdentifier: Set<AnyHashable>] { [:] }
+    static var defaultValue: Set<ZoomImageSourceID> { [] }
 
-    static func reduce(value: inout [ObjectIdentifier: Set<AnyHashable>], nextValue: () -> [ObjectIdentifier: Set<AnyHashable>]) {
-        value.merge(nextValue()) { $0.union($1) }
+    static func reduce(value: inout Set<ZoomImageSourceID>, nextValue: () -> Set<ZoomImageSourceID>) {
+        value.formUnion(nextValue())
     }
 }

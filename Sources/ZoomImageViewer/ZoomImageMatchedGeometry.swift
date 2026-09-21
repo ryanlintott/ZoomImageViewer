@@ -10,15 +10,8 @@ import SwiftUI
 /// The matched geometry effect a viewer's image grows from when it opens and shrinks back to when it closes.
 struct ZoomImageMatchedGeometry: Equatable {
     /// The identifier shared with the source view.
-    ///
-    /// Kept as its own type rather than an `AnyHashable`, as SwiftUI only matches identifiers of the same type. An `AnyHashable` never matches the `Int` or `UUID` a source view was given, even when their values are equal.
-    let id: any Hashable
+    let id: ZoomImageSourceID
     let namespace: Namespace.ID
-    
-    /// Compares identifiers type erased, which is only for telling when they change. SwiftUI still matches a source by the identifier's own type.
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        AnyHashable(lhs.id) == AnyHashable(rhs.id) && lhs.namespace == rhs.namespace
-    }
     
     /// The spring the image lands on its source with.
     ///
@@ -111,17 +104,10 @@ extension View {
     @ViewBuilder
     func matchedGeometryEffect(_ matchedGeometry: ZoomImageMatchedGeometry?) -> some View {
         if let matchedGeometry {
-            matchedGeometryEffect(opening: matchedGeometry.id, in: matchedGeometry.namespace)
+            matchedGeometryEffect(id: matchedGeometry.id, in: matchedGeometry.namespace)
         } else {
             self
         }
-    }
-
-    /// Applies a matched geometry effect with the identifier's own type, opened from the existential it was stored as.
-    ///
-    /// Type erased, as the type of the modified view depends on the identifier's type, which is only known at runtime. Every identifier a viewer is given is usually the same type, so the erased view keeps its identity from one update to the next.
-    private func matchedGeometryEffect<ID: Hashable>(opening id: ID, in namespace: Namespace.ID) -> AnyView {
-        AnyView(matchedGeometryEffect(id: id, in: namespace))
     }
 }
 

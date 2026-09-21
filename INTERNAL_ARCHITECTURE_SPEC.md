@@ -80,8 +80,8 @@ Additional invariants:
 - Replacing the `UIImage` instance resets zoom and drag state even if the item identifier is unchanged.
 - The image ignores the safe area; the overlay respects it.
 - The viewer uses a dark color scheme and a black semantic background.
-- A wrapper affects every viewer below it, and a nearer wrapper replaces an outer wrapper.
-- A source belongs to the nearest viewer above it that presents the same item type.
+- A wrapper affects the viewer below it, and a nearer wrapper replaces an outer wrapper.
+- A view hierarchy containing source views has one viewer. Every source uses the same item representation as that viewer, including the corresponding wrapper-enum case when it presents several kinds of item.
 - VoiceOver modal behavior, focus movement, zoom, scroll, escape, and overlay actions remain available.
 - Voice Control input labels and localized built-in controls remain unchanged.
 
@@ -215,14 +215,14 @@ The existing retained-overlay behavior may remain a dedicated helper. It must no
 
 `ZoomImageSourceModifier` remains responsible for:
 
-- Finding the nearest viewer for its item type through the environment.
+- Reading the viewer above it through the environment.
 - Reporting its on-screen identifier through a preference.
 - Supplying the matched-geometry stand-in.
 - Hiding and restoring source content at the viewer's established timing.
 
 The viewer host converts the registry result into a simple `SourceAvailability` value. The presentation state does not read preferences or environment values directly.
 
-Type erasure is permitted at the matched-geometry identifier boundary because the identifier's concrete type is available only at runtime. Matching must still apply the original identifier type, not `AnyHashable`, to `matchedGeometryEffect`.
+`ZoomImageSourceID` combines the item type with its type-erased identifier, preventing unrelated items with equal raw identifiers from colliding. Both matched-geometry endpoints use that same concrete wrapper type.
 
 ### 3. Presentation state
 
@@ -269,7 +269,7 @@ Matched geometry continues to handle frame interpolation only. The offset and ro
 
 ### 7. Wrapper boundary
 
-Keep wrapper type erasure isolated to `ZoomImageViewerWrapper` and `ZoomImageViewerContent`. The environment cannot store an arbitrary generic wrapper type, so `AnyView` is justified at this boundary. It should not spread into the presentation state or normal renderer composition.
+Keep wrapper type erasure isolated to `ZoomImageViewerWrapper`. The environment cannot store an arbitrary generic wrapper type, so `AnyView` is justified at this boundary. It should not spread into the presentation state or normal renderer composition.
 
 ## Proposed file layout
 

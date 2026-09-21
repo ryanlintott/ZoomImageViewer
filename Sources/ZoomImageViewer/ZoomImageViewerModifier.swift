@@ -42,7 +42,7 @@ public extension View {
     /// }
     /// ```
     ///
-    /// A source belongs to the nearest viewer above it presenting the same type of item, so a second viewer of the same type attached further out fades its images in and out.
+    /// Attach one viewer to the view hierarchy containing its source views. To present several kinds of item in that viewer, wrap them in one `Identifiable` and `Equatable` enum and pass the corresponding enum case to each source view.
     ///
     /// The overlay covers the viewer's frame inside its safe area, fades in and out with the image, and is hidden while the image is zoomed in or after a single tap. It is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared. Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button.
     ///
@@ -70,7 +70,9 @@ public extension View {
                 dismissAction: ZoomImageDismissAction(binding: item),
                 /// Built here, while the view this modifies updates, so that view is updated whenever the item changes, and any state the overlay reads is tracked by it.
                 overlay: ZoomImageItemOverlay(item: item.wrappedValue, content: overlay),
-                sourceConfiguration: ZoomImageSourceConfiguration(itemType: ObjectIdentifier(Item.self), presentedID: item.wrappedValue?.id)
+                sourceConfiguration: ZoomImageSourceConfiguration(
+                    presentedID: item.wrappedValue.map(ZoomImageSourceID.init)
+                )
             )
         )
     }
@@ -152,36 +154,27 @@ public extension View {
 
 /// The source-matching configuration retained by an item-based viewer after its public inputs are normalized.
 ///
-/// The item type identifies which descendant sources belong to the viewer even while it is closed. The presented identifier selects the source its image matches when it is open. A viewer created directly from a `UIImage` has no source configuration.
+/// Its presence identifies an item-based viewer even while it is closed. Its presented identifier selects the source its image matches when it is open. A viewer created directly from a `UIImage` has no source configuration.
 struct ZoomImageSourceConfiguration {
-    /// The type of item shown by the sources that belong to this viewer.
-    let itemType: ObjectIdentifier
-    /// The identifier of the item the viewer is presenting, or `nil` when it is closed.
-    ///
-    /// Kept as its original type because SwiftUI does not match a type-erased `AnyHashable` to the underlying identifier.
-    let presentedID: (any Hashable)?
+    /// The source identifier of the item the viewer is presenting, or `nil` when it is closed.
+    let presentedID: ZoomImageSourceID?
 }
 
 /// The information source views need from a viewer that grows its image from them.
 struct ZoomImageViewerInfo: Equatable {
     /// The namespace the viewer matches its image to a source in.
     let namespace: Namespace.ID
-    /// The identifier of the item the viewer is presenting, or `nil` when it is closed.
-    ///
-    /// Type erased, as it is only compared with each source's identifier. The viewer matches its image by the identifier's own type.
-    let presentedID: AnyHashable?
+    /// The source identifier of the item the viewer is presenting, or `nil` when it is closed.
+    let presentedID: ZoomImageSourceID?
 }
 
 extension EnvironmentValues {
-    /// The viewers above this view that grow their images from source views, by the type of item they present.
-    ///
-    /// Keyed by the type of item, so viewers of different types attached to the same view each find their own sources. A viewer below another of the same type replaces it, so a source belongs to the nearest one.
-    @Entry var zoomImageViewers: [ObjectIdentifier: ZoomImageViewerInfo] = [:]
+    /// The viewer above this view that grows its image from source views.
+    @Entry var zoomImageViewer: ZoomImageViewerInfo? = nil
 }
 
 /// Places a viewer over the modified view and connects it to source views inside that view.
 struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
-    @Environment(\.zoomImageViewers) private var viewers
     @Environment(\.zoomImageViewerWrapper) private var wrapper
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var namespace
@@ -195,7 +188,7 @@ struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
     func body(content: Content) -> some View {
         if let sourceConfiguration {
             content
-                .environment(\.zoomImageViewers, viewers.merging([sourceConfiguration.itemType: viewerInfo(for: sourceConfiguration)]) { $1 })
+                .environment(\.zoomImageViewer, viewerInfo(for: sourceConfiguration))
                 .overlayPreferenceValue(ZoomImageSourceIDs.self) { sourceIDs in
                     wrapped(
                         ZoomImageViewerHost(
@@ -204,16 +197,12 @@ struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
                             overlay: overlay,
                             matchedGeometry: matchedGeometry(
                                 for: sourceConfiguration,
-                                onScreen: sourceIDs[sourceConfiguration.itemType] ?? []
+                                onScreen: sourceIDs
                             ),
                             reduceMotionAtInsertion: reduceMotion
                         )
                         .animation(ZoomImageMatchedGeometry.landingAnimation(), value: uiImage != nil)
                     )
-                }
-                /// Sources inside belong to this viewer, not another viewer of the same item type further out.
-                .transformPreference(ZoomImageSourceIDs.self) { sourceIDs in
-                    sourceIDs[sourceConfiguration.itemType] = nil
                 }
         } else {
             content.overlay {
@@ -233,15 +222,15 @@ struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
     func viewerInfo(for sourceConfiguration: ZoomImageSourceConfiguration) -> ZoomImageViewerInfo {
         ZoomImageViewerInfo(
             namespace: namespace,
-            presentedID: sourceConfiguration.presentedID.map { AnyHashable($0) }
+            presentedID: sourceConfiguration.presentedID
         )
     }
 
     func matchedGeometry(
         for sourceConfiguration: ZoomImageSourceConfiguration,
-        onScreen: Set<AnyHashable>
+        onScreen: Set<ZoomImageSourceID>
     ) -> ZoomImageMatchedGeometry? {
-        guard let id = sourceConfiguration.presentedID, onScreen.contains(AnyHashable(id)) else { return nil }
+        guard let id = sourceConfiguration.presentedID, onScreen.contains(id) else { return nil }
         return ZoomImageMatchedGeometry(id: id, namespace: namespace)
     }
 
@@ -249,7 +238,7 @@ struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
     @ViewBuilder
     func wrapped(_ viewer: some View) -> some View {
         if let wrapper {
-            wrapper.wrap(ZoomImageViewerContent(viewer))
+            wrapper.wrap(AnyView(viewer))
         } else {
             viewer
         }

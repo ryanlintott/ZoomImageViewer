@@ -71,7 +71,10 @@ struct PresentationStateTests {
     @Test("A matched removal prepares a fresh canvas only after dismissal begins")
     func matchedRemovalPreparesNextCanvasIdentity() throws {
         let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(id: 1, namespace: namespace)
+        let matchedGeometry = ZoomImageMatchedGeometry(
+            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            namespace: namespace
+        )
         var state = ZoomImagePresentationState(
             image: Self.image(),
             openingStyle: .matched(matchedGeometry),
@@ -90,7 +93,10 @@ struct PresentationStateTests {
     func openingPlanIsLatched() throws {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(id: 1, namespace: namespace)
+        let matchedGeometry = ZoomImageMatchedGeometry(
+            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            namespace: namespace
+        )
         var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
         let sessionID = try #require(state.presentationID)
 
@@ -129,7 +135,10 @@ struct PresentationStateTests {
     func sourceCanBecomeAvailableBeforeDismissal() throws {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(id: 1, namespace: namespace)
+        let matchedGeometry = ZoomImageMatchedGeometry(
+            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            namespace: namespace
+        )
         var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
 
         let change = state.present(
@@ -146,7 +155,10 @@ struct PresentationStateTests {
     func dismissalPlanIsLatched() throws {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(id: 1, namespace: namespace)
+        let matchedGeometry = ZoomImageMatchedGeometry(
+            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            namespace: namespace
+        )
         var state = ZoomImagePresentationState(image: image, openingStyle: .matched(matchedGeometry), availableMatchedGeometry: matchedGeometry)
         let proposedDismissalID = state.beginDismissal(style: .matched(matchedGeometry))
         let dismissalID = try #require(proposedDismissalID)
