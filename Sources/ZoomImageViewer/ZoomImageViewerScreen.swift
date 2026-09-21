@@ -18,8 +18,8 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
     let isShowingOverlay: Bool
     let isShowingSystemOverlay: Bool
     let usesMatchedGeometry: Bool
-    let closeAction: ZoomImageCloseAction
-    let onClose: () -> Void
+    let dismissAction: ZoomImageDismissAction
+    let onDismiss: () -> Void
     let onAppear: () -> Void
     let onDisappear: () -> Void
 
@@ -43,11 +43,11 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
                 .opacity(isShowingOverlay ? 1 : 0)
                 .allowsHitTesting(isShowingOverlay)
                 .accessibilityHidden(!isShowingOverlay)
-                .environment(\.closeZoomImage, closeAction)
+                .environment(\.dismissZoomImage, dismissAction)
             }
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isModal)
-            .accessibilityAction(.escape, onClose)
+            .accessibilityAction(.escape, onDismiss)
             .background {
                 if !isShowingSystemOverlay {
                     Color.clear

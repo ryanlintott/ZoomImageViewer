@@ -24,7 +24,7 @@ public struct ZoomImageView<Overlay: View>: View {
     public var body: some View {
         ZoomImageViewerHost(
             uiImage: $uiImage,
-            closeAction: ZoomImageCloseAction(binding: $uiImage),
+            dismissAction: ZoomImageDismissAction(binding: $uiImage),
             overlay: overlay,
             matchedGeometry: nil,
             reduceMotionAtInsertion: reduceMotion

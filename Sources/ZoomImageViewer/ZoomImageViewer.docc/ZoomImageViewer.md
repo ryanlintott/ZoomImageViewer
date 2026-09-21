@@ -42,7 +42,7 @@ LazyVGrid(columns: columns) {
 .zoomImageViewer(item: $selectedPhoto, image: \.image)
 ```
 
-Everything shown over the image is an overlay you can replace. Keep the built-in close button with ``ZoomImageDefaultOverlay``, place ``ZoomImageCloseButton`` yourself, or make your own button that calls ``SwiftUICore/EnvironmentValues/closeZoomImage``. Buttons in the overlay use ``ZoomImageDefaultButtonStyle`` unless they set their own.
+Everything shown over the image is an overlay you can replace. Keep the built-in close button with ``ZoomImageDefaultOverlay``, place ``ZoomImageCloseButton`` yourself, or make your own button that calls ``SwiftUICore/EnvironmentValues/dismissZoomImage``. Buttons in the overlay use ``ZoomImageDefaultButtonStyle`` unless they set their own.
 
 Wrap every viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait, with ``SwiftUICore/View/zoomImageViewerWrapper(_:)``.
 
@@ -75,10 +75,10 @@ For a feature-by-feature guide with examples, see the [README](https://github.co
 - ``ZoomImageCloseButton``
 - ``ZoomImageDefaultButtonStyle``
 
-### Closing
+### Dismissing
 
-- ``SwiftUICore/EnvironmentValues/closeZoomImage``
-- ``ZoomImageCloseAction``
+- ``SwiftUICore/EnvironmentValues/dismissZoomImage``
+- ``ZoomImageDismissAction``
 
 ### Deprecated
 

@@ -18,7 +18,7 @@
 - `zoomImageViewerWrapper(_:)` wraps every viewer below it in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait. Set it once near the root of the app. The viewer is passed to the wrapper as a `ZoomImageViewerContent`.
 - `ZoomImageDefaultOverlay`, the default overlay, for keeping the default close button in a custom overlay. Restyle it with `buttonStyle(_:)` while keeping its localized label and position.
 - `ZoomImageCloseButton`, the built-in close button without a position, for placing yourself.
-- `closeZoomImage`, an environment action of type `ZoomImageCloseAction` that closes the viewer, for making your own close button in an overlay.
+- `dismissZoomImage`, an environment action of type `ZoomImageDismissAction` that dismisses the viewer, for making your own close button in an overlay.
 - A public initializer for `ZoomImageDefaultButtonStyle`. The style had none, so it could not be created outside the package.
 - VoiceOver users can dismiss the image with the escape gesture.
 - The viewer is modal to VoiceOver. Focus moves into it when it appears and back out when it is dismissed, and the content behind it can no longer be reached.

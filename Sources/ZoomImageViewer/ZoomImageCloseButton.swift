@@ -22,13 +22,13 @@ import SwiftUI
 /// }
 /// ```
 public struct ZoomImageCloseButton: View {
-    @Environment(\.closeZoomImage) private var closeZoomImage
+    @Environment(\.dismissZoomImage) private var dismissZoomImage
     
     /// Creates the built-in close button, which closes the zoom image viewer it is in.
     public init() {}
     
     func action() {
-        closeZoomImage()
+        dismissZoomImage()
     }
     
     public var body: some View {

@@ -41,7 +41,7 @@ struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
     /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source view stays visible.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The viewers above this view that grow their images from source views, by the type of item they present.
-    @Environment(\.zoomImageSourceViewers) private var viewers
+    @Environment(\.zoomImageViewers) private var viewers
 
     /// The type of item this view shows, which picks the viewer it belongs to.
     let itemType: ObjectIdentifier
@@ -72,23 +72,6 @@ struct ZoomImageSourceModifier<ID: Hashable>: ViewModifier {
             content
         }
     }
-}
-
-/// A viewer that grows its image from source views, as seen by the source views below it.
-struct ZoomImageSourceViewer: Equatable {
-    /// The namespace the viewer matches its image to a source in.
-    let namespace: Namespace.ID
-    /// The identifier of the item the viewer is presenting, or `nil` when it is closed.
-    ///
-    /// Type erased, as it is only compared with each source's identifier. The viewer matches its image by the identifier's own type.
-    let presentedID: AnyHashable?
-}
-
-extension EnvironmentValues {
-    /// The viewers above this view that grow their images from source views, by the type of item they present.
-    ///
-    /// Keyed by the type of item, so viewers of different types attached to the same view each find their own sources. A viewer below another of the same type replaces it, so a source belongs to the nearest one.
-    @Entry var zoomImageSourceViewers: [ObjectIdentifier: ZoomImageSourceViewer] = [:]
 }
 
 /// The identifiers of the source views on screen, by the type of item they show.

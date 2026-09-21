@@ -15,20 +15,20 @@ struct ZoomImageViewerHost<Overlay: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @Binding var uiImage: UIImage?
-    let closeAction: ZoomImageCloseAction
+    let dismissAction: ZoomImageDismissAction
     let overlay: Overlay
     /// The matched geometry effect for the image in the binding, or `nil` when there is no image in it or its image has no source.
     let currentMatchedGeometry: ZoomImageMatchedGeometry?
     
     init(
         uiImage: Binding<UIImage?>,
-        closeAction: ZoomImageCloseAction,
+        dismissAction: ZoomImageDismissAction,
         overlay: Overlay,
         matchedGeometry: ZoomImageMatchedGeometry?,
         reduceMotionAtInsertion: Bool
     ) {
         self._uiImage = uiImage
-        self.closeAction = closeAction
+        self.dismissAction = dismissAction
         self.overlay = overlay
         self.currentMatchedGeometry = matchedGeometry
         self._presentation = State(
@@ -117,8 +117,8 @@ struct ZoomImageViewerHost<Overlay: View>: View {
                         isShowingOverlay: presentation.isShowingOverlay,
                         isShowingSystemOverlay: isShowingSystemOverlay,
                         usesMatchedGeometry: matchedGeometry != nil,
-                        closeAction: closeAction,
-                        onClose: close,
+                        dismissAction: dismissAction,
+                        onDismiss: dismiss,
                         onAppear: onAppear,
                         onDisappear: onDisappear
                     )
@@ -263,9 +263,9 @@ struct ZoomImageViewerHost<Overlay: View>: View {
         }
     }
     
-    /// Closes the viewer. Clearing the binding fades it out.
-    func close() {
-        closeAction()
+    /// Dismisses the viewer. Clearing the binding fades it out.
+    func dismiss() {
+        dismissAction()
     }
     
     /// Fades the viewer out, then removes the image once it can no longer be seen.
@@ -474,7 +474,7 @@ struct ZoomImageViewerHost<Overlay: View>: View {
         }
         /// Started before clearing the binding, so the standard fade out skips this image.
         beginRemoval(style: dismissalStyle)
-        closeAction()
+        dismissAction()
     }
 }
 

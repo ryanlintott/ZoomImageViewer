@@ -163,7 +163,7 @@ There are three ways to give the viewer a close button, depending on how much yo
 | --- | --- |
 | The standard close button with padding, in one of the standard positions | `ZoomImageDefaultOverlay` |
 | The standard close button, placed and padded yourself, or restyled | `ZoomImageCloseButton` |
-| Your own button with your own label | `closeZoomImage` |
+| Your own button with your own label | `dismissZoomImage` |
 
 The default overlay is a close button in the top trailing corner. To move it, pass another `Alignment` as the close button position.
 
@@ -199,15 +199,15 @@ The background is black in both light and dark mode, like in Photos, and the vie
 `ZoomImageCloseButton` is the built-in button on its own, without a position or padding. All Buttons in the overlay use `ZoomImageDefaultButtonStyle` unless they set their own.
 
 ### Your own close button
-To change the title, role or accessibility too, make a button that sets your image binding to `nil`, or calls the `closeZoomImage` action from the environment when the button is its own view. Localize its title in your own bundle as you would any other `Text`.
+To change the title, role or accessibility too, make a button that sets your image binding to `nil`, or calls the `dismissZoomImage` action from the environment when the button is its own view. Localize its title in your own bundle as you would any other `Text`.
 
 ```swift
 struct DoneButton: View {
-    @Environment(\.closeZoomImage) private var closeZoomImage
+    @Environment(\.dismissZoomImage) private var dismissZoomImage
 
     var body: some View {
         Button("Done", systemImage: "xmark", role: .close) {
-            closeZoomImage()
+            dismissZoomImage()
         }
     }
 }
