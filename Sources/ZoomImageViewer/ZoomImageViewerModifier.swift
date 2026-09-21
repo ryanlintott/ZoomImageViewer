@@ -12,7 +12,7 @@ public extension View {
     ///
     /// The viewer covers this view, so attach it to a view that fills the screen. The image ignores the safe area, filling the whole frame and panning to its edges when zoomed in, like in Photos, while the overlay stays inside the safe area.
     ///
-    /// Give each source view inside this view, usually a thumbnail, the ``SwiftUICore/View/zoomImageSource(for:)`` modifier with its item. The item's `id` matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. An item with no source on screen, like one scrolled out of a lazy grid, fades in and out instead. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
+    /// Give each source view inside this view, usually a thumbnail, the ``SwiftUICore/View/zoomImageSource(id:)`` modifier with its item's `id`. The identifier matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. An item with no source on screen, like one scrolled out of a lazy grid, fades in and out instead. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
     ///
     /// Only the image takes part in the transition. The background and overlay fade in and out as usual. A viewer inside a container that turns its content, like `AutoRotatingView` from FrameUp added with ``SwiftUICore/View/zoomImageViewerWrapper(_:)``, turns the image back as it lands on its source, so it arrives square with it.
     ///
@@ -28,7 +28,7 @@ public extension View {
     ///                 Image(uiImage: photo.image)
     ///                     .resizable()
     ///                     .scaledToFit()
-    ///                     .zoomImageSource(for: photo)
+    ///                     .zoomImageSource(id: photo.id)
     ///             }
     ///         }
     ///     }
@@ -42,7 +42,7 @@ public extension View {
     /// }
     /// ```
     ///
-    /// Attach one viewer to the view hierarchy containing its source views. To present several kinds of item in that viewer, wrap them in one `Identifiable` and `Equatable` enum and pass the corresponding enum case to each source view.
+    /// Attach one viewer presenting one normalized item type to the view hierarchy containing its source views. To present several kinds of item, wrap them in one `Identifiable` and `Equatable` enum and give each case its own identifier case. Pass those identifiers to the corresponding source views.
     ///
     /// The overlay covers the viewer's frame inside its safe area, fades in and out with the image, and is hidden while the image is zoomed in or after a single tap. It is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared. Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button.
     ///
@@ -71,7 +71,7 @@ public extension View {
                 /// Built here, while the view this modifies updates, so that view is updated whenever the item changes, and any state the overlay reads is tracked by it.
                 overlay: ZoomImageItemOverlay(item: item.wrappedValue, content: overlay),
                 sourceConfiguration: ZoomImageSourceConfiguration(
-                    presentedID: item.wrappedValue.map(ZoomImageSourceID.init)
+                    presentedID: item.wrappedValue.map { AnyHashable($0.id) }
                 )
             )
         )
@@ -157,7 +157,7 @@ public extension View {
 /// Its presence identifies an item-based viewer even while it is closed. Its presented identifier selects the source its image matches when it is open. A viewer created directly from a `UIImage` has no source configuration.
 struct ZoomImageSourceConfiguration {
     /// The source identifier of the item the viewer is presenting, or `nil` when it is closed.
-    let presentedID: ZoomImageSourceID?
+    let presentedID: AnyHashable?
 }
 
 /// The information source views need from a viewer that grows its image from them.
@@ -165,7 +165,7 @@ struct ZoomImageViewerInfo: Equatable {
     /// The namespace the viewer matches its image to a source in.
     let namespace: Namespace.ID
     /// The source identifier of the item the viewer is presenting, or `nil` when it is closed.
-    let presentedID: ZoomImageSourceID?
+    let presentedID: AnyHashable?
 }
 
 extension EnvironmentValues {
@@ -228,7 +228,7 @@ struct ZoomImageViewerModifier<Overlay: View>: ViewModifier {
 
     func matchedGeometry(
         for sourceConfiguration: ZoomImageSourceConfiguration,
-        onScreen: Set<ZoomImageSourceID>
+        onScreen: Set<AnyHashable>
     ) -> ZoomImageMatchedGeometry? {
         guard let id = sourceConfiguration.presentedID, onScreen.contains(id) else { return nil }
         return ZoomImageMatchedGeometry(id: id, namespace: namespace)

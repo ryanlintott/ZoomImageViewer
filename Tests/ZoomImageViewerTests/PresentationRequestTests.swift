@@ -16,7 +16,7 @@ struct PresentationRequestTests {
     func sourceChangeTriggersReconciliation() {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
         let matchedGeometry = ZoomImageMatchedGeometry(
-            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            id: AnyHashable(1),
             namespace: Namespace().wrappedValue
         )
         let before = ZoomImagePresentationRequest(image: image, matchedGeometry: nil, reduceMotion: false)

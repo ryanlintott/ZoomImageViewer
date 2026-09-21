@@ -63,7 +63,7 @@ struct TapToFullscreenImageScrollView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .accessibilityIgnoresInvertColors()
-                                .zoomImageSource(for: PresentedImage.sourcedPhoto(photo))
+                                .zoomImageSource(id: PresentedImage.ID.sourcedPhoto(photo.id))
                                 .frame(height: 80)
                                 .frame(maxWidth: .infinity)
                         }

@@ -117,12 +117,12 @@ The overlay is built for the item on screen and keeps showing the last one while
 
 The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image.
 
-One viewer can present several kinds of item when they are wrapped in one `Identifiable` and `Equatable` enum. Give each case its own identifier case so identifiers from different model types cannot collide, expose their images through one property, and use that property as the viewer's image key path. Source views pass the corresponding enum case to `zoomImageSource(for:)`, and the overlay switches over the presented case.
+One viewer presents one normalized item type. It can present several kinds of item when they are wrapped in one `Identifiable` and `Equatable` enum. Give each case its own identifier case so identifiers from different model types cannot collide, expose their images through one property, and use that property as the viewer's image key path. Source views pass the corresponding identifier case to `zoomImageSource(id:)`, and the overlay switches over the presented item case.
 
 ## Growing from a Source View
 An item's image grows from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrinks back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
 
-Give each source view inside the view the viewer is attached to the `zoomImageSource(for:)` modifier with its item. The image is matched to its source by the item's `id`. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
+Give each source view inside the view the viewer is attached to the `zoomImageSource(id:)` modifier with its item's `id`. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
 
 ```swift
 @State private var selectedPhoto: Photo? = nil
@@ -137,7 +137,7 @@ var body: some View {
                     Image(uiImage: photo.image)
                         .resizable()
                         .scaledToFit()
-                        .zoomImageSource(for: photo)
+                        .zoomImageSource(id: photo.id)
                 }
             }
         }
@@ -154,7 +154,7 @@ Setting the item to another one while the viewer is open swaps the image instant
 
 The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
 
-Attach only one viewer to a view hierarchy containing source views. Every source beneath it must use the same item representation as the viewer, including the corresponding wrapper-enum case when the viewer presents several kinds of item.
+Attach only one viewer presenting one normalized item type to a view hierarchy containing source views. When that type is a wrapper enum, each source passes the identifier case corresponding to the item it represents.
 
 Sources in a sheet need a viewer attached inside the sheet, as a viewer outside it is drawn behind the sheet. For navigation, attach the viewer outside the `NavigationStack`, so it covers every pushed view.
 

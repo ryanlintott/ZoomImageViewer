@@ -10,7 +10,7 @@ import SwiftUI
 /// The matched geometry effect a viewer's image grows from when it opens and shrinks back to when it closes.
 struct ZoomImageMatchedGeometry: Equatable {
     /// The identifier shared with the source view.
-    let id: ZoomImageSourceID
+    let id: AnyHashable
     let namespace: Namespace.ID
     
     /// The spring the image lands on its source with.

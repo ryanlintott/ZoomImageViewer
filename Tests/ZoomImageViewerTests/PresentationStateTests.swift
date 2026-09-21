@@ -72,7 +72,7 @@ struct PresentationStateTests {
     func matchedRemovalPreparesNextCanvasIdentity() throws {
         let namespace = Namespace().wrappedValue
         let matchedGeometry = ZoomImageMatchedGeometry(
-            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            id: AnyHashable(1),
             namespace: namespace
         )
         var state = ZoomImagePresentationState(
@@ -94,7 +94,7 @@ struct PresentationStateTests {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
         let matchedGeometry = ZoomImageMatchedGeometry(
-            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            id: AnyHashable(1),
             namespace: namespace
         )
         var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
@@ -136,7 +136,7 @@ struct PresentationStateTests {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
         let matchedGeometry = ZoomImageMatchedGeometry(
-            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            id: AnyHashable(1),
             namespace: namespace
         )
         var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
@@ -156,7 +156,7 @@ struct PresentationStateTests {
         let image = Self.image()
         let namespace = Namespace().wrappedValue
         let matchedGeometry = ZoomImageMatchedGeometry(
-            id: ZoomImageSourceID(itemType: Int.self, itemID: 1),
+            id: AnyHashable(1),
             namespace: namespace
         )
         var state = ZoomImagePresentationState(image: image, openingStyle: .matched(matchedGeometry), availableMatchedGeometry: matchedGeometry)

@@ -81,7 +81,7 @@ Additional invariants:
 - The image ignores the safe area; the overlay respects it.
 - The viewer uses a dark color scheme and a black semantic background.
 - A wrapper affects the viewer below it, and a nearer wrapper replaces an outer wrapper.
-- A view hierarchy containing source views has one viewer. Every source uses the same item representation as that viewer, including the corresponding wrapper-enum case when it presents several kinds of item.
+- A view hierarchy containing source views has one viewer presenting one normalized item type. Every source supplies an identifier from that type, including the corresponding identifier case when a wrapper enum represents several kinds of item.
 - VoiceOver modal behavior, focus movement, zoom, scroll, escape, and overlay actions remain available.
 - Voice Control input labels and localized built-in controls remain unchanged.
 
@@ -222,7 +222,7 @@ The existing retained-overlay behavior may remain a dedicated helper. It must no
 
 The viewer host converts the registry result into a simple `SourceAvailability` value. The presentation state does not read preferences or environment values directly.
 
-`ZoomImageSourceID` combines the item type with its type-erased identifier, preventing unrelated items with equal raw identifiers from colliding. Both matched-geometry endpoints use that same concrete wrapper type.
+Source identifiers are type erased to `AnyHashable` at the source registry boundary. Both matched-geometry endpoints use that same erased value. A wrapper enum representing several kinds of item gives each case its own identifier case so identifiers remain unique within the viewer.
 
 ### 3. Presentation state
 
@@ -384,7 +384,7 @@ Avoid mixing animation retuning or public API redesign into these stages. A beha
 - Every running animation has a latched transition plan.
 - Replacement during dismissal cannot be removed by obsolete cleanup.
 - Source visibility and Reduce Motion changes affect only transitions that have not started.
-- Source matching still uses the concrete identifier type.
+- Source matching uses the normalized item type's identifier through the same `AnyHashable` value at both matched-geometry endpoints.
 - Overlay content stays current and remains visible through dismissal.
 - The package, example, DocC, and external-client fixture build successfully.
 - Unit tests pass, and the visual/accessibility matrix is completed on the current checkout.
