@@ -1,5 +1,5 @@
 //
-//  ZoomImageViewerModifier.swift
+//  ZoomImageViewer.swift
 //  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2026-09-18.
