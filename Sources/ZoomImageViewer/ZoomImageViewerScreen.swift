@@ -42,7 +42,7 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
                 .buttonStyle(ZoomImageDefaultButtonStyle())
                 .opacity(presentation.overlayOpacity)
                 .opacity(presentation.isShowingOverlay ? 1 : 0)
-                .allowsHitTesting(presentation.isShowingOverlay)
+                .allowsHitTesting(presentation.isShowingOverlay && !presentation.isOpening)
                 .accessibilityHidden(!presentation.isShowingOverlay)
                 .environment(\.dismissZoomImage, dismissAction)
             }

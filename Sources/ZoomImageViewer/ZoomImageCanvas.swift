@@ -59,7 +59,7 @@ struct ZoomImageCanvas: View {
                 /// Fills the viewer's frame around the image, so the transition's turn has the same anchor point whatever size the image is at.
                 ZStack {
                     ZoomImageViewRepresentable(
-                        isInteractive: presentation.isInteractive,
+                        isInteractive: presentation.acceptsInput,
                         uiImage: uiImage,
                         frameSize: viewerSize,
                         maximumZoomScale: 2,
@@ -109,7 +109,7 @@ struct ZoomImageCanvas: View {
         ) {
             toggleOverlay()
         }
-        .simultaneousGesture(dragImageGesture, isEnabled: presentation.zoomState == .min)
+        .simultaneousGesture(dragImageGesture, isEnabled: presentation.zoomState == .min && !presentation.isOpening)
         .onChange(of: isDragging) { newValue in
             if !newValue {
                 endDrag()
@@ -146,9 +146,9 @@ struct ZoomImageCanvas: View {
 
     /// Shows or hides the overlay for an assistive technology, the same as a single tap.
     ///
-    /// Ignored while the image is being dragged away, which already fades the overlay out.
+    /// Ignored while the image is still arriving, or being dragged away, which already fades the overlay out.
     func toggleOverlay() {
-        guard presentation.isInteractive else { return }
+        guard presentation.acceptsInput else { return }
         withAnimation(.easeInOut(duration: Constants.chromeDuration)) {
             presentation.isShowingOverlay.toggle()
         }
@@ -156,13 +156,13 @@ struct ZoomImageCanvas: View {
 
     /// Zooms in or out for an assistive technology.
     ///
-    /// Like a double tap, zooming in goes straight to the maximum and zooming out goes straight back to fit, as the maximum is only twice the fitted size. Ignored while the image is being dragged away.
+    /// Like a double tap, zooming in goes straight to the maximum and zooming out goes straight back to fit, as the maximum is only twice the fitted size. Ignored while the image is still arriving or being dragged away.
     ///
     /// Zooming in always centres on the middle of the screen rather than where the gesture happened. VoiceOver's gestures can be performed anywhere on screen, so their location says nothing about the part of the image someone wants to see.
     /// - Parameter center: The middle of the viewer, measured from the top left corner of its frame.
     @available(iOS 16, *)
     func accessibilityZoom(_ direction: AccessibilityZoomGestureAction.Direction, center: CGPoint) {
-        guard presentation.isInteractive else { return }
+        guard presentation.acceptsInput else { return }
 
         switch direction {
         case .zoomIn:
@@ -175,9 +175,9 @@ struct ZoomImageCanvas: View {
 
     /// Scrolls a zoomed in image towards `edge` for an assistive technology.
     ///
-    /// Ignored while the image is being dragged away. A zoomed out image fits the screen, so the scroll view has nowhere to move it.
+    /// Ignored while the image is still arriving or being dragged away. A zoomed out image fits the screen, so the scroll view has nowhere to move it.
     func accessibilityScroll(towards edge: Edge) {
-        guard presentation.isInteractive else { return }
+        guard presentation.acceptsInput else { return }
         presentation.accessibilityScrollRequest = AccessibilityScrollRequest(
             edge: UIRectEdge(accessibilityScrollEdge: edge, layoutDirection: layoutDirection)
         )

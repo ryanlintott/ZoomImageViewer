@@ -73,6 +73,13 @@ struct ZoomImagePresentationState {
         phase == .dismissing
     }
 
+    /// Whether the image responds to zooming, scrolling and taps.
+    ///
+    /// Not while it is still growing or fading in, so a touch can't zoom or move an image that hasn't finished arriving.
+    var acceptsInput: Bool {
+        isInteractive && !isOpening
+    }
+
     /// The source geometry used to render the current presentation request.
     ///
     /// An active transition retains the geometry it began with. Outside a transition, the latest
