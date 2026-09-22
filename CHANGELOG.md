@@ -37,9 +37,9 @@
 ### Deprecated
 
 - `ZoomImageCloseButtonStyle`. The overlay now hides while the image is zoomed in, so the close button no longer needs a discreet style. Use `ZoomImageDefaultButtonStyle` or a system button style instead.
-- `ZoomImageView`, replaced by the `zoomImageViewer(uiImage:closeButtonPosition:)` modifier. Use `.zoomImageViewer(uiImage: $uiImage)` in place of `ZoomImageView(uiImage:)`.
-- `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Use `zoomImageViewer(uiImage:overlay:)` with `ZoomImageDefaultOverlay` and `buttonStyle(_:)` in the overlay instead.
-- `ZoomImageView(uiImage:closeButtonPosition:)`. Use `zoomImageViewer(uiImage:closeButtonPosition:)` instead.
+- `ZoomImageView`, replaced by the `zoomImageViewer(uiImage:closeButtonPosition:wrapper:)` modifier. Use `.zoomImageViewer(uiImage: $uiImage)` in place of `ZoomImageView(uiImage:)`.
+- `ZoomImageView(uiImage:closeButtonStyle:closeButtonPosition:)`. Use `zoomImageViewer(uiImage:wrapper:overlay:)` with `ZoomImageDefaultOverlay` and `buttonStyle(_:)` in the overlay instead.
+- `ZoomImageView(uiImage:closeButtonPosition:)`. Use `zoomImageViewer(uiImage:closeButtonPosition:wrapper:)` instead.
 - `ZoomImageDefaultCloseButtonStyle`, renamed to `ZoomImageDefaultButtonStyle` as it now styles every button in the overlay.
 
 ### Changed

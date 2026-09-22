@@ -1,6 +1,6 @@
 # ZoomImageViewer Host Simplification
 
-Status: Proposed for review
+Status: Implemented. See [Implementation notes](#implementation-notes) for where the code differs from this proposal.
 
 Scope: Internal refactor of `ZoomImageViewerHost`, `ZoomImagePresentationState`, `ZoomImageCanvas`, and `ZoomImageViewerScreen`
 
@@ -449,3 +449,35 @@ Each stage should remain reviewable and buildable:
 - Existing public API remains source compatible.
 - Normal UI behavior remains visually equivalent, including matched motion, drag continuity, replacement, Reduce Motion, chrome, wrapper rotation, and accessibility.
 - Package tests and the example app build successfully, followed by simulator or device interaction verification.
+
+## Implementation notes
+
+The implementation follows this proposal with these differences.
+
+### State
+
+- `ZoomImagePresentationState` is initialized from the image in the binding when the host is created. A non-`nil` image starts in `.appearing` with its opening transition, so a viewer inserted with an image already set still grows or fades in.
+- Rendering facts that depend on the latest request take it as a parameter rather than being stored properties: `matchedGeometry(for:)`, `dismissalMatchedGeometry(for:)`, `presentedImage(for:)`, `isShowingImage(for:)` and `presentationOffset(for:)`. A first matched presentation renders from the request in the transaction that removes its source, before `apply` has recorded the image, so these cannot read retained state alone.
+- `isShowingSystemOverlay` lives on `ZoomImageViewerScreen`, its only reader, rather than on the state.
+- `resetInteraction()` and `resetAppearance()` are the state's only mutating helpers. Animating the viewer in is `showPresentation(usesMatchedGeometry:fadeDuration:)` on `Binding<ZoomImagePresentationState>` rather than on the state, so each opacity change is written inside its own animation. A mutating method would write the whole state back once, outside every animation.
+
+### Transition
+
+`ZoomImagePresentationTransition` lives in its own file and provides `opening(matchedGeometry:reduceMotion:)`, `matchedGeometry`, `keepsImageDuringDismissal`, `settlingDuration(fadeDuration:)` and `imageTransition(undoing:moving:velocity:)`.
+
+### Host
+
+- The host's lifecycle functions are `apply(_:)` and `completePhase(id:)`. There is no separate host `dismiss()`: the close button, escape gesture and overlay call the `ZoomImageDismissAction`, which clears the binding, and the resulting `nil` request reaches `apply(_:)`.
+- `onChange(of: request)` is attached inside the `GeometryReader`, and the screen is built only while `presentedImage(for:)` returns an image.
+- The fade duration is owned by the host and passed to the canvas and screen.
+
+### Canvas and screen
+
+- The canvas also receives the current request, the image to render, the dismiss action and the fade duration, as well as the viewer size and content rotation.
+- The screen reads whether it uses matched geometry from `canvas.request` rather than from the retained transition. A first matched presentation inserts the screen before the host records its opening transition, when the retained transition is still the idle fade.
+- The screen animates the viewer in with `showPresentation` when it appears and resets appearance when it disappears. The host calls `showPresentation` itself only when a new request interrupts a dismissal, as the screen is already on screen.
+
+### Lifecycle
+
+- Replacing the image while presented goes straight to `.presented`, as there is no opening transition to settle. Replacing it, or presenting the same image again, during a dismissal goes to `.appearing` and replays the appearance.
+- A drag over an image that is already dismissing is ignored. It cannot move the image, put it back, or start a second dismissal.

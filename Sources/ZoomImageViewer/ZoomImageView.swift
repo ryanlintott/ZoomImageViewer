@@ -9,7 +9,7 @@ import SwiftUI
 
 /// A view for displaying fullscreen images that supports zooming, panning, and dismissing a zoomed-out image with a drag gesture.
 ///
-/// Replaced by the ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:)`` modifier, which places the viewer over the view it is attached to.
+/// Replaced by the ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:wrapper:)`` modifier, which places the viewer over the view it is attached to.
 @available(*, deprecated, message: "Use the zoomImageViewer(uiImage:) modifier instead.")
 public struct ZoomImageView<Overlay: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

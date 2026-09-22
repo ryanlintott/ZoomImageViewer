@@ -4,7 +4,7 @@ A fullscreen SwiftUI image viewer with smooth and bouncy pinch zooming, panning,
 
 ## Overview
 
-Attach the ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:)`` modifier to a view and pass it a binding to an optional `UIImage`. The viewer shows nothing while the binding is `nil`, presents the image fullscreen as soon as one is set, and sets the binding back to `nil` when it closes.
+Attach the ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:wrapper:)`` modifier to a view and pass it a binding to an optional `UIImage`. The viewer shows nothing while the binding is `nil`, presents the image fullscreen as soon as one is set, and sets the binding back to `nil` when it closes.
 
 The viewer covers the view it is attached to, so attach it to a view that covers the whole screen, as high up the hierarchy as you can.
 

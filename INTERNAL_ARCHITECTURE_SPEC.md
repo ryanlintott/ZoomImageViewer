@@ -1,8 +1,10 @@
 # ZoomImageViewer Internal Architecture
 
-Status: Implemented; awaiting code and visual review  
+Status: Implemented, then partly superseded by [ZOOM_IMAGE_VIEWER_HOST_SIMPLIFICATION_SPEC.md](ZOOM_IMAGE_VIEWER_HOST_SIMPLIFICATION_SPEC.md)  
 Scope: Internal simplification of the unreleased modifier-based viewer  
 Public API impact: None proposed
+
+The public behavior contract, transition decisions, source registry, wrapper boundary and approved decisions below still describe the viewer. The nested state model (`Lifecycle`, `Session`, `Dismissal`, `TransitionPlan`), the event table's semantic commands and the provisional file layout were replaced by the host simplification: `ZoomImagePresentationState` is now a shallow struct with one `Phase` enum, transitions are one `ZoomImagePresentationTransition` enum, and the host, canvas and screen assign lifecycle fields directly. Read that spec for the current internal structure.
 
 ## Summary
 
@@ -199,7 +201,7 @@ For example, a matched dismissal removes the fullscreen canvas in the binding tr
 
 ### 1. Public API adapters
 
-`ZoomImageViewerModifier.swift` should contain the public overloads and documentation. Each overload normalizes its inputs for the host:
+`ZoomImageViewer.swift` contains the public overloads and documentation, alongside the internal `ZoomImageViewerModifier` they apply. Each overload normalizes its inputs for the host:
 
 - The current optional value.
 - The current image and its identity.
@@ -292,6 +294,24 @@ Sources/ZoomImageViewer/
 ```
 
 This is a responsibility map, not a requirement to split tiny helpers mechanically. Existing public types may stay in their current files when moving them would add churn without improving ownership.
+
+As implemented, the layout differs from this map:
+
+```text
+Sources/ZoomImageViewer/
+  ZoomImageViewer.swift                 Public modifier overloads, ZoomImageViewerModifier and ZoomImageSourceState
+  ZoomImageViewerHost.swift             Request reconciliation and phase cleanup
+  ZoomImagePresentationRequest.swift    Coherent external transition input
+  ZoomImagePresentationState.swift      Shallow presentation, interaction and appearance state
+  ZoomImagePresentationTransition.swift Fade, matched and toss transitions and their derived values
+  ZoomImageViewerScreen.swift           Background, overlay, system UI, modal shell
+  ZoomImageCanvas.swift                 Image, gestures, accessibility, transition
+  ZoomImageSource.swift                 Public source API, ZoomImageSourceModifier and its preference
+  ZoomImageItemOverlay.swift            Overlay retaining the last item while the viewer fades out
+  ZoomImageViewerWrapper.swift          Wrapper protocol and isolated type erasure
+  ZoomImageMatchedGeometry.swift        Matched motion and modifiers
+  DismissToss.swift                     Toss calculation
+```
 
 ## Complexity rules
 
