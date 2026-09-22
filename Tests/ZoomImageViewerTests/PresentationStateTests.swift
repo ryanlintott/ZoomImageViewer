@@ -16,186 +16,268 @@ struct PresentationStateTests {
         UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
     }
 
-    @Test("Presenting the same image preserves its session")
-    func sameImagePreservesSession() throws {
+    static func matchedGeometry(id: Int = 1) -> ZoomImageMatchedGeometry {
+        ZoomImageMatchedGeometry(
+            id: AnyHashable(id),
+            namespace: Namespace().wrappedValue
+        )
+    }
+
+    @Test("An image starts in an appearing phase")
+    func imageStartsAppearing() {
         let image = Self.image()
-        var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
-        let sessionID = try #require(state.presentationID)
+        let state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
 
-        let change = state.present(image, openingStyle: .fade, availableMatchedGeometry: nil)
-
-        #expect(change == .unchanged)
-        #expect(state.presentationID == sessionID)
+        #expect(state.image === image)
+        #expect(state.phase == .appearing)
+        #expect(state.isOpening)
+        #expect(state.isDismissing == false)
+        guard case .fade = state.transition else {
+            Issue.record("Expected the opening transition to be retained.")
+            return
+        }
     }
 
-    @Test("Replacing the image resets interaction and starts a new session")
-    func replacementStartsNewSession() throws {
-        let firstImage = Self.image()
-        let secondImage = Self.image()
-        var state = ZoomImagePresentationState(image: firstImage, openingStyle: .fade, availableMatchedGeometry: nil)
-        let firstSessionID = try #require(state.presentationID)
-        let canvasID = state.canvasID
-        state.drag.offset = CGSize(width: 40, height: 20)
-        state.zoomState = .max(center: .zero)
-        state.isShowingOverlay = false
-
-        let change = state.present(secondImage, openingStyle: .fade, availableMatchedGeometry: nil)
-
-        #expect(change == .replaced)
-        #expect(state.presentationID != firstSessionID)
-        #expect(state.canvasID == canvasID)
-        #expect(state.displayedImage === secondImage)
-        #expect(state.session?.isOpening == false)
-        #expect(state.drag.offset == .zero)
-        #expect(state.zoomState == .min)
-        #expect(state.isShowingOverlay)
-    }
-
-    @Test("Canvas identity exists before insertion and spans a fade dismissal")
-    func canvasIdentitySpansFadeDismissal() throws {
-        var state = ZoomImagePresentationState(image: nil, openingStyle: .fade, availableMatchedGeometry: nil)
-        let idleCanvasID = state.canvasID
-
-        _ = state.present(Self.image(), openingStyle: .fade, availableMatchedGeometry: nil)
-        #expect(state.canvasID == idleCanvasID)
-
-        let proposedDismissalID = state.beginDismissal(style: .fade)
-        let dismissalID = try #require(proposedDismissalID)
-        #expect(state.canvasID == idleCanvasID)
-
-        let didFinish = state.finishDismissal(id: dismissalID)
-        #expect(didFinish)
-        #expect(state.canvasID != idleCanvasID)
-    }
-
-    @Test("A matched removal prepares a fresh canvas only after dismissal begins")
-    func matchedRemovalPreparesNextCanvasIdentity() throws {
+    @Test("An empty state starts hidden without source geometry")
+    func emptyStateStartsHidden() {
         let namespace = Namespace().wrappedValue
         let matchedGeometry = ZoomImageMatchedGeometry(
             id: AnyHashable(1),
             namespace: namespace
         )
+        let state = ZoomImagePresentationState(
+            image: nil,
+            openingTransition: .matched(matchedGeometry),
+            availableMatchedGeometry: matchedGeometry
+        )
+
+        #expect(state.image == nil)
+        #expect(state.phase == .hidden)
+        #expect(state.availableMatchedGeometry == nil)
+        guard case .fade = state.transition else {
+            Issue.record("Expected an empty presentation to use a fade transition.")
+            return
+        }
+    }
+
+    @Test("Phase predicates follow the current phase")
+    func phasePredicatesFollowPhase() {
         var state = ZoomImagePresentationState(
             image: Self.image(),
-            openingStyle: .matched(matchedGeometry),
-            availableMatchedGeometry: matchedGeometry
-        )
-        let outgoingCanvasID = state.canvasID
-
-        _ = state.beginDismissal(style: .matched(matchedGeometry))
-        #expect(state.canvasID == outgoingCanvasID)
-
-        state.prepareCanvasAfterMatchedRemoval()
-        #expect(state.canvasID != outgoingCanvasID)
-    }
-
-    @Test("An opening plan remains latched until that opening finishes")
-    func openingPlanIsLatched() throws {
-        let image = Self.image()
-        let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(
-            id: AnyHashable(1),
-            namespace: namespace
-        )
-        var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
-        let sessionID = try #require(state.presentationID)
-
-        let change = state.present(
-            image,
-            openingStyle: .matched(matchedGeometry),
-            availableMatchedGeometry: matchedGeometry
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
         )
 
-        #expect(change == .unchanged)
-        #expect(state.availableMatchedGeometry == matchedGeometry)
-        guard case .fade = state.session?.openingStyle else {
-            Issue.record("Expected the fade opening to remain latched.")
-            return
-        }
-        #expect(state.session?.isOpening == true)
-        let didFinish = state.finishOpening(id: sessionID)
-        #expect(didFinish)
-        #expect(state.session?.isOpening == false)
-    }
+        #expect(state.isOpening)
+        #expect(state.isDismissing == false)
 
-    @Test("A stale opening completion cannot alter an immediate replacement")
-    func staleOpeningCompletionIsIgnored() throws {
-        let firstImage = Self.image()
-        var state = ZoomImagePresentationState(image: firstImage, openingStyle: .fade, availableMatchedGeometry: nil)
-        let obsoleteSessionID = try #require(state.presentationID)
+        state.phase = .presented
+        #expect(state.isOpening == false)
+        #expect(state.isDismissing == false)
 
-        _ = state.present(Self.image(), openingStyle: .fade, availableMatchedGeometry: nil)
+        state.phase = .dismissing
+        #expect(state.isOpening == false)
+        #expect(state.isDismissing)
 
-        let didFinish = state.finishOpening(id: obsoleteSessionID)
-        #expect(didFinish == false)
-        #expect(state.session?.isOpening == false)
-    }
-
-    @Test("A source that appears before dismissal is retained for the next transition")
-    func sourceCanBecomeAvailableBeforeDismissal() throws {
-        let image = Self.image()
-        let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(
-            id: AnyHashable(1),
-            namespace: namespace
-        )
-        var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
-
-        let change = state.present(
-            image,
-            openingStyle: .matched(matchedGeometry),
-            availableMatchedGeometry: matchedGeometry
-        )
-
-        #expect(change == .unchanged)
-        #expect(state.availableMatchedGeometry == matchedGeometry)
-    }
-
-    @Test("A dismissal plan retains the source it began with")
-    func dismissalPlanIsLatched() throws {
-        let image = Self.image()
-        let namespace = Namespace().wrappedValue
-        let matchedGeometry = ZoomImageMatchedGeometry(
-            id: AnyHashable(1),
-            namespace: namespace
-        )
-        var state = ZoomImagePresentationState(image: image, openingStyle: .matched(matchedGeometry), availableMatchedGeometry: matchedGeometry)
-        let proposedDismissalID = state.beginDismissal(style: .matched(matchedGeometry))
-        let dismissalID = try #require(proposedDismissalID)
-
-        #expect(state.dismissalID == dismissalID)
-        guard case .matched(let retainedMatch) = state.dismissal?.style else {
-            Issue.record("Expected a matched dismissal to remain latched.")
-            return
-        }
-        #expect(retainedMatch == matchedGeometry)
-    }
-
-    @Test("A stale cleanup cannot remove a newer presentation")
-    func staleCleanupIsIgnored() throws {
-        let image = Self.image()
-        var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
-        let proposedDismissalID = state.beginDismissal(style: .fade)
-        let obsoleteDismissalID = try #require(proposedDismissalID)
-
-        #expect(state.present(Self.image(), openingStyle: .fade, availableMatchedGeometry: nil) == .replacedDuringDismissal)
-
-        #expect(state.finishDismissal(id: obsoleteDismissalID) == false)
-        #expect(state.displayedImage != nil)
+        state.phase = .hidden
+        #expect(state.isOpening == false)
         #expect(state.isDismissing == false)
     }
 
-    @Test("Presenting the same image during dismissal resumes it in a new session")
-    func sameImageResumesInNewSession() throws {
+    @Test("A first matched request renders in its source-removal transaction")
+    func firstMatchedRequestRendersImmediately() {
         let image = Self.image()
-        var state = ZoomImagePresentationState(image: image, openingStyle: .fade, availableMatchedGeometry: nil)
-        let firstSessionID = try #require(state.presentationID)
-        _ = state.beginDismissal(style: .fade)
+        let matchedGeometry = Self.matchedGeometry()
+        let state = ZoomImagePresentationState(
+            image: nil,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
+        let request = ZoomImagePresentationRequest(
+            image: image,
+            matchedGeometry: matchedGeometry,
+            reduceMotion: false
+        )
 
-        let change = state.present(image, openingStyle: .fade, availableMatchedGeometry: nil)
+        #expect(state.matchedGeometry(for: request) == matchedGeometry)
+        #expect(state.presentedImage(for: request) === image)
+        #expect(state.isShowingImage(for: request))
+    }
 
-        #expect(change == .resumed)
-        #expect(state.presentationID != firstSessionID)
-        #expect(state.isDismissing == false)
+    @Test("A first fade request waits for reconciliation")
+    func firstFadeRequestWaitsForReconciliation() {
+        let request = ZoomImagePresentationRequest(
+            image: Self.image(),
+            matchedGeometry: nil,
+            reduceMotion: false
+        )
+        let state = ZoomImagePresentationState(
+            image: nil,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
+
+        #expect(state.matchedGeometry(for: request) == nil)
+        #expect(state.presentedImage(for: request) == nil)
+        #expect(state.isShowingImage(for: request))
+    }
+
+    @Test("A running opening retains its matched geometry")
+    func openingRetainsMatchedGeometry() {
+        let image = Self.image()
+        let openingGeometry = Self.matchedGeometry(id: 1)
+        let newerGeometry = Self.matchedGeometry(id: 2)
+        let state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .matched(openingGeometry),
+            availableMatchedGeometry: openingGeometry
+        )
+        let request = ZoomImagePresentationRequest(
+            image: image,
+            matchedGeometry: newerGeometry,
+            reduceMotion: true
+        )
+
+        #expect(state.matchedGeometry(for: request) == openingGeometry)
+    }
+
+    @Test("A presented image samples source and Reduce Motion for the next transition")
+    func presentedImageSamplesCurrentRequest() {
+        let image = Self.image()
+        let previousGeometry = Self.matchedGeometry(id: 1)
+        let currentGeometry = Self.matchedGeometry(id: 2)
+        var state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .matched(previousGeometry),
+            availableMatchedGeometry: previousGeometry
+        )
+        state.phase = .presented
+
+        let matchedRequest = ZoomImagePresentationRequest(
+            image: image,
+            matchedGeometry: currentGeometry,
+            reduceMotion: false
+        )
+        let reducedMotionRequest = ZoomImagePresentationRequest(
+            image: image,
+            matchedGeometry: currentGeometry,
+            reduceMotion: true
+        )
+
+        #expect(state.matchedGeometry(for: matchedRequest) == currentGeometry)
+        #expect(state.dismissalMatchedGeometry(for: matchedRequest) == currentGeometry)
+        #expect(state.matchedGeometry(for: reducedMotionRequest) == nil)
+        #expect(state.dismissalMatchedGeometry(for: reducedMotionRequest) == nil)
+    }
+
+    @Test("A running dismissal retains its plan and the right image hierarchy")
+    func dismissalRetainsPlanAndHierarchy() {
+        let image = Self.image()
+        let matchedGeometry = Self.matchedGeometry()
+        let emptyRequest = ZoomImagePresentationRequest(
+            image: nil,
+            matchedGeometry: nil,
+            reduceMotion: true
+        )
+        var state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .fade,
+            availableMatchedGeometry: matchedGeometry
+        )
+        state.phase = .dismissing
+        state.transition = .matched(matchedGeometry)
+
+        #expect(state.matchedGeometry(for: emptyRequest) == matchedGeometry)
+        #expect(state.presentedImage(for: emptyRequest) === image)
+        #expect(state.isShowingImage(for: emptyRequest) == false)
+
+        state.transition = .fade
+        #expect(state.matchedGeometry(for: emptyRequest) == nil)
+        #expect(state.isShowingImage(for: emptyRequest))
+    }
+
+    @Test("A replacement does not inherit the outgoing drag offset")
+    func replacementDropsOutgoingOffset() {
+        let outgoingImage = Self.image()
+        let replacementImage = Self.image()
+        let dragOffset = CGSize(width: 40, height: 80)
+        var state = ZoomImagePresentationState(
+            image: outgoingImage,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
+        state.phase = .dismissing
+        state.dragOffset = dragOffset
+
+        let emptyRequest = ZoomImagePresentationRequest(
+            image: nil,
+            matchedGeometry: nil,
+            reduceMotion: false
+        )
+        let replacementRequest = ZoomImagePresentationRequest(
+            image: replacementImage,
+            matchedGeometry: nil,
+            reduceMotion: false
+        )
+
+        #expect(state.presentationOffset(for: emptyRequest) == dragOffset)
+        #expect(state.presentationOffset(for: replacementRequest) == .zero)
+    }
+
+    @Test("Resetting interaction restores independent interaction values")
+    func resetInteraction() {
+        let image = Self.image()
+        var state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
+        state.dragOffset = CGSize(width: 40, height: 20)
+        state.predictedEndTranslation = CGSize(width: 80, height: 30)
+        state.dragVelocity = CGSize(width: 100, height: 50)
+        state.zoomState = .max(center: .zero)
+        state.isZoomedIn = true
+        state.isShowingOverlay = false
+        state.isInteractive = false
+        state.accessibilityScrollRequest = AccessibilityScrollRequest(edge: .left)
+
+        state.resetInteraction()
+
+        #expect(state.image === image)
+        #expect(state.phase == .appearing)
+        #expect(state.dragOffset == .zero)
+        #expect(state.predictedEndTranslation == .zero)
+        #expect(state.dragVelocity == nil)
+        #expect(state.zoomState == .min)
+        #expect(state.isZoomedIn == false)
+        #expect(state.isShowingOverlay)
+        #expect(state.isInteractive)
+        #expect(state.accessibilityScrollRequest == nil)
+    }
+
+    @Test("Resetting appearance clears only opacity targets")
+    func resetAppearance() {
+        let image = Self.image()
+        var state = ZoomImagePresentationState(
+            image: image,
+            openingTransition: .fade,
+            availableMatchedGeometry: nil
+        )
+        state.backgroundOpacity = 1
+        state.imageOpacity = 0.5
+        state.overlayOpacity = 0.25
+        state.dragOffset = CGSize(width: 10, height: 20)
+
+        state.resetAppearance()
+
+        #expect(state.image === image)
+        #expect(state.backgroundOpacity == .zero)
+        #expect(state.imageOpacity == .zero)
+        #expect(state.overlayOpacity == .zero)
+        #expect(state.dragOffset == CGSize(width: 10, height: 20))
     }
 }

@@ -10,262 +10,134 @@ import SwiftUI
 /// The complete mutable state of one zoom image viewer presentation.
 ///
 /// The external binding is the requested presentation. This state owns what is actually on screen,
-/// including a session retained while it dismisses. Keeping those concerns separate lets a cleared
-/// binding remove a matched image in the same transaction while the rest of the viewer finishes fading.
+/// including an image retained while it dismisses. Its fields stay shallow so the views coordinating
+/// a transition can read and update the complete operation in one place.
 struct ZoomImagePresentationState {
-    struct Session {
-        enum OpeningStyle {
-            case fade
-            case matched(ZoomImageMatchedGeometry)
-        }
+    /// Where the retained image is in its visible lifetime.
+    enum Phase {
+        case hidden
+        case appearing
+        case presented
+        case dismissing
+    }
 
-        let id: UUID
-        var image: UIImage
-        let openingStyle: OpeningStyle
-        var isOpening: Bool
-        var availableMatchedGeometry: ZoomImageMatchedGeometry?
+    var phase: Phase
+    /// Identifies the current asynchronous phase so an obsolete completion cannot alter a newer presentation.
+    var phaseID = UUID()
 
-        init(
-            id: UUID = UUID(),
-            image: UIImage,
-            openingStyle: OpeningStyle,
-            isOpening: Bool,
-            availableMatchedGeometry: ZoomImageMatchedGeometry?
-        ) {
-            self.id = id
-            self.image = image
-            self.openingStyle = openingStyle
-            self.isOpening = isOpening
+    var image: UIImage?
+    /// The last source match known while the binding held an image.
+    var availableMatchedGeometry: ZoomImageMatchedGeometry?
+    /// How the current appearance or dismissal moves. Latched while either transition is running.
+    var transition: ZoomImagePresentationTransition
+    /// Exists before an image is inserted and stays stable until a completed dismissal, so SwiftUI sees one canvas throughout the matched transition.
+    var canvasID = UUID()
+
+    var zoomState: ZoomState = .min
+    var isZoomedIn = false
+    var isShowingOverlay = true
+    var isInteractive = true
+
+    var dragOffset: CGSize = .zero
+    var predictedEndTranslation: CGSize = .zero
+    var dragVelocity: CGSize?
+
+    var backgroundOpacity: Double = .zero
+    var imageOpacity: Double = .zero
+    var overlayOpacity: Double = .zero
+
+    var accessibilityScrollRequest: AccessibilityScrollRequest?
+
+    init(
+        image: UIImage?,
+        openingTransition: ZoomImagePresentationTransition,
+        availableMatchedGeometry: ZoomImageMatchedGeometry?
+    ) {
+        self.image = image
+        if image == nil {
+            phase = .hidden
+            transition = .fade
+            self.availableMatchedGeometry = nil
+        } else {
+            phase = .appearing
+            transition = openingTransition
             self.availableMatchedGeometry = availableMatchedGeometry
         }
     }
 
-    struct Dismissal {
-        enum Style {
-            case fade
-            case matched(ZoomImageMatchedGeometry)
-            case toss(DismissToss)
-        }
-
-        let id: UUID
-        let style: Style
-
-        init(id: UUID = UUID(), style: Style) {
-            self.id = id
-            self.style = style
-        }
-    }
-
-    enum Lifecycle {
-        case idle
-        case presented(Session)
-        case dismissing(Session, Dismissal)
-        
-        var session: Session? {
-            switch self {
-            case .idle:
-                nil
-            case .presented(let session), .dismissing(let session, _):
-                session
-            }
-        }
-        
-        var dismissal: Dismissal? {
-            switch self {
-            case .idle, .presented: nil
-            case .dismissing(_, let dismissal): dismissal
-            }
-        }
-        
-        var isDismissing: Bool {
-            dismissal != nil
-        }
-    }
-
-    struct Drag {
-        var offset: CGSize = .zero
-        var predictedEndTranslation: CGSize = .zero
-        var velocity: CGSize?
-    }
-
-    struct Appearance {
-        var backgroundOpacity: Double = .zero
-        var imageOpacity: Double = .zero
-        var overlayOpacity: Double = .zero
-    }
-
-    var lifecycle: Lifecycle
-    var drag = Drag()
-    var appearance = Appearance()
-    var isInteractive = true
-    var zoomState: ZoomState = .min
-    var isZoomedIn = false
-    var isShowingOverlay = true
-    var accessibilityScrollRequest: AccessibilityScrollRequest?
-    /// Exists before an image is inserted and stays stable until a completed dismissal, so SwiftUI sees one canvas throughout the matched transition.
-    private(set) var canvasID = UUID()
-
-    init(
-        image: UIImage?,
-        openingStyle: Session.OpeningStyle,
-        availableMatchedGeometry: ZoomImageMatchedGeometry?
-    ) {
-        if let image {
-            lifecycle = .presented(
-                Session(
-                    image: image,
-                    openingStyle: openingStyle,
-                    isOpening: true,
-                    availableMatchedGeometry: availableMatchedGeometry
-                )
-            )
-        } else {
-            lifecycle = .idle
-        }
-    }
-
-    var session: Session? {
-        lifecycle.session
-    }
-
-    var displayedImage: UIImage? {
-        session?.image
-    }
-
-    var presentationID: UUID? {
-        session?.id
-    }
-
-    var dismissal: Dismissal? {
-        lifecycle.dismissal
-    }
-
-    var dismissalID: UUID? {
-        dismissal?.id
+    var isOpening: Bool {
+        phase == .appearing
     }
 
     var isDismissing: Bool {
-        lifecycle.isDismissing
+        phase == .dismissing
     }
 
-    /// The last source match known while the binding held an image.
-    var availableMatchedGeometry: ZoomImageMatchedGeometry? {
-        session?.availableMatchedGeometry
-    }
-
-    /// Starts or replaces the presentation requested by the binding.
+    /// The source geometry used to render the current presentation request.
     ///
-    /// - Returns: Whether the image was inserted, replaced, resumed from a dismissal, or unchanged.
-    mutating func present(
-        _ image: UIImage,
-        openingStyle: Session.OpeningStyle,
-        availableMatchedGeometry: ZoomImageMatchedGeometry?
-    ) -> PresentationChange {
-        switch lifecycle {
-        case .idle:
-            lifecycle = .presented(
-                Session(
-                    image: image,
-                    openingStyle: openingStyle,
-                    isOpening: true,
-                    availableMatchedGeometry: availableMatchedGeometry
-                )
-            )
-            return .inserted
-
-        case .presented(var session):
-            guard session.image !== image else {
-                session.availableMatchedGeometry = availableMatchedGeometry
-                lifecycle = .presented(session)
-                return .unchanged
+    /// An active transition retains the geometry it began with. Outside a transition, the latest
+    /// resolved source and Reduce Motion setting determine whether the image uses matched geometry.
+    func matchedGeometry(for request: ZoomImagePresentationRequest) -> ZoomImageMatchedGeometry? {
+        if request.image != nil {
+            if isOpening {
+                return transition.matchedGeometry
             }
-
-            lifecycle = .presented(
-                Session(
-                    image: image,
-                    openingStyle: openingStyle,
-                    isOpening: false,
-                    availableMatchedGeometry: availableMatchedGeometry
-                )
-            )
-            resetInteraction()
-            return .replaced
-
-        case .dismissing(let session, _):
-            let isReplacement = session.image !== image
-            lifecycle = .presented(
-                Session(
-                    image: image,
-                    openingStyle: openingStyle,
-                    isOpening: true,
-                    availableMatchedGeometry: availableMatchedGeometry
-                )
-            )
-            resetInteraction()
-            return isReplacement ? .replacedDuringDismissal : .resumed
+            guard !request.reduceMotion else { return nil }
+            return request.matchedGeometry
         }
-    }
 
-    /// Ends an opening only when the completion still belongs to the active session.
-    @discardableResult
-    mutating func finishOpening(id: UUID) -> Bool {
-        guard case .presented(var session) = lifecycle,
-              session.id == id,
-              session.isOpening else {
-            return false
+        if isDismissing {
+            return transition.matchedGeometry
         }
-        session.isOpening = false
-        lifecycle = .presented(session)
-        return true
+
+        guard !request.reduceMotion else { return nil }
+        return availableMatchedGeometry
     }
 
-    /// Latches the way the active session will leave.
-    @discardableResult
-    mutating func beginDismissal(style: Dismissal.Style) -> UUID? {
-        guard case .presented(let session) = lifecycle else { return dismissalID }
-        let dismissal = Dismissal(style: style)
-        lifecycle = .dismissing(session, dismissal)
-        return dismissal.id
+    /// The source eligible for a dismissal beginning with `request`.
+    func dismissalMatchedGeometry(for request: ZoomImagePresentationRequest) -> ZoomImageMatchedGeometry? {
+        guard !request.reduceMotion else { return nil }
+        return request.matchedGeometry ?? availableMatchedGeometry
     }
 
-    /// Gives any image presented during a matched dismissal a fresh canvas identity.
+    /// The image around which the viewer should currently be built.
     ///
-    /// Called only after SwiftUI has removed the outgoing canvas in the binding transaction, so it cannot disturb that matched pair.
-    mutating func prepareCanvasAfterMatchedRemoval() {
-        guard case .matched = dismissal?.style else { return }
-        canvasID = UUID()
+    /// A matched presentation can use the newly requested image in the transaction that removes
+    /// its source. Other presentations wait until the request has been reconciled into retained state.
+    func presentedImage(for request: ZoomImagePresentationRequest) -> UIImage? {
+        matchedGeometry(for: request) == nil ? image : image ?? request.image
     }
 
-    /// Removes a session only when the completion belongs to its current dismissal.
-    @discardableResult
-    mutating func finishDismissal(id: UUID) -> Bool {
-        guard case .dismissing(_, let dismissal) = lifecycle, dismissal.id == id else {
-            return false
-        }
+    /// Whether the fullscreen image itself should remain in the hierarchy.
+    func isShowingImage(for request: ZoomImagePresentationRequest) -> Bool {
+        let transition = matchedGeometry(for: request).map(ZoomImagePresentationTransition.matched) ?? .fade
+        return request.image != nil || transition.keepsImageDuringDismissal
+    }
 
-        lifecycle = .idle
-        canvasID = UUID()
-        resetInteraction()
-        appearance = Appearance()
-        return true
+    /// How far the retained image should be drawn from the middle of the frame.
+    ///
+    /// A replacement does not inherit the outgoing image's dismissal offset.
+    func presentationOffset(for request: ZoomImagePresentationRequest) -> CGSize {
+        if isDismissing, let requestedImage = request.image, requestedImage !== image {
+            return .zero
+        }
+        return dragOffset
     }
 
     mutating func resetInteraction() {
-        drag = Drag()
+        dragOffset = .zero
+        predictedEndTranslation = .zero
+        dragVelocity = nil
         zoomState = .min
         isZoomedIn = false
         isShowingOverlay = true
         accessibilityScrollRequest = nil
         isInteractive = true
     }
-}
 
-extension ZoomImagePresentationState {
-    enum PresentationChange {
-        case unchanged
-        case inserted
-        case replaced
-        case resumed
-        case replacedDuringDismissal
+    mutating func resetAppearance() {
+        backgroundOpacity = .zero
+        imageOpacity = .zero
+        overlayOpacity = .zero
     }
 }
