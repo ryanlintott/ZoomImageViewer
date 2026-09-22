@@ -63,7 +63,7 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
                 }
             }
             .onAppear {
-                showPresentation()
+                $presentation.showPresentation(usesMatchedGeometry: usesMatchedGeometry, fadeDuration: fadeDuration)
                 UIAccessibility.post(notification: .screenChanged, argument: nil)
             }
             .onDisappear {
@@ -71,7 +71,14 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
                 UIAccessibility.post(notification: .screenChanged, argument: nil)
             }
             /// Only a matched image participates in the caller's insertion transaction. The rest of the viewer fades itself.
-            .transition(presentation.transition.matchedGeometry == nil ? .opacity : .identity)
+            .transition(usesMatchedGeometry ? .identity : .opacity)
+    }
+
+    /// Whether the image grows from and shrinks back into a source rather than fading.
+    ///
+    /// Read from the request the canvas was built with rather than the retained transition. A first matched presentation inserts this screen in the render before the host records its opening transition, when the retained transition is still the idle fade.
+    var usesMatchedGeometry: Bool {
+        presentation.matchedGeometry(for: canvas.request) != nil
     }
 
     var backgroundSide: CGFloat {
@@ -83,25 +90,5 @@ struct ZoomImageViewerScreen<Overlay: View>: View {
     /// They show along with the overlay only while the image is zoomed out to fit, so showing the controls over a zoomed in image leaves them hidden and the image keeps the whole screen. They come back as soon as the viewer starts fading out rather than once it is gone, so they return along with the content behind it.
     var isShowingSystemOverlay: Bool {
         (presentation.isShowingOverlay && !presentation.isZoomedIn) || presentation.isDismissing
-    }
-
-    func showPresentation() {
-        presentation.resetInteraction()
-        /// An image without a source has nothing to grow from, so it fades in.
-        if presentation.transition.matchedGeometry == nil {
-            presentation.backgroundOpacity = 1
-            withAnimation(.easeIn(duration: fadeDuration)) {
-                presentation.imageOpacity = 1
-            }
-        } else {
-            /// The image grows from its source instead of fading in, so only the background behind it fades.
-            presentation.imageOpacity = 1
-            withAnimation(.easeIn(duration: fadeDuration)) {
-                presentation.backgroundOpacity = 1
-            }
-        }
-        withAnimation(.easeIn(duration: fadeDuration).delay(fadeDuration)) {
-            presentation.overlayOpacity = 1
-        }
     }
 }

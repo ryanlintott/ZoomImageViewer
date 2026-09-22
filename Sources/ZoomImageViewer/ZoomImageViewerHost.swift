@@ -195,7 +195,10 @@ struct ZoomImageViewerHost<Overlay: View>: View {
             } else {
                 resumePresentation()
             }
-            restoreAppearance(using: openingTransition)
+            $presentation.showPresentation(
+                usesMatchedGeometry: openingTransition.matchedGeometry != nil,
+                fadeDuration: fadeDuration
+            )
             if isReplacement {
                 announceReplacement(newImage)
             }
@@ -239,27 +242,6 @@ struct ZoomImageViewerHost<Overlay: View>: View {
         guard let label = newImage.accessibilityLabel, !label.isEmpty else { return }
         let announcement = NSAttributedString(string: label, attributes: [.accessibilitySpeechQueueAnnouncement: true])
         UIAccessibility.post(notification: .announcement, argument: announcement)
-    }
-    
-    /// Restores the visible viewer when a presentation interrupts an in-flight dismissal.
-    func restoreAppearance(using transition: ZoomImagePresentationTransition) {
-        presentation.resetInteraction()
-        /// An image without a source has nothing to grow from, so it fades in.
-        if transition.matchedGeometry == nil {
-            presentation.backgroundOpacity = 1
-            withAnimation(.easeIn(duration: fadeDuration)) {
-                presentation.imageOpacity = 1
-            }
-        } else {
-            /// The image grows from its source instead of fading in, so only the background behind it fades.
-            presentation.imageOpacity = 1
-            withAnimation(.easeIn(duration: fadeDuration)) {
-                presentation.backgroundOpacity = 1
-            }
-        }
-        withAnimation(.easeIn(duration: fadeDuration).delay(fadeDuration)) {
-            presentation.overlayOpacity = 1
-        }
     }
 }
 

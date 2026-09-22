@@ -141,3 +141,32 @@ struct ZoomImagePresentationState {
         overlayOpacity = .zero
     }
 }
+
+extension Binding where Value == ZoomImagePresentationState {
+    /// Puts the image on screen unmoved, zoomed out and interactive, and animates the viewer in, when it first appears or when a presentation interrupts a dismissal.
+    ///
+    /// On the binding rather than the state, so each change is written inside its own animation. A mutating method would write the whole state back once it returned, outside every animation.
+    /// - Parameters:
+    ///   - usesMatchedGeometry: Whether the image grows from a source rather than fading in.
+    ///   - fadeDuration: How long the viewer takes to fade in.
+    @MainActor
+    func showPresentation(usesMatchedGeometry: Bool, fadeDuration: TimeInterval) {
+        wrappedValue.resetInteraction()
+        /// An image without a source has nothing to grow from, so it fades in.
+        if !usesMatchedGeometry {
+            wrappedValue.backgroundOpacity = 1
+            withAnimation(.easeIn(duration: fadeDuration)) {
+                wrappedValue.imageOpacity = 1
+            }
+        } else {
+            /// The image grows from its source instead of fading in, so only the background behind it fades.
+            wrappedValue.imageOpacity = 1
+            withAnimation(.easeIn(duration: fadeDuration)) {
+                wrappedValue.backgroundOpacity = 1
+            }
+        }
+        withAnimation(.easeIn(duration: fadeDuration).delay(fadeDuration)) {
+            wrappedValue.overlayOpacity = 1
+        }
+    }
+}

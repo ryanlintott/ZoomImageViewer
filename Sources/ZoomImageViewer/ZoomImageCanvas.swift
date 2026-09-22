@@ -192,6 +192,8 @@ struct ZoomImageCanvas: View {
     }
 
     func dragImage(translation: CGSize) {
+        /// An image that is already leaving, faded or thrown, keeps the movement its dismissal gave it.
+        guard !presentation.isDismissing else { return }
         /// Hides the overlay as the drag starts, so nothing moves around over the image while it is dragged. It only comes back if the image is put back.
         if presentation.isInteractive {
             withAnimation(.easeInOut(duration: Constants.chromeDuration)) {
@@ -209,6 +211,8 @@ struct ZoomImageCanvas: View {
     ///
     /// Reads the drag's predicted end and velocity from state, which is current even from the `onChange(of:perform:)` closure that calls this.
     func endDrag() {
+        /// A drag over an image that is already leaving can neither put it back nor start a second dismissal.
+        guard !presentation.isDismissing else { return }
         guard presentation.predictedEndTranslation.magnitude > Constants.dismissThreshold else {
             presentation.isInteractive = true
             withAnimation(.easeOut) {
