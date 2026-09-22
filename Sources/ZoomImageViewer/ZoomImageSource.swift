@@ -40,15 +40,15 @@ public extension View {
 struct ZoomImageSourceModifier: ViewModifier {
     /// With Reduce Motion on, the viewer fades its image in and out rather than growing it from here, so the source view stays visible.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The viewer above this view that grows its image from source views.
-    @Environment(\.zoomImageViewer) private var viewer
+    /// The nearest item-based viewer's source-matching context.
+    @Environment(\.zoomImageSourceContext) private var sourceContext
 
     let id: AnyHashable
 
     func body(content: Content) -> some View {
         /// Whether there is an item-based viewer only changes if one is added or removed above this view, so the branch taken normally stays the same.
-        if let viewer {
-            let isPresenting = viewer.presentedID == id
+        if let sourceContext {
+            let isPresenting = sourceContext.presentedID == id
 
             content
                 .opacity(isPresenting && !reduceMotion ? 0 : 1)
@@ -60,7 +60,7 @@ struct ZoomImageSourceModifier: ViewModifier {
                     /// Keeps the default transition, which can't be seen on a clear view. With `.identity`, SwiftUI doesn't pair the stand-in with the image as it is removed, and the image appears at full size instead of growing.
                     if !isPresenting {
                         Color.clear
-                            .matchedGeometryEffect(id: id, in: viewer.namespace)
+                            .matchedGeometryEffect(id: id, in: sourceContext.namespace)
                     }
                 }
                 /// Inserts and removes the stand-in with the same spring the viewer grows and shrinks the image with, whatever animation the item was changed with, so the two sides of the match always animate together.

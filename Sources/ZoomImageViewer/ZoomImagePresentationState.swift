@@ -29,7 +29,7 @@ struct ZoomImagePresentationState {
             id: UUID = UUID(),
             image: UIImage,
             openingStyle: OpeningStyle,
-            isOpening: Bool = true,
+            isOpening: Bool,
             availableMatchedGeometry: ZoomImageMatchedGeometry?
         ) {
             self.id = id
@@ -60,6 +60,26 @@ struct ZoomImagePresentationState {
         case idle
         case presented(Session)
         case dismissing(Session, Dismissal)
+        
+        var session: Session? {
+            switch self {
+            case .idle:
+                nil
+            case .presented(let session), .dismissing(let session, _):
+                session
+            }
+        }
+        
+        var dismissal: Dismissal? {
+            switch self {
+            case .idle, .presented: nil
+            case .dismissing(_, let dismissal): dismissal
+            }
+        }
+        
+        var isDismissing: Bool {
+            dismissal != nil
+        }
     }
 
     struct Drag {
@@ -95,6 +115,7 @@ struct ZoomImagePresentationState {
                 Session(
                     image: image,
                     openingStyle: openingStyle,
+                    isOpening: true,
                     availableMatchedGeometry: availableMatchedGeometry
                 )
             )
@@ -104,12 +125,7 @@ struct ZoomImagePresentationState {
     }
 
     var session: Session? {
-        switch lifecycle {
-        case .idle:
-            nil
-        case .presented(let session), .dismissing(let session, _):
-            session
-        }
+        lifecycle.session
     }
 
     var displayedImage: UIImage? {
@@ -121,8 +137,7 @@ struct ZoomImagePresentationState {
     }
 
     var dismissal: Dismissal? {
-        guard case .dismissing(_, let dismissal) = lifecycle else { return nil }
-        return dismissal
+        lifecycle.dismissal
     }
 
     var dismissalID: UUID? {
@@ -130,7 +145,7 @@ struct ZoomImagePresentationState {
     }
 
     var isDismissing: Bool {
-        dismissal != nil
+        lifecycle.isDismissing
     }
 
     /// The last source match known while the binding held an image.
@@ -152,6 +167,7 @@ struct ZoomImagePresentationState {
                 Session(
                     image: image,
                     openingStyle: openingStyle,
+                    isOpening: true,
                     availableMatchedGeometry: availableMatchedGeometry
                 )
             )
@@ -181,6 +197,7 @@ struct ZoomImagePresentationState {
                 Session(
                     image: image,
                     openingStyle: openingStyle,
+                    isOpening: true,
                     availableMatchedGeometry: availableMatchedGeometry
                 )
             )
