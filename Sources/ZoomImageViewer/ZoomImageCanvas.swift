@@ -43,14 +43,14 @@ struct ZoomImageCanvas: View {
                 /// Fills the viewer's frame around the image, so the transition's turn has the same anchor point whatever size the image is at.
                 ZStack {
                     ZoomImageViewRepresentable(
-                        frameSize: viewerSize,
                         isInteractive: isInteractive,
+                        uiImage: uiImage,
+                        frameSize: viewerSize,
+                        maximumZoomScale: 2,
                         zoomState: $zoomState,
                         isZoomedIn: $isZoomedIn,
                         isShowingOverlay: $overlayIsShowing,
-                        accessibilityScrollRequest: accessibilityScrollRequest,
-                        maximumZoomScale: 2,
-                        uiImage: uiImage
+                        accessibilityScrollRequest: accessibilityScrollRequest
                     )
                     /// A replacement image gets its own scroll view rather than being swapped into the one before it, so it is laid out at its own size and zoomed out.
                     .id(ObjectIdentifier(uiImage))

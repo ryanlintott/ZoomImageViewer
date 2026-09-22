@@ -17,11 +17,17 @@ enum ZoomState: Equatable, Sendable {
 }
 
 struct ZoomImageViewRepresentable: UIViewRepresentable {
+    /// When interactive the scroll view can be manipulated.
+    let isInteractive: Bool
+    /// The image being zoomed
+    let uiImage: UIImage
     /// The size of the frame the image is shown in, including the safe area the image ignores, as laid out by SwiftUI.
     ///
     /// This is where SwiftUI's layout ends up rather than the size the scroll view is right now. It is handed over once, before SwiftUI starts animating the scroll view's bounds towards it, so ``ZoomImageScrollView`` knows where each frame of that animation is heading.
     let frameSize: CGSize
-    let isInteractive: Bool
+    /// Read once, when the scroll view is made.
+    let maximumZoomScale: CGFloat
+    /// The requested zoom state or the zoom state at rest after any pinch zoom or double-tap animation.
     @Binding var zoomState: ZoomState
     /// Whether the image is zoomed in past the scale that fits it, updated as the zoom scale changes rather than when a zoom ends, so it follows a pinch while it is under way.
     @Binding var isZoomedIn: Bool
@@ -29,10 +35,6 @@ struct ZoomImageViewRepresentable: UIViewRepresentable {
     @Binding var isShowingOverlay: Bool
     /// Handled once, the first time the scroll view is updated with it.
     let accessibilityScrollRequest: AccessibilityScrollRequest?
-    /// Read once, when the scroll view is made.
-    let maximumZoomScale: CGFloat
-    
-    let uiImage: UIImage
     
     func makeUIView(context: Context) -> ZoomImageScrollView {
         let uiScrollView = ZoomImageScrollView(image: uiImage, maximumZoomScale: maximumZoomScale)

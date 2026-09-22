@@ -9,6 +9,13 @@ import FrameUp
 import SwiftUI
 import ZoomImageViewer
 
+/// Lets an app that only uses portrait show its fullscreen image viewer in landscape as well.
+private enum AutoRotatingViewerWrapper: ZoomImageViewerWrapper {
+    static func wrap(_ viewer: AnyView) -> AnyView {
+        AnyView(AutoRotatingView { viewer })
+    }
+}
+
 struct TapToFullscreenImageScrollView: View {
     enum CloseButtonOption: String, CaseIterable, Identifiable {
         case `default`
@@ -158,7 +165,7 @@ struct TapToFullscreenImageScrollView: View {
             }
         }
         .background(
-            /// Measures the frame the viewer shows images in, turned the same way it is by the wrapper in `ZoomImageViewerExampleApp`, even while no image is showing.
+            /// Measures the frame the viewer shows images in, turned the same way it is by `AutoRotatingViewerWrapper`, even while no image is showing.
             AutoRotatingView {
                 Color.clear
                     .onSizeChange {
@@ -167,8 +174,12 @@ struct TapToFullscreenImageScrollView: View {
                     .ignoresSafeArea()
             }
         )
-        /// One viewer presents every kind of item in the example. It is turned by `AutoRotatingView` from the wrapper in `ZoomImageViewerExampleApp`, so a sourced image is seen turning back to match its thumbnail as it lands.
-        .zoomImageViewer(item: $presentedImage, image: \.image) { item in
+        /// One viewer presents every kind of item in the example. `AutoRotatingViewerWrapper` turns it with `AutoRotatingView`, so a sourced image is seen turning back to match its thumbnail as it lands.
+        .zoomImageViewer(
+            item: $presentedImage,
+            image: \.image,
+            wrapper: AutoRotatingViewerWrapper.self
+        ) { item in
             switch item {
             case .sourcedPhoto(let photo):
                 ZoomImageDefaultOverlay()

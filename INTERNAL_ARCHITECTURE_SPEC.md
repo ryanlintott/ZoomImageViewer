@@ -80,7 +80,7 @@ Additional invariants:
 - Replacing the `UIImage` instance resets zoom and drag state even if the item identifier is unchanged.
 - The image ignores the safe area; the overlay respects it.
 - The viewer uses a dark color scheme and a black semantic background.
-- A wrapper affects the viewer below it, and a nearer wrapper replaces an outer wrapper.
+- A wrapper affects only the viewer whose modifier receives it.
 - A view hierarchy containing source views has one viewer presenting one normalized item type. Every source supplies an identifier from that type, including the corresponding identifier case when a wrapper enum represents several kinds of item.
 - VoiceOver modal behavior, focus movement, zoom, scroll, escape, and overlay actions remain available.
 - Voice Control input labels and localized built-in controls remain unchanged.
@@ -263,13 +263,13 @@ Keep mathematical and rendering details outside the lifecycle model:
 
 - `DismissToss` computes an off-screen toss.
 - `ZoomImageMatchedGeometry` computes landing animation and transition modifiers.
-- `ZoomImageContentRotation` measures and corrects wrapper rotation.
+- `ContentRotation` measures and corrects wrapper rotation.
 
 Matched geometry continues to handle frame interpolation only. The offset and rotation correction remains a separate transition so a dragged image preserves its release motion and lands square with its source.
 
 ### 7. Wrapper boundary
 
-Keep wrapper type erasure isolated to `ZoomImageViewerWrapper`. The environment cannot store an arbitrary generic wrapper type, so `AnyView` is justified at this boundary. It should not spread into the presentation state or normal renderer composition.
+Keep wrapper type erasure isolated to `ZoomImageViewerWrapper`. A stable protocol metatype is stored directly by `ZoomImageViewerModifier`, avoiding closure identity and environment invalidation concerns. `AnyView` is justified only when a wrapper is explicitly supplied and should not spread into the presentation state or ordinary renderer composition.
 
 ## Proposed file layout
 
@@ -286,7 +286,7 @@ Sources/ZoomImageViewer/
   ZoomImageCanvas.swift               Image, gestures, accessibility, transition
   ZoomImageSource.swift               Public source API
   ZoomImageSourceModifier.swift       Source environment/preference bridge
-  ZoomImageViewerWrapper.swift        Wrapper API and isolated type erasure
+  ZoomImageViewerWrapper.swift        Wrapper protocol and isolated type erasure
   ZoomImageMatchedGeometry.swift      Matched motion and modifiers
   DismissToss.swift                   Toss calculation
 ```
@@ -397,5 +397,5 @@ Avoid mixing animation retuning or public API redesign into these stages. A beha
 2. Programmatic removal of a source after matched dismissal begins is unsupported. The transition remains latched and the implementation does not retain off-screen lazy content.
 3. A Reduce Motion change applies when the next transition begins, not to one already in flight.
 4. Replacement while open remains immediate. A replacement transition may be considered separately only if the new architecture makes it trivial and does not complicate the lifecycle.
-5. `zoomImageViewerWrapper(_:)` remains public so clients can add `AutoRotatingView` from FrameUp. Its environment boundary requires type erasure; keep that erasure isolated and document it rather than removing the feature.
+5. `ZoomImageViewerWrapper` remains public so clients can add `AutoRotatingView` from FrameUp. Its type is passed directly to the relevant viewer modifier, with type erasure isolated to the explicitly wrapped path.
 6. Deprecated `ZoomImageView` initializers remain for now.

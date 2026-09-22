@@ -7,39 +7,37 @@
 
 import SwiftUI
 
-public extension View {
-    /// Wraps the zoom image viewer inside this view in another view, like `AutoRotatingView` from FrameUp.
+/// A type that places a zoom image viewer in another view.
+///
+/// Pass the type to a `zoomImageViewer` modifier's `wrapper` parameter. This keeps uncommon container behavior local to that viewer instead of placing a closure in the environment.
+///
+/// An app locked to portrait can let fullscreen images rotate by defining a wrapper for `AutoRotatingView` from FrameUp:
+///
+/// ```swift
+/// enum AutoRotatingViewerWrapper: ZoomImageViewerWrapper {
+///     static func wrap(_ viewer: AnyView) -> AnyView {
+///         AnyView(AutoRotatingView { viewer })
+///     }
+/// }
+/// ```
+///
+/// Then pass it to the viewer:
+///
+/// ```swift
+/// .zoomImageViewer(
+///     item: $selectedPhoto,
+///     image: \.image,
+///     wrapper: AutoRotatingViewerWrapper.self
+/// )
+/// ```
+///
+/// A viewer that grows its image from a source view turns the image back as it lands, so it arrives square with its source whichever way the wrapper has turned it.
+///
+/// The viewer is type erased only when a wrapper is supplied. The wrapper view returned here can own state like any other SwiftUI view; the wrapper type itself is stable configuration stored directly by the viewer modifier.
+public protocol ZoomImageViewerWrapper {
+    /// Places the viewer in another view and erases the resulting wrapper view's type.
     ///
-    /// Set it once above the viewer, and the viewer is placed in the wrapper. The wrapper fills the view the viewer is attached to, and the viewer fills the wrapper.
-    ///
-    /// An app locked to portrait can let fullscreen images rotate by wrapping its viewer in `AutoRotatingView`:
-    ///
-    /// ```swift
-    /// WindowGroup {
-    ///     ContentView()
-    ///         .zoomImageViewerWrapper { viewer in
-    ///             AutoRotatingView { viewer }
-    ///         }
-    /// }
-    /// ```
-    ///
-    /// A viewer that grows its image from a source view turns the image back as it lands, so it arrives square with its source whichever way the wrapper has turned it. A nearer wrapper replaces an outer one.
-    ///
-    /// The wrapper is type erased only at this environment boundary. SwiftUI environment values cannot store an arbitrary generic wrapper type, and keeping the erasure here prevents it from spreading into the viewer renderer or presentation state.
-    /// - Parameter wrapper: Builds the view the viewer is placed in, from the viewer.
-    func zoomImageViewerWrapper<Wrapper: View>(
-        @ViewBuilder _ wrapper: @escaping (AnyView) -> Wrapper
-    ) -> some View {
-        environment(\.zoomImageViewerWrapper, ZoomImageViewerWrapper { AnyView(wrapper($0)) })
-    }
-}
-
-/// The view the zoom image viewer below it is placed in.
-struct ZoomImageViewerWrapper {
-    let wrap: @MainActor (AnyView) -> AnyView
-}
-
-extension EnvironmentValues {
-    /// The view the zoom image viewer below it is placed in, or `nil` to place the viewer directly over the view it is attached to.
-    @Entry var zoomImageViewerWrapper: ZoomImageViewerWrapper? = nil
+    /// - Parameter viewer: The type-erased zoom image viewer to place in the wrapper.
+    /// - Returns: The type-erased wrapper containing the viewer.
+    @MainActor static func wrap(_ viewer: AnyView) -> AnyView
 }

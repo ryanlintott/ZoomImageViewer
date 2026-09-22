@@ -23,7 +23,7 @@ private func transform(rotatedBy angle: Angle, around anchor: CGPoint) -> CGAffi
 struct ContentRotationTests {
     @Test("A view square with its window has nothing to undo")
     func unrotatedViewIsNotRotated() {
-        let rotation = ZoomImageContentRotation(transform: .identity, size: frame)
+        let rotation = ContentRotation(transform: .identity, size: frame)
 
         #expect(!rotation.isRotated)
         #expect(rotation.angle == .zero)
@@ -32,7 +32,7 @@ struct ContentRotationTests {
 
     @Test("A view moved without being turned has nothing to undo")
     func offsetViewIsNotRotated() {
-        let rotation = ZoomImageContentRotation(transform: CGAffineTransform(translationX: 40, y: -200), size: frame)
+        let rotation = ContentRotation(transform: CGAffineTransform(translationX: 40, y: -200), size: frame)
 
         #expect(!rotation.isRotated)
         #expect(rotation.anchor == .center)
@@ -42,7 +42,7 @@ struct ContentRotationTests {
     func rotatedViewReportsItsAngle(degrees: Double) {
         let angle = Angle.degrees(degrees)
         let anchor = CGPoint(x: frame.width / 2, y: frame.height / 2)
-        let rotation = ZoomImageContentRotation(transform: transform(rotatedBy: angle, around: anchor), size: frame)
+        let rotation = ContentRotation(transform: transform(rotatedBy: angle, around: anchor), size: frame)
 
         #expect(rotation.isRotated)
         #expect(abs(rotation.angle.radians - angle.radians) < 0.0001)
@@ -51,7 +51,7 @@ struct ContentRotationTests {
     @Test("A view turned around its middle reports its middle")
     func rotatedViewReportsCentreAnchor() {
         let anchor = CGPoint(x: frame.width / 2, y: frame.height / 2)
-        let rotation = ZoomImageContentRotation(transform: transform(rotatedBy: .degrees(90), around: anchor), size: frame)
+        let rotation = ContentRotation(transform: transform(rotatedBy: .degrees(90), around: anchor), size: frame)
 
         #expect(abs(rotation.anchor.x - 0.5) < 0.0001)
         #expect(abs(rotation.anchor.y - 0.5) < 0.0001)
@@ -61,7 +61,7 @@ struct ContentRotationTests {
     func rotatedViewReportsOffsetAnchor() {
         /// Off centre in both directions, as the safe area a rotating container works around is rarely the same on opposite edges.
         let anchor = CGPoint(x: frame.width * 0.25, y: frame.height * 0.75)
-        let rotation = ZoomImageContentRotation(transform: transform(rotatedBy: .degrees(-90), around: anchor), size: frame)
+        let rotation = ContentRotation(transform: transform(rotatedBy: .degrees(-90), around: anchor), size: frame)
 
         #expect(abs(rotation.anchor.x - 0.25) < 0.0001)
         #expect(abs(rotation.anchor.y - 0.75) < 0.0001)
@@ -71,7 +71,7 @@ struct ContentRotationTests {
     func halfTurnedViewReportsItsAnchor() {
         /// A half turn is the one rotation where every axis lands back on itself, so the point it turns around is the only thing separating it from a move.
         let anchor = CGPoint(x: frame.width * 0.4, y: frame.height * 0.6)
-        let rotation = ZoomImageContentRotation(transform: transform(rotatedBy: .degrees(180), around: anchor), size: frame)
+        let rotation = ContentRotation(transform: transform(rotatedBy: .degrees(180), around: anchor), size: frame)
 
         #expect(rotation.isRotated)
         #expect(abs(rotation.anchor.x - 0.4) < 0.0001)
@@ -80,7 +80,7 @@ struct ContentRotationTests {
 
     @Test("A view with no size has nothing to undo", arguments: [CGSize.zero, CGSize(width: 402, height: 0), CGSize(width: 0, height: 874)])
     func viewWithoutSizeIsNotRotated(size: CGSize) {
-        let rotation = ZoomImageContentRotation(transform: transform(rotatedBy: .degrees(90), around: .zero), size: size)
+        let rotation = ContentRotation(transform: transform(rotatedBy: .degrees(90), around: .zero), size: size)
 
         #expect(!rotation.isRotated)
         #expect(rotation.anchor == .center)

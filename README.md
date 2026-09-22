@@ -222,17 +222,22 @@ struct DoneButton: View {
 ```
 
 ## Rotation
-If your app is locked to portrait but you want fullscreen images to rotate, wrap the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp) with the `zoomImageViewerWrapper(_:)` modifier. Set it once above the viewer. The example app does this.
+If your app is locked to portrait but you want fullscreen images to rotate, define a `ZoomImageViewerWrapper` that places the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp), then pass its type to that viewer. The example app does this.
 
 ```swift
-WindowGroup {
-    ContentView()
-        .zoomImageViewerWrapper { viewer in
-            AutoRotatingView { viewer }
-        }
+enum AutoRotatingViewerWrapper: ZoomImageViewerWrapper {
+    static func wrap(_ viewer: AnyView) -> AnyView {
+        AnyView(AutoRotatingView { viewer })
+    }
 }
+
+.zoomImageViewer(
+    item: $selectedPhoto,
+    image: \.image,
+    wrapper: AutoRotatingViewerWrapper.self
+)
 ```
 
 An image growing from a source view turns back as it lands, so it arrives square with its source whichever way the wrapper has turned it.
 
-The wrapper can be any view, so it can also add a background or measure the viewer's frame.
+The wrapper can use any view, so it can also add a background or measure the viewer's frame. Its type is stable configuration stored directly by the viewer; the viewer is erased to `AnyView` only when a wrapper is supplied.

@@ -1,5 +1,5 @@
 //
-//  ZoomImageContentRotation.swift
+//  ContentRotation.swift
 //  ZoomImageViewer
 //
 //  Created by Ryan Lintott on 2026-09-15.
@@ -10,7 +10,7 @@ import SwiftUI
 /// How far the viewer's content is turned from the window it is in, and the point it turns around.
 ///
 /// A viewer inside a container that rotates its content, like `AutoRotatingView` from FrameUp, is drawn turned while the window stays put. Matched geometry only matches rectangles, so SwiftUI moves the image straight to its source's rectangle and the container turns that result, leaving the image sideways and away from its source. Turning the image back by this as it lands undoes the container's turn.
-struct ZoomImageContentRotation: Equatable {
+struct ContentRotation: Equatable {
     /// The angle the content is drawn at, measured from the window.
     var angle: Angle = .zero
 
@@ -55,27 +55,27 @@ struct ZoomImageContentRotation: Equatable {
 /// A view that reports how far the content around it is turned from its window.
 ///
 /// A `UIView` is used as it can be asked for its own transform to the window, which accounts for every container between the two, however the turn was applied. The view is always in the hierarchy, even while no image is showing, so the rotation is current when an image appears.
-struct ZoomImageRotationReader: UIViewRepresentable {
-    @Binding var rotation: ZoomImageContentRotation
+struct ContentRotationReader: UIViewRepresentable {
+    @Binding var rotation: ContentRotation
 
-    func makeUIView(context: Context) -> ZoomImageRotationReadingView {
-        let view = ZoomImageRotationReadingView()
+    func makeUIView(context: Context) -> RotationReadingView {
+        let view = RotationReadingView()
         view.isUserInteractionEnabled = false
         view.onChange = { rotation = $0 }
         return view
     }
 
-    func updateUIView(_ uiView: ZoomImageRotationReadingView, context: Context) {
+    func updateUIView(_ uiView: RotationReadingView, context: Context) {
         /// Replaced on every update, as the closure writes to a binding this view holds.
         uiView.onChange = { rotation = $0 }
     }
 }
 
-final class ZoomImageRotationReadingView: UIView {
-    var onChange: ((ZoomImageContentRotation) -> Void)?
+final class RotationReadingView: UIView {
+    var onChange: ((ContentRotation) -> Void)?
 
     /// The rotation last reported, so an unchanged one is not reported again.
-    private var reportedRotation: ZoomImageContentRotation?
+    private var reportedRotation: ContentRotation?
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -103,7 +103,7 @@ final class ZoomImageRotationReadingView: UIView {
     private func reportRotation() {
         guard window != nil else { return }
 
-        let rotation = ZoomImageContentRotation(transform: transformToWindow, size: bounds.size)
+        let rotation = ContentRotation(transform: transformToWindow, size: bounds.size)
         guard rotation != reportedRotation else { return }
         reportedRotation = rotation
 
@@ -118,12 +118,12 @@ final class ZoomImageRotationReadingView: UIView {
 /// Turns an image back to the window as it lands on its source.
 ///
 /// Used by a transition rather than applied to the view, as SwiftUI leaves a view being removed as it was and animates only the transition it is given. A rotation set on the view itself, or on anything around it, is applied to a removed image at once instead.
-struct ZoomImageTurnModifier: ViewModifier, Animatable {
+struct RotationCorrectionModifier: ViewModifier, Animatable {
     /// How far the image is through its landing, from 0 where it is now to 1 where it ends up.
     var progress: Double
 
     /// The rotation undone as the image lands, so it arrives square with the window its source is in.
-    var rotation: ZoomImageContentRotation
+    var rotation: ContentRotation
 
     nonisolated var animatableData: Double {
         get { progress }

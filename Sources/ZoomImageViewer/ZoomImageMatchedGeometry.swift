@@ -78,10 +78,10 @@ struct ZoomImageMatchedGeometry: Equatable {
     ///   - rotation: How far the viewer is turned from the window its source is in.
     ///   - move: How far the image moves as it lands, from where it is now to where it ends up.
     ///   - startSpeed: How fast the image is already moving on each axis when a drag lets go of it.
-    static func imageTransition(undoing rotation: ZoomImageContentRotation, moving move: CGSize, startSpeed: CGSize) -> AnyTransition {
+    static func imageTransition(undoing rotation: ContentRotation, moving move: CGSize, startSpeed: CGSize) -> AnyTransition {
         let turning = AnyTransition.modifier(
-            active: ZoomImageTurnModifier(progress: 1, rotation: rotation),
-            identity: ZoomImageTurnModifier(progress: .zero, rotation: rotation)
+            active: RotationCorrectionModifier(progress: 1, rotation: rotation),
+            identity: RotationCorrectionModifier(progress: .zero, rotation: rotation)
         )
 
         return movingTransition(distance: move.width, startSpeed: startSpeed.width, axis: .horizontal)

@@ -13,7 +13,7 @@ struct ZoomImageViewerHost<Overlay: View>: View {
     @Environment(\.layoutDirection) private var layoutDirection
     /// With Reduce Motion on, an image with a source fades in and out rather than growing from it and shrinking back.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    
+
     @Binding var uiImage: UIImage?
     let dismissAction: ZoomImageDismissAction
     let overlay: Overlay
@@ -46,7 +46,7 @@ struct ZoomImageViewerHost<Overlay: View>: View {
     /// The one owner of presentation lifetime, interaction, chrome and animated appearance targets.
     @State private var presentation: ZoomImagePresentationState
     /// How far the viewer is turned from the window by a container like `AutoRotatingView`, undone as a matched image lands on its source.
-    @State private var contentRotation = ZoomImageContentRotation()
+    @State private var contentRotation = ContentRotation()
     
     /// How long the viewer takes to fade in or out, and a thrown image takes to leave the screen.
     let fadeDuration: TimeInterval = 0.4
@@ -61,6 +61,42 @@ struct ZoomImageViewerHost<Overlay: View>: View {
     /// The diagonal on its own is exactly enough to cover the frame at any angle, as the frame's corners land on the background square's inscribed circle. Exactly enough leaves nothing for rounding, so the corners touch the edge rather than clearing it. This clears them by a twentieth of the diagonal, around 46pt on a 393×852 frame, and is still a fraction of the frame-sized padding it replaced.
     let backgroundDiagonalMultiplier: CGFloat = 1.1
     
+    func canvas(uiImage: UIImage, viewerSize: CGSize) -> ZoomImageCanvas {
+        ZoomImageCanvas(
+            uiImage: uiImage,
+            viewerSize: viewerSize,
+            isShowingImage: isShowingImage,
+            isInteractive: presentation.isInteractive,
+            isShowingOverlay: presentation.isShowingOverlay,
+            accessibilityScrollRequest: presentation.accessibilityScrollRequest,
+            presentationOffset: presentationOffset,
+            canvasID: presentation.canvasID,
+            matchedGeometry: matchedGeometry,
+            imageTransition: imageTransition,
+            zoomState: $presentation.zoomState,
+            isZoomedIn: $presentation.isZoomedIn.animation(.easeInOut(duration: chromeDuration)),
+            overlayIsShowing: $presentation.isShowingOverlay.animation(.easeInOut(duration: chromeDuration)),
+            onToggleOverlay: toggleOverlay,
+            onAccessibilityZoomIn: { center in
+                if #available(iOS 16, *) {
+                    accessibilityZoom(.zoomIn, center: center)
+                }
+            },
+            onAccessibilityZoomOut: {
+                if #available(iOS 16, *) {
+                    accessibilityZoom(.zoomOut, center: .zero)
+                }
+            },
+            onAccessibilityScroll: accessibilityScroll,
+            onDragChanged: { value in
+                recordDragValue(value)
+                onDrag(translation: value.translation)
+            },
+            onDragFinal: recordDragValue,
+            onDragEnded: onDragEnded
+        )
+    }
+
     var body: some View {
         /// This helps center animated rotations
         Color.clear.overlay(
@@ -71,44 +107,12 @@ struct ZoomImageViewerHost<Overlay: View>: View {
                 let backgroundSide = viewerSize.magnitude * backgroundDiagonalMultiplier
 
                 /// Always in the hierarchy, so the rotation of a viewer showing nothing is known by the time an image appears.
-                ZoomImageRotationReader(rotation: $contentRotation)
+                ContentRotationReader(rotation: $contentRotation)
                     .ignoresSafeArea()
 
                 if let uiImage = presentedImage {
                     ZoomImageViewerScreen(
-                        canvas: ZoomImageCanvas(
-                            uiImage: uiImage,
-                            viewerSize: viewerSize,
-                            isShowingImage: isShowingImage,
-                            isInteractive: presentation.isInteractive,
-                            isShowingOverlay: presentation.isShowingOverlay,
-                            accessibilityScrollRequest: presentation.accessibilityScrollRequest,
-                            presentationOffset: presentationOffset,
-                            canvasID: presentation.canvasID,
-                            matchedGeometry: matchedGeometry,
-                            imageTransition: imageTransition,
-                            zoomState: $presentation.zoomState,
-                            isZoomedIn: $presentation.isZoomedIn.animation(.easeInOut(duration: chromeDuration)),
-                            overlayIsShowing: $presentation.isShowingOverlay.animation(.easeInOut(duration: chromeDuration)),
-                            onToggleOverlay: toggleOverlay,
-                            onAccessibilityZoomIn: { center in
-                                if #available(iOS 16, *) {
-                                    accessibilityZoom(.zoomIn, center: center)
-                                }
-                            },
-                            onAccessibilityZoomOut: {
-                                if #available(iOS 16, *) {
-                                    accessibilityZoom(.zoomOut, center: .zero)
-                                }
-                            },
-                            onAccessibilityScroll: accessibilityScroll,
-                            onDragChanged: { value in
-                                recordDragValue(value)
-                                onDrag(translation: value.translation)
-                            },
-                            onDragFinal: recordDragValue,
-                            onDragEnded: onDragEnded
-                        ),
+                        canvas: canvas(uiImage: uiImage, viewerSize: viewerSize),
                         overlay: overlay,
                         backgroundSide: backgroundSide,
                         backgroundOpacity: presentation.appearance.backgroundOpacity,

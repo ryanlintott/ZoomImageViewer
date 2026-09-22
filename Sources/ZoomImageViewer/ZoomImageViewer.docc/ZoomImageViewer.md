@@ -46,7 +46,7 @@ One viewer presents one normalized item type. It can present several kinds of it
 
 Everything shown over the image is an overlay you can replace. Keep the built-in close button with ``ZoomImageDefaultOverlay``, place ``ZoomImageCloseButton`` yourself, or make your own button that calls ``SwiftUICore/EnvironmentValues/dismissZoomImage``. Buttons in the overlay use ``ZoomImageDefaultButtonStyle`` unless they set their own.
 
-Wrap the viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait, with ``SwiftUICore/View/zoomImageViewerWrapper(_:)``.
+Wrap a viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait, by passing a ``ZoomImageViewerWrapper`` type to its `wrapper` parameter.
 
 The background is black in both light and dark mode and the viewer forces the dark colour scheme on everything inside it.
 
@@ -60,14 +60,14 @@ For a feature-by-feature guide with examples, see the [README](https://github.co
 
 ### Viewer
 
-- ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:)``
-- ``SwiftUICore/View/zoomImageViewer(uiImage:overlay:)``
-- ``SwiftUICore/View/zoomImageViewerWrapper(_:)``
+- ``SwiftUICore/View/zoomImageViewer(uiImage:closeButtonPosition:wrapper:)``
+- ``SwiftUICore/View/zoomImageViewer(uiImage:wrapper:overlay:)``
+- ``ZoomImageViewerWrapper``
 
 ### Items and Source Views
 
-- ``SwiftUICore/View/zoomImageViewer(item:image:closeButtonPosition:)``
-- ``SwiftUICore/View/zoomImageViewer(item:image:overlay:)``
+- ``SwiftUICore/View/zoomImageViewer(item:image:closeButtonPosition:wrapper:)``
+- ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)``
 - ``SwiftUICore/View/zoomImageSource(id:)``
 
 ### Overlay
