@@ -61,7 +61,7 @@ var body: some View {
 }
 ```
 
-Interactive behaviors:
+### Interactive behaviors:
 
 - Pinch to zoom and pan in the same gesture. Zooming is anchored to the center of your pinch.
 - Pan around a zoomed-in image in a smooth scroll view that bounces.
@@ -69,12 +69,12 @@ Interactive behaviors:
 - Tap the close button or drag a zoomed-out image and toss it away to dismiss it.
 - Tap to show or hide the close button or custom overlay.
 
-Automatic behaviors:
+### Automatic behaviors:
 - Animations when adding or removing an image are automatic.
 - The overlay keeps the same safe area while the image ignores it and pans to the edges.
 - Zooming in or panning hides the overlay and system UI. They return automatically when the image is zoomed back out to fit.
 
-Accessibility features:
+### Accessibility features:
 - Smart invert will not invert the image.
 - Voice Control labels.
 - VoiceOver support.
@@ -93,6 +93,9 @@ let image = UIImage(named: "testImage")
 image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
 uiImage = image
 ```
+
+### Limitations:
+- The viewer is not presented as a modal fullscreen cover so it will present behind any open sheets. All sheets must be closed when presenting a fullscreen image.
 
 ## Overlay
 There are three ways to give the viewer a close button, depending on how much you want to control.
@@ -199,8 +202,6 @@ var body: some View {
 ```
 
 The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed. If the source can't show the whole image, omit `zoomImageSource(id:)` and the viewer will use the default fade animation instead.
-
-Note: Animating sources from inside a sheet is not supported as the sheet renders above the viewer.
 
 ## Rotation
 If your app is locked to portrait but you want fullscreen images to rotate, define a `ZoomImageViewerWrapper` that places the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp), then pass its type to that viewer. The example app does this.

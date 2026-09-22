@@ -45,6 +45,7 @@ struct TapToFullscreenImageScrollView: View {
     
     /// The item shown by the example's single viewer.
     @State private var presentedImage: PresentedImage? = nil
+    @State private var isShowingSheet = false
     @State private var closeButtonOption: CloseButtonOption = .default
     /// The test image on screen, used to step to the next or previous one.
     @State private var testImage: TestImage = .bundled
@@ -107,6 +108,16 @@ struct TapToFullscreenImageScrollView: View {
                 Text(verbatim: "Items without source views")
             } footer: {
                 Text(verbatim: "The same viewer presents these as a different kind of item with no source view, so the image fades in and out instead of growing from a thumbnail, and the overlay still receives the item.")
+            }
+
+            Section {
+                Button("Open sheet") {
+                    isShowingSheet = true
+                }
+            } header: {
+                Text(verbatim: "Sheet source")
+            } footer: {
+                Text(verbatim: "The sheet contains a thumbnail that tries to open its image in this view's existing viewer.")
             }
 
             Section {
@@ -174,6 +185,12 @@ struct TapToFullscreenImageScrollView: View {
                     .ignoresSafeArea()
             }
         )
+        .sheet(isPresented: $isShowingSheet) {
+            SheetImageSourceView(
+                photo: ThumbnailPhoto.all[3],
+                presentedImage: $presentedImage
+            )
+        }
         /// One viewer presents every kind of item in the example. `AutoRotatingViewerWrapper` turns it with `AutoRotatingView`, so a sourced image is seen turning back to match its thumbnail as it lands.
         .zoomImageViewer(
             item: $presentedImage,
@@ -251,6 +268,43 @@ struct TapToFullscreenImageScrollView: View {
         let allCases = TestImage.allCases
         guard let index = allCases.firstIndex(of: testImage) else { return }
         show(allCases.element(at: index, offsetBy: offset))
+    }
+}
+
+/// A source view in a sheet that sends its item to the example's existing viewer.
+struct SheetImageSourceView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let photo: ThumbnailPhoto
+    @Binding var presentedImage: PresentedImage?
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("Image source in a sheet")
+                .font(.title2)
+
+            Text("Tap the thumbnail to try opening it in the viewer attached behind this sheet.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                presentedImage = .sourcedPhoto(photo)
+            } label: {
+                Image(uiImage: photo.image)
+                    .resizable()
+                    .scaledToFit()
+                    .accessibilityIgnoresInvertColors()
+                    .zoomImageSource(id: PresentedImage.ID.sourcedPhoto(photo.id))
+                    .frame(maxWidth: 240, maxHeight: 240)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(photo.caption)
+
+            Button("Close sheet") {
+                dismiss()
+            }
+        }
+        .padding()
     }
 }
 
