@@ -10,11 +10,9 @@ import SwiftUI
 public extension View {
     /// Presents an item's image in a fullscreen viewer over this view that supports zooming, panning, and dismissing a zoomed-out image with a drag gesture, growing the image from the item's source view and shrinking it back when it closes.
     ///
-    /// The viewer covers this view, so attach it to a view that fills the screen. The image ignores the safe area, filling the whole frame and panning to its edges when zoomed in, like in Photos, while the overlay stays inside the safe area.
+    /// The viewer covers this view, so attach it to a view that fills the screen. The image ignores the safe area, filling the whole frame and panning to its edges when zoomed in.
     ///
-    /// Give each source view inside this view, usually a thumbnail, the ``SwiftUICore/View/zoomImageSource(id:)`` modifier with its item's `id`. The identifier matches the image to its source, so the image grows from the source of the item that was set and shrinks back into the source of the item on screen when the viewer closes, including after stepping to another item. An item with no source on screen, like one scrolled out of a lazy grid, fades in and out instead. The viewer animates this itself, so set the item without `withAnimation`. It animates its own closes too, from the close button, the escape gesture or dragging the image away, and a dragged image shrinks back to its source rather than being thrown off screen.
-    ///
-    /// Only the image takes part in the transition. The background and overlay fade in and out as usual. A viewer inside a container that turns its content, like `AutoRotatingView` from FrameUp supplied with a ``ZoomImageViewerWrapper``, turns the image back as it lands on its source, so it arrives square with it.
+    /// Each thumbnail view inside this view can have the ``SwiftUICore/View/zoomImageSource(id:)`` modifier with its item's `id`. When a presented item's identifier matches, the image grows from and shrinks back to the source. An item with no matching source view fades in and out instead. The viewer handles these transitions, so change the item without `withAnimation`.
     ///
     /// ```swift
     /// @State private var selectedPhoto: Photo? = nil
@@ -42,19 +40,30 @@ public extension View {
     /// }
     /// ```
     ///
-    /// Attach one viewer presenting one normalized item type to the view hierarchy containing its source views. To present several kinds of item, wrap them in one `Identifiable` and `Equatable` enum and give each case its own identifier case. Pass those identifiers to the corresponding source views.
+    /// ## Overlay
     ///
-    /// The overlay covers the viewer's frame inside its safe area, fades in and out with the image, and is hidden while the image is zoomed in or after a single tap. It is built for the item on screen, and keeps showing the last item while the viewer fades out after the item is cleared. Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button.
+    /// Zooming in or panning hides the overlay and system UI. A single tap shows or hides the overlay at any zoom and the system UI while the image is fully zoomed out. They return automatically when the image is zoomed back out to fit.
     ///
-    /// The overlay is the only way to dismiss the viewer other than dragging the image away, so include a close button. ``ZoomImageCloseButton`` dismisses the viewer it is in, and your own buttons can do the same with the ``SwiftUICore/EnvironmentValues/dismissZoomImage`` action.
+    /// Buttons in it use ``ZoomImageDefaultButtonStyle`` unless they set their own style. Placing and padding the views is up to you. Use ``ZoomImageDefaultOverlay`` to keep the default close button with padding.
     ///
-    /// Zooming the image in hides the overlay, status bar and home indicator, and zooming back out to fit shows them again. A single tap shows or hides the overlay at any zoom, and the status bar and home indicator with it while the image is zoomed out. Panning or zooming a zoomed in image hides the overlay again. Dragging the image away hides the overlay, which comes back if the image is put back. The home indicator is only hidden on iOS 16 and up.
+    /// The overlay is the only way to dismiss the viewer other than dragging the image away, so include a close button. ``ZoomImageCloseButton`` dismisses the viewer it is in, and your own buttons can use the ``SwiftUICore/EnvironmentValues/dismissZoomImage`` action.
     ///
-    /// The background is black in both light and dark mode, like in Photos, and the viewer forces the dark colour scheme on everything inside it, so the semantic colours in the overlay are the ones for a dark background whatever the app's appearance.
+    /// The viewer uses a black background in both light and dark mode and forces the dark colour scheme throughout the overlay.
     ///
-    /// With VoiceOver the viewer is modal and the image is a single element, described by the `UIImage`'s `accessibilityLabel`. The escape gesture closes the viewer. On iOS 16 and up, VoiceOver's zoom action zooms in on the middle of the screen and back out, and three-finger swipes pan a zoomed in image half a screen at a time. The image's Show Controls and Hide Controls actions do the same as a single tap.
+    /// ## Multiple Item Types
     ///
-    /// Setting or clearing the item always grows or shrinks the image with the viewer's own spring. An animation the item is changed with, like one from `withAnimation`, is ignored for this, and there is no way to show or hide the image without animating.
+    /// The viewer presents one normalized item type. To present several kinds of item, wrap them in one `Identifiable` and `Equatable` enum and give each case its own identifier case. Pass those identifiers to the corresponding source views.
+    ///
+    /// ## Accessibility
+    ///
+    /// With VoiceOver, the viewer is modal and the escape gesture closes it. The image is described by the `UIImage`'s `accessibilityLabel`. On iOS 16 and later, VoiceOver users can zoom and pan the image.
+    ///
+    /// With Reduce Motion on, the image fades in and out rather than growing from a source view.
+    ///
+    /// ## Rotation on Portrait-Only Interfaces
+    ///
+    /// Use ``ZoomImageViewerWrapper`` to wrap the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp), allowing images to rotate to orientations the app does not otherwise support.
+    ///
     /// - Parameters:
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer. `Equatable`, so the overlay can tell when the item changes and fade out with its latest contents.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does, as a different instance is shown as a replacement image.
@@ -82,7 +91,7 @@ public extension View {
 
     /// Presents an item's image in a fullscreen viewer over this view with the built-in close button, growing the image from the item's source view and shrinking it back when it closes.
     ///
-    /// See ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)`` for how the viewer works and how to set up the source views. Use that one with ``ZoomImageDefaultOverlay`` to add other views alongside the close button.
+    /// See ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)`` for how the viewer works and how to set up the source views. Use it with ``ZoomImageDefaultOverlay`` to add other views alongside the close button.
     ///
     /// ```swift
     /// .zoomImageViewer(item: $selectedPhoto, image: \.image)
@@ -117,7 +126,7 @@ public extension View {
     /// }
     /// ```
     ///
-    /// Otherwise the viewer is the same as ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)``, which describes the overlay and how the viewer works. The overlay receives the image on screen, and keeps showing the last one while the viewer fades out, so an overlay describing it doesn't blank out as it closes.
+    /// See ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)`` for how the viewer and overlay work.
     /// - Parameters:
     ///   - uiImage: The image to present. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer, fading it out. Setting another image while the viewer is open replaces the one on screen.
     ///   - wrapper: A type that places this viewer in another view, or `nil` to place it directly over the modified view. Defaults to `nil`.
@@ -145,7 +154,8 @@ public extension View {
     /// .zoomImageViewer(uiImage: $uiImage)
     /// ```
     ///
-    /// Use ``SwiftUICore/View/zoomImageViewer(uiImage:wrapper:overlay:)`` with ``ZoomImageDefaultOverlay`` to add other views alongside the close button.
+    /// See ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)`` for more details on how the viewer works.
+    /// Use it with ``ZoomImageDefaultOverlay`` to add other views alongside the close button.
     /// - Parameters:
     ///   - uiImage: The image to present. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer, fading it out. Setting another image while the viewer is open replaces the one on screen.
     ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.

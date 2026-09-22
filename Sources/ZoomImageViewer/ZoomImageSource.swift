@@ -10,11 +10,13 @@ import SwiftUI
 public extension View {
     /// Makes this view the source a zoom image viewer's image grows from and shrinks back into, usually a thumbnail.
     ///
-    /// Pass the identifier of the item this view shows. The view is matched to the viewer's image by that identifier. It is hidden while its item's image is showing, and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
+    /// See ``SwiftUICore/View/zoomImageViewer(item:image:wrapper:overlay:)`` for how to attach the viewer and present an item.
+    ///
+    /// When the viewer presents an item with the same identifier, this view is hidden while its item's image is showing and fades back in once the image has landed on it again. It is never removed, so its layout doesn't change and any state inside it is kept.
     ///
     /// With Reduce Motion on, the image fades in and out rather than growing from this view, so the view stays visible the whole time.
     ///
-    /// Hiding and fading back in follow the viewer's own timing, not the animation the item was set with, so the item doesn't need to be set inside `withAnimation`.
+    /// The viewer applies the animation automatically, so the item doesn't need to be set inside `withAnimation`.
     ///
     /// ```swift
     /// Image(uiImage: photo.image)
@@ -23,9 +25,7 @@ public extension View {
     ///     .zoomImageSource(id: photo.id)
     /// ```
     ///
-    /// The image is fitted to this view's frame, so the view has to show the whole image, like one with `scaledToFit()`. A cropped view, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
-    ///
-    /// A view with no item-based viewer above it is left as it is. Attach one viewer presenting one normalized item type to a hierarchy containing source views. When that type is a wrapper enum, give each case its own identifier case so every source identifier is unique within the viewer.
+    /// The image is fitted to this view's frame, so a cropped view, like one using `scaledToFill()`, will not match correctly. If the source can't show the whole image, remove this modifier and use the default fade animation instead.
     /// - Parameter id: The identifier of the item this view shows.
     func zoomImageSource<ID: Hashable>(id: ID) -> some View {
         modifier(ZoomImageSourceModifier(id: AnyHashable(id)))

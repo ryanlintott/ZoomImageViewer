@@ -45,7 +45,7 @@ ZoomImageViewer is open source and free but if you like using it, please conside
 ## zoomImageViewer
 Attach the `zoomImageViewer(uiImage:)` modifier to a view and pass it a binding to an optional `UIImage`. The viewer shows nothing while the binding is `nil`, and presents the image fullscreen as soon as one is set. Closing the viewer sets the binding back to `nil`, and setting the binding to `nil` closes the viewer with the same fade.
 
-The viewer covers the view it is attached to, so attach it to a view that covers the whole screen and add it as high up the hierarchy as you can. Attaching it to a single button shows the image in that button's frame.
+The viewer covers the view it is attached to, so add it near the top of the hierarchy to cover the whole window.
 
 ```swift
 @State private var uiImage: UIImage? = nil
@@ -67,11 +67,12 @@ Interactive behaviors:
 - Pan around a zoomed-in image in a smooth scroll view that bounces.
 - Double-tap to zoom in and out.
 - Tap the close button or drag a zoomed-out image and toss it away to dismiss it.
-- Tap to show or hide the overlay, status bar, and home indicator.
+- Tap to show or hide the close button or custom overlay.
 
 Automatic behaviors:
+- Animations when adding or removing an image are automatic.
 - The overlay keeps the same safe area while the image ignores it and pans to the edges.
-- Zooming in or panning hides the overlay, status bar and home indicator so nothing covers the image. Zooming out brings everything back.
+- Zooming in or panning hides the overlay and system UI. They return automatically when the image is zoomed back out to fit.
 
 Accessibility features:
 - Smart invert will not invert the image.
@@ -92,71 +93,6 @@ let image = UIImage(named: "testImage")
 image?.accessibilityLabel = String(localized: "Two eagles catching a fish")
 uiImage = image
 ```
-
-## Items
-Present an optional item instead of a `UIImage` when the overlay needs more than the image itself, like a caption. The item has to be `Identifiable` and `Equatable`. Pass the item binding and a key path to the item's image, and the overlay closure receives the item.
-
-```swift
-@State private var selectedPhoto: Photo? = nil
-
-var body: some View {
-    content
-        .zoomImageViewer(item: $selectedPhoto, image: \.image) { photo in
-            ZoomImageDefaultOverlay()
-
-            Text(photo.caption)
-                .padding()
-                .frame(maxHeight: .infinity, alignment: .bottom)
-        }
-}
-```
-
-With no source view on screen, the image fades in and out, the same as a viewer given a `UIImage`. Give the item a source view to grow the image from it instead.
-
-The overlay is built for the item on screen and keeps showing the last one while the viewer fades out, so a caption doesn't blank out as the viewer closes. Setting the item to another one while the viewer is open swaps the image instantly and rebuilds the overlay for it.
-
-The image key path should return the same `UIImage` instance every time, like a stored property does, as a different instance is shown as a replacement image.
-
-One viewer presents one normalized item type. It can present several kinds of item when they are wrapped in one `Identifiable` and `Equatable` enum. Give each case its own identifier case so identifiers from different model types cannot collide, expose their images through one property, and use that property as the viewer's image key path. Source views pass the corresponding identifier case to `zoomImageSource(id:)`, and the overlay switches over the presented item case.
-
-## Growing from a Source View
-An item's image grows from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrinks back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
-
-Give each source view inside the view the viewer is attached to the `zoomImageSource(id:)` modifier with its item's `id`. The viewer animates opening as well as closing, so set the item without `withAnimation`. The image always grows and shrinks with the viewer's own spring, even when the item is changed inside an animation, and can't be shown or hidden without animating.
-
-```swift
-@State private var selectedPhoto: Photo? = nil
-
-var body: some View {
-    ScrollView {
-        LazyVGrid(columns: [GridItem(), GridItem()]) {
-            ForEach(photos) { photo in
-                Button {
-                    selectedPhoto = photo
-                } label: {
-                    Image(uiImage: photo.image)
-                        .resizable()
-                        .scaledToFit()
-                        .zoomImageSource(id: photo.id)
-                }
-            }
-        }
-    }
-    .zoomImageViewer(item: $selectedPhoto, image: \.image)
-}
-```
-
-The source view is hidden while its image is showing and fades back in once the image has landed on it. It stays in place the whole time, so the layout around it doesn't change.
-
-An item with no source view on screen, like one scrolled out of a lazy grid, fades in and out instead.
-
-Setting the item to another one while the viewer is open swaps the image instantly, and closing shrinks it into that item's source view.
-
-The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed.
-
-Attach only one viewer presenting one normalized item type to a view hierarchy containing source views. When that type is a wrapper enum, each source passes the identifier case corresponding to the item it represents.
-
-Sources in a sheet need a viewer attached inside the sheet, as a viewer outside it is drawn behind the sheet. For navigation, attach the viewer outside the `NavigationStack`, so it covers every pushed view.
 
 ## Overlay
 There are three ways to give the viewer a close button, depending on how much you want to control.
@@ -193,13 +129,6 @@ If you want a custom overlay you can use a trailing closure and add additional U
 }
 ```
 
-For an overlay that needs more than the image, like a caption, present an item instead. See [Items](#items).
-
-### Colours
-The background is black in both light and dark mode, like in Photos, and the viewer forces the dark colour scheme on everything inside it. A caption's `.secondary`, a `Material` or a button's tint is the colour for a dark background whatever the app's appearance, so an overlay looks the same either way without doing anything.
-
-`ZoomImageCloseButton` is the built-in button on its own, without a position or padding. All Buttons in the overlay use `ZoomImageDefaultButtonStyle` unless they set their own.
-
 ### Your own close button
 To change the title, role or accessibility too, make a button that sets your image binding to `nil`, or calls the `dismissZoomImage` action from the environment when the button is its own view. Localize its title in your own bundle as you would any other `Text`.
 
@@ -221,6 +150,58 @@ struct DoneButton: View {
 }
 ```
 
+## Items
+Present an optional item instead of a `UIImage` when the overlay needs more than the image itself, like a caption. The item has to be `Identifiable` and `Equatable`. Pass the item binding and a key path to the item's image, and the overlay closure receives the item.
+
+```swift
+@State private var selectedPhoto: Photo? = nil
+
+var body: some View {
+    content
+        .zoomImageViewer(item: $selectedPhoto, image: \.image) { photo in
+            ZoomImageDefaultOverlay()
+
+            Text(photo.caption)
+                .padding()
+                .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+}
+```
+
+The viewer presents one normalized item type. To present several kinds of item, wrap them in one `Identifiable` and `Equatable` enum and give each case its own identifier case.
+
+## Growing from a Source View
+An item's image grows from the item's source view — usually a thumbnail in a grid, though it can be any size — and shrinks back when the viewer closes. Dragging the image away shrinks it back into the source too, rather than throwing it off screen. Only the image is matched. The background and overlay fade in and out as usual.
+
+
+Each thumbnail can have a ``SwiftUICore/View/zoomImageSource(id:)`` modifier with its item's `id`. When a presented item's identifier matches, the image grows from and shrinks back to the source. An item with no matching source view fades in and out instead. The viewer handles these transitions, so change the item without `withAnimation`.
+
+```swift
+@State private var selectedPhoto: Photo? = nil
+
+var body: some View {
+    ScrollView {
+        LazyVGrid(columns: [GridItem(), GridItem()]) {
+            ForEach(photos) { photo in
+                Button {
+                    selectedPhoto = photo
+                } label: {
+                    Image(uiImage: photo.image)
+                        .resizable()
+                        .scaledToFit()
+                        .zoomImageSource(id: photo.id)
+                }
+            }
+        }
+    }
+    .zoomImageViewer(item: $selectedPhoto, image: \.image)
+}
+```
+
+The image is fitted to the frame it grows from, so the source view has to show the whole image, like one with `scaledToFit()`. A cropped thumbnail, like one with `scaledToFill()`, doesn't match the image as it starts growing or once it has landed. If the source can't show the whole image, omit `zoomImageSource(id:)` and the viewer will use the default fade animation instead.
+
+Note: Animating sources from inside a sheet is not supported as the sheet renders above the viewer.
+
 ## Rotation
 If your app is locked to portrait but you want fullscreen images to rotate, define a `ZoomImageViewerWrapper` that places the viewer in `AutoRotatingView` from [FrameUp](https://github.com/ryanlintott/FrameUp), then pass its type to that viewer. The example app does this.
 
@@ -239,5 +220,3 @@ enum AutoRotatingViewerWrapper: ZoomImageViewerWrapper {
 ```
 
 An image growing from a source view turns back as it lands, so it arrives square with its source whichever way the wrapper has turned it.
-
-The wrapper can use any view, so it can also add a background or measure the viewer's frame. Its type is stable configuration stored directly by the viewer; the viewer is erased to `AnyView` only when a wrapper is supplied.
