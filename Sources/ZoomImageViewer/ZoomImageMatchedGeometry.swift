@@ -16,12 +16,12 @@ struct ZoomImageMatchedGeometry: Equatable {
     /// The spring the image lands on its source with.
     ///
     /// Just short of bouncing, so a throw follows through and settles rather than wobbling. A spring has no moment it is finished, but it spends the end of its travel so close to its source that the two can be swapped without it being seen.
-    static let spring = (mass: 1.0, stiffness: 200.0, damping: 27.0)
+    static let spring = (mass: 1.0, stiffness: 400.0, damping: 38.0)
     
     /// How long the image takes to settle on its source before the source fades back in under it.
     ///
     /// By this point the spring is within a point of its source and barely moving, so the two line up. The image is still left in place, on top of its source, until the viewer is taken away around it.
-    static let landingDelay = 0.5
+    static let landingDelay = 0.35
     
     /// How long the image and its source take to swap.
     static let swapDuration = 0.1
@@ -29,7 +29,7 @@ struct ZoomImageMatchedGeometry: Equatable {
     /// How long a landing is given before the viewer is taken away around it, which is when the image is finally removed.
     ///
     /// Long enough for the spring to have settled, so the image is sitting exactly on its source as it goes. Nothing else of the viewer can be seen by then, as it has finished fading out.
-    static let settlingDuration = 0.7
+    static let settlingDuration = 0.5
     
     /// The highest speed the image is allowed to set off at, as a fraction of the distance it has to cover per second.
     ///

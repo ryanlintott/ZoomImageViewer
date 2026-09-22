@@ -47,7 +47,7 @@ struct ZoomImageViewerHost<Overlay: View>: View {
     @State private var contentRotation = ContentRotation()
     
     /// How long the viewer takes to fade in or out, and a thrown image takes to leave the screen.
-    private let fadeDuration: TimeInterval = 0.4
+    private let fadeDuration: TimeInterval = 0.3
 
     var body: some View {
         /// This helps center animated rotations
