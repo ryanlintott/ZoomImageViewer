@@ -11,28 +11,29 @@
 ### Added
 
 - `zoomImageViewer(uiImage:closeButtonPosition:wrapper:)` and `zoomImageViewer(uiImage:wrapper:overlay:)` view modifiers, which replace `ZoomImageView`. The viewer is placed over the view the modifier is attached to.
-- `zoomImageViewer(item:image:closeButtonPosition:wrapper:)` and `zoomImageViewer(item:image:wrapper:overlay:)` present an optional `Identifiable` and `Equatable` item instead of a `UIImage`, for an overlay that needs more than the image, like a caption. The image is read through a key path.
-- Translations of the built-in close button's "Close" title, used before iOS 26, in the 48 languages SwiftUI translates it into, using the same words as the system close button.
-- An overlay closure for replacing everything shown over the image, such as the close button, other controls or captions. The overlay fades in and out with the image and can be reached with VoiceOver. Buttons in it can use any button style, including primitive styles like `.glass` and `.bordered` that `closeButtonStyle` cannot take. The closure receives the image or item on screen, and keeps showing the last one while the viewer fades out, so an overlay describing it doesn't blank out as it closes.
-- An `Identifiable` item's image grows from its source view, usually a thumbnail, marked with the `zoomImageSource(id:)` modifier inside the view the viewer is attached to, and shrinks back when the viewer closes. The item's `id` matches the image to its source, and closing after the item changes shrinks the image into the source view of the item on screen. An item with no source on screen, like one scrolled out of a lazy grid, fades in and out instead. Attach one viewer presenting one normalized item type to the hierarchy containing its source views; several kinds of item can share it through one wrapper enum whose cases have distinct identifier cases. The source view has to show the whole image, like one with `scaledToFit()`, to match it. The image always grows and shrinks with the viewer's own animation, whether or not the item is set inside an animation, so `withAnimation` isn't needed. The source view is hidden while its image is showing and never removed, so its layout and state are kept. Dragging the image away shrinks it back into the source from where it was dropped, carrying on at the speed it was thrown rather than turning on the spot. The close button, escape gesture and drag animate the close themselves. The image stays opaque until it lands on its source, which fades back in once it has. An image in a container that turns it, like `AutoRotatingView` from FrameUp, turns back as it lands on its source, rather than landing sideways and away from it. With Reduce Motion on, the image fades in and out instead, a dragged image is thrown off screen, and the source view stays visible. The example app uses one viewer for sourced photos, source-less photos and generated test images.
-- A `ZoomImageViewerWrapper` type passed to a `zoomImageViewer` modifier wraps that viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait. The wrapper is stored directly by the viewer instead of in the environment, and the viewer is passed to it as an `AnyView` only when a wrapper is supplied.
+- `zoomImageViewer(item:image:closeButtonPosition:wrapper:)` and `zoomImageViewer(item:image:wrapper:overlay:)` present an optional `Identifiable` and `Equatable` item instead of a `UIImage`. The item is passed into the overlay allowing more information like a caption to be displayed. Additionaly if the source image uses `zoomImageSource(id:)` it can grow and shrink from the thumbnail when presented. The image is read through a key path.
+- `zoomImageSource(id:)` so that a viewer with an `Identifiable` item's image grows from its source view, usually a thumbnail, and shrinks back when the viewer closes.
+- An overlay closure for replacing everything shown over the image, such as the close button, other controls or captions. The overlay fades in and out with the image and can be reached with VoiceOver.
 - `ZoomImageDefaultOverlay`, the default overlay, for keeping the default close button in a custom overlay. Restyle it with `buttonStyle(_:)` while keeping its localized label and position.
 - `ZoomImageCloseButton`, the built-in close button without a position, for placing yourself.
 - `dismissZoomImage`, an environment action of type `ZoomImageDismissAction` that dismisses the viewer, for making your own close button in an overlay.
-- A public initializer for `ZoomImageDefaultButtonStyle`. The style had none, so it could not be created outside the package.
+- `ZoomImageDefaultButtonStyle` now has an init so it can be used outside the package.
+- Zooming or panning the image in hides the overlay, status bar and home indicator, so nothing covers the part being looked at. They come back once the image is zoomed back out to fit. A single tap on the image or the space around it shows or hides the overlay at any zoom, as does the image's Show Controls or Hide Controls accessibility action. The status bar and home indicator go with it only while the image is zoomed out.
+- Dragging the image to dismiss it hides the overlay as the drag starts, and it fades back in if the image is put back.
+- A `ZoomImageViewerWrapper` type passed to a `zoomImageViewer` modifier wraps that viewer in another view, like `AutoRotatingView` from FrameUp for an app locked to portrait.
 - VoiceOver users can dismiss the image with the escape gesture.
 - The viewer is modal to VoiceOver. Focus moves into it when it appears and back out when it is dismissed, and the content behind it can no longer be reached.
 - The image is a VoiceOver element with the image trait, labelled with the `UIImage`'s `accessibilityLabel`. It was not reachable before, so a viewer without a close button had nothing to focus. It comes before the overlay, so VoiceOver reads it first.
 - On iOS 16 and up, VoiceOver users can zoom the image in and out with VoiceOver's zoom action, the same as a double tap. Zooming in centres on the middle of the screen rather than where the gesture was made.
 - VoiceOver users can pan a zoomed in image with three-finger swipes, half a screen at a time. VoiceOver plays its border sound when the image cannot move any further in that direction.
-- Like in Photos, zooming the image in hides the overlay, status bar and home indicator, so nothing covers the part being looked at. They come back once the image is zoomed back out to fit. A single tap on the image or the space around it shows or hides the overlay at any zoom, as does the image's Show Controls or Hide Controls accessibility action. The status bar and home indicator go with it only while the image is zoomed out. An overlay shown over a zoomed in image hides again as soon as the image is panned or zoomed. Dragging the image to dismiss it hides the overlay as the drag starts, and it fades back in if the image is put back. The action names are translated into the same 48 languages as the close button, using the words VoiceOver reads for the same actions in the system video player, or the system's matching wording elsewhere where the video player's show and hide names don't match each other. The overlay can't be tapped or reached with VoiceOver while it is hidden. Hiding the home indicator needs iOS 16.
+- Voice Control users can target the image by saying "Image", "Photo" or "Picture", as in "Tap Image". The names are translated into the same 48 languages as the close button.
 - Replacing the image on screen announces the new image's `accessibilityLabel` to VoiceOver, as focus stays on whatever control swapped it.
+- Translations of the built-in close button's "Close" title, used before iOS 26, in the 48 languages SwiftUI translates it into, using the same words as the system close button.
 - Shared `ZoomImageViewer.xcworkspace` and `ZoomImageViewer Development` scheme for package and example-app development.
 - Swift Package Index configuration for building and hosting the package's documentation.
 - GitHub Actions workflow testing Swift 6.0 compatibility and building and testing on iOS with the current Swift version.
 - This changelog.
-- Unit tests for `CGSize.scaledToFit(_:)`.
-- Unit tests for the zoom scale limits, vector normalization and zoom state equality.
+- Unit tests for the zoom scale limits, image fitting and centring, vector normalization, zoom state equality, the drag dismiss animation, rotation, VoiceOver scrolling and the presentation state.
 
 ### Deprecated
 
@@ -44,37 +45,44 @@
 
 ### Changed
 
-- The viewer forces the dark colour scheme on everything inside it, and its background is now `systemBackground` resolved against that rather than a literal black, so it is still black in both light and dark mode. Views in a custom overlay now get the semantic colours for a dark background whatever the app's appearance: a caption's `.secondary`, a `Material` and a button's tint used to follow the app, so in light mode they were drawn for a light background over a black one.
+- The image now ignores the safe area. It is fitted and centred in the whole screen, and a zoomed in image can be panned right to the edges, under the status bar, Dynamic Island and home indicator. It used to be inset by the window's safe area, which stopped a zoomed in image short of the edges. The overlay is still laid out inside the safe area.
+- Setting the image binding to `nil` fades the viewer out like the close button does. It used to disappear immediately unless the change was animated. The viewer stays in the view hierarchy as a clear view while no image is shown, so it can finish fading out.
+- The viewer fades in and out faster, in 0.3 seconds instead of 0.4.
+- The default close button position is now the top trailing corner instead of the top leading corner. Pass `closeButtonPosition: .topLeading` to keep it where it was.
+- A zoomed out image can be pinched or dragged away from the empty space around it as well as from the image itself. Only the image used to respond.
+- Double tapping a partially zoomed image now zooms out instead of in.
+- The viewer forces the dark colour scheme on everything inside it. This may change the appearance of custom button styles.
 - `ZoomImageDefaultButtonStyle` no longer forces the dark colour scheme on itself before iOS 26. Inside a viewer it looks the same, as the viewer forces it instead. Used outside a viewer, the style now follows the colour scheme it is given like any other button style.
 - Before iOS 26, the default close button is a white xmark on a blurred dark circle, like a standard close button over media, instead of a white xmark drawn with the `difference` blend mode. Other icon buttons in the overlay are drawn in the primary colour without a circle.
-- The default close button position is now the top trailing corner instead of the top leading corner. Pass `closeButtonPosition: .topLeading` to keep it where it was.
-- Double tapping an image zoomed in by any amount, such as one pinched part way in, zooms it back out to fit. It used to zoom a partly zoomed image further in, and only zoomed out from the maximum.
-- Like in Photos, the image ignores the safe area. It is fitted and centred in the whole screen, and a zoomed in image can be panned right to the edges, under the status bar, Dynamic Island and home indicator. It used to be inset by the window's safe area, which stopped a zoomed in image short of the edges. The overlay is still laid out inside the safe area.
-- Setting the image binding to `nil` fades the viewer out like the close button does. It used to disappear immediately unless the change was animated. The viewer stays in the view hierarchy as a clear view while no image is shown, so it can finish fading out.
 - On iOS 26 and up the built-in close button uses `ButtonRole.close` with the label the system provides, which is localized by the system.
-- Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
-- Rewrote the readme with badges, installation steps, and examples for each feature.
+- Rewrote the readme with badges, installation steps, examples for each feature and a note that the viewer shows behind any open sheet, as it is not presented as a full screen cover.
+- Added a DocC landing page.
 - The example app supports French, so the package's localized strings, like the close button's title and the Show Controls and Hide Controls actions, can be tested in another language. The example app's own strings are not translated.
+- The example app has an app icon.
 - The example app's minimum deployment target is now iOS 15, matching the package. Xcode 26 no longer builds for iOS 14, so the example app would not compile.
-- The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
 - Tests now use Swift Testing instead of XCTest.
 
 ### Fixed
 
-- The close button's "Close" title on versions before iOS 26 is now looked up in the package's own string catalog. It was looked up in the app's bundle, so it could only be localized if the app happened to have a "Close" key.
-- Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape blocking gestures in the empty space around the image covered the whole screen in that case.
+- An image dragged away to dismiss carries on at the speed it was thrown, speeding up if needed to leave the screen in time. It used to spring away, starting slower than the throw before jumping to a faster speed.
+- The image, overlay and drag to dismiss don't respond to touches until the image has finished appearing, so an early touch can't zoom, move or dismiss an image that hasn't arrived.
+- Zooming, double tap and drag to dismiss no longer stop working when the image has the same aspect ratio as the screen, such as a screenshot taken on the same device. The shape that blocked gestures in the empty space around the image covered the whole screen in that case, and is now gone.
 - All images now have a maximum zoom 2x the image size or 2x the frame size, whichever is greater. An image that fits the screen at a zoom scale of 1 used to not scale at all but now it will now zoom up to 2x.
 - Images smaller than the screen now fill it and can be zoomed. They need a zoom scale above 1 just to fit, which was larger than the maximum zoom scale, so they rendered small and would not zoom at all. The maximum zoom scale is now never below the scale needed to fit, and allows zooming to twice that. Images at least as large as the screen are unaffected.
+- The close button's "Close" title is now localized within the package. It was previously looked up in the app's bundle, so it could only be localized if the app happened to have a "Close" key.
+- Presenting an image always starts zoomed out and interactive rather than inheriting the zoom state of a previous one.
 - Pinch zooming no longer centres the image against the frame size from when it first appeared. The scroll view delegate held the first version of the view it was given, so after a rotation or a window resize it inset the image using the old size.
 - Updating the viewer part way through a pinch no longer snaps the image back to the scale the pinch started from. Every update reapplied the zoom state, which a pinch doesn't change until it ends, so a change to the overlay's state while pinching zoomed a fitted image back out.
+- Scroll edge effects are hidden, so they no longer blur an edge of the image, which could happen from iOS 27 in a viewer rotated with `AutoRotatingView` from FrameUp.
 - An image with no size, such as an empty `UIImage`, no longer gives an infinite minimum zoom scale that was handed to the scroll view. Either the image or the frame having no width or height now leaves the zoom scale at 1.
 - Dragging an image away no longer divides by zero when the drag has no length, which gave an offset of `NaN`. A vector with no length now normalizes to zero.
 - Replacing the image without setting the binding to `nil` in between now shows the new image immediately, with no transition, in a new scroll view at its own size and zoomed out. Presenting an image when there is nothing on screen still fades in, and dismissing one still fades out. Previously the new image was swapped into the scroll view already on screen, which kept the frame it was built with, so an image of a different size was stretched to fit the previous one's frame.
+- The example app's local package reference now points at `..` instead of `../../ZoomImageViewer`, so it no longer depends on the name of the folder containing the repository.
 
 ### Removed
 
 - Unused internal `Shape.scaleToFit(_:aspectRatio:)` extension.
-- `Comparable` conformance on the internal `ZoomState`. Its ordering was equality in disguise, so `.min` compared as less than itself and the zoomed in, out and partial states did not order against each other at all. Nothing used the ordering, so it is now just `Equatable`.
+- `Comparable` conformance on the internal `ZoomState`. Nothing used the ordering, so it is now just `Equatable`.
 
 ## 0.6.4 - 2026-06-10
 
