@@ -94,6 +94,7 @@ struct ContentInsetTests {
         #expect(scrollView.contentInset.left == (partWayThrough.width - contentSize.width) / 2)
     }
 
+    #if compiler(>=6.2)
     /// Edge effects blur content along an edge the window picks, which inside a rotated viewer is an edge of the image rather than one under the status bar.
     @Test("Scroll edge effects are hidden")
     func edgeEffectsAreHidden() throws {
@@ -105,4 +106,5 @@ struct ContentInsetTests {
         #expect(scrollView.bottomEdgeEffect.isHidden)
         #expect(scrollView.rightEdgeEffect.isHidden)
     }
+    #endif
 }
