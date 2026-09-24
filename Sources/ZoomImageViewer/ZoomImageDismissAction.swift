@@ -30,6 +30,7 @@ import SwiftUI
 /// Use this instead of SwiftUI's `dismiss`. The viewer is an overlay rather than a system presentation, so `dismiss` closes whatever presentation the viewer is in, like a sheet, and leaves the image showing.
 ///
 /// Outside of a viewer it does nothing.
+@MainActor
 public struct ZoomImageDismissAction {
     /// The optional binding of the viewer this action dismisses, type erased without storing an escaping closure.
     private let binding: (any Dismissible)?
@@ -38,14 +39,14 @@ public struct ZoomImageDismissAction {
         self.binding = DismissibleBinding(binding: binding)
     }
 
-    init() {
+    /// Nonisolated so it can be the environment's default value, which is created off the main actor.
+    nonisolated init() {
         binding = nil
     }
     
     /// Dismisses the viewer.
     ///
     /// The viewer animates closing itself, including shrinking an image back into its source, so the binding is cleared in the current transaction.
-    @MainActor
     public func callAsFunction() {
         binding?.dismiss()
     }
@@ -57,15 +58,17 @@ public extension EnvironmentValues {
 }
 
 /// A value that can dismiss the viewer.
-private protocol Dismissible {
-    @MainActor func dismiss()
+///
+/// Main actor isolated so conformers can hold a `Binding` of any value and still be `Sendable`, since the binding is only ever touched on the main actor.
+@MainActor
+private protocol Dismissible: Sendable {
+    func dismiss()
 }
 
 /// An optional binding that dismisses the viewer by clearing itself.
 private struct DismissibleBinding<Value>: Dismissible {
     let binding: Binding<Value?>
 
-    @MainActor
     func dismiss() {
         binding.wrappedValue = nil
     }

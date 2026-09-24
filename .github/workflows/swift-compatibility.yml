@@ -1,6 +1,7 @@
 name: Swift Compatibility
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - dev
@@ -25,7 +26,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Xcode 16.0, 16.1 and 16.2 all ship Swift 6.0.x, so any of them proves
       # the same thing. Some runner instances come up with no iOS platform
@@ -72,7 +73,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Report toolchain
         run: |
