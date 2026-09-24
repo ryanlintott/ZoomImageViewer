@@ -46,12 +46,14 @@ final class ZoomImageScrollView: UIScrollView {
         /// The image ignores the safe area, and the insets this scroll view would add are the window's, which can belong to the wrong edges when used inside `AutoRotatingView` from FrameUp. ``updateInset()`` only centres the image.
         contentInsetAdjustmentBehavior = .never
         
+        #if compiler(>=6.2)
         if #available(iOS 26, tvOS 26, visionOS 26, *) {
             /// Edge effects blur and fade content that scrolls under a bar at the edge of a scroll view. A fullscreen image has no bars for them to separate it from, and the window decides which edges they appear on, so from iOS 27 a viewer rotated to an orientation the app does not support is blurred along an edge the window's status bar was never near.
             for edgeEffect in [topEdgeEffect, leftEdgeEffect, bottomEdgeEffect, rightEdgeEffect] {
                 edgeEffect.isHidden = true
             }
         }
+        #endif
         
         addSubview(imageView)
         /// `UIScrollView` only updates its content size when it zooms. An image that fits at a scale of 1, which a new scroll view already has, is never zoomed to fit, so without this its content size stays empty and centring it puts the image's top left corner in the middle of the screen.
