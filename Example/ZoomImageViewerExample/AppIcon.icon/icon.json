@@ -1,26 +1,18 @@
 {
   "features" : [
-    "refractivity",
     "specular-location"
   ],
   "fill" : "automatic",
   "groups" : [
     {
-      "blur-material" : null,
       "layers" : [
         {
-          "fill-specializations" : [
-            {
-              "appearance" : "dark",
-              "value" : {
-                "automatic-gradient" : "extended-gray:0.25000,1.00000"
-              }
-            }
-          ],
-          "image-name" : "frame.svg",
-          "name" : "frame"
+          "image-name" : "painting.svg",
+          "name" : "painting"
         }
       ],
+      "lighting" : "combined",
+      "name" : "Group",
       "refractivity" : {
         "depth" : 0,
         "enabled" : false,
@@ -28,7 +20,7 @@
       },
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.8
+        "opacity" : 0.5
       },
       "specular" : "outside",
       "translucency" : {
@@ -37,57 +29,25 @@
       }
     },
     {
-      "blend-mode" : "darken",
-      "blur-material" : null,
       "layers" : [
         {
-          "fill" : "automatic",
-          "image-name" : "lens.svg",
-          "name" : "lens"
-        }
-      ],
-      "refractivity" : {
-        "depth" : 0.10671875,
-        "enabled" : true,
-        "strength" : 0.6406640625
-      },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.6
-      },
-      "specular" : true,
-      "translucency" : {
-        "enabled" : true,
-        "value" : 1
-      }
-    },
-    {
-      "layers" : [
+          "glass" : true,
+          "image-name" : "person.svg",
+          "name" : "person"
+        },
         {
-          "image-name" : "triangles.svg",
-          "name" : "triangles"
+          "hidden" : false,
+          "image-name" : "background.svg",
+          "name" : "background"
         }
-      ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0
-      },
-      "specular" : false,
-      "translucency" : {
-        "enabled" : false,
-        "value" : 0.3
-      }
-    },
-    {
-      "layers" : [
-
       ],
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
+      "specular" : false,
       "translucency" : {
-        "enabled" : true,
+        "enabled" : false,
         "value" : 0.3
       }
     }

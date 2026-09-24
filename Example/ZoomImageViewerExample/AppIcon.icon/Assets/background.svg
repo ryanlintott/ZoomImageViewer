@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g transform="matrix(1,0,0,1,0,-32)">
-        <g id="icon" transform="matrix(3.45946,0,0,4.24896,-3559.78,2164.98)">
+    <g transform="matrix(1,0,0,1,-1321,-32)">
+        <g id="icon" transform="matrix(3.45946,0,0,4.24896,-2238.78,2164.98)">
             <rect x="1029" y="-502" width="296" height="241" style="fill:none;"/>
             <clipPath id="_clip1">
                 <rect x="1029" y="-502" width="296" height="241"/>
             </clipPath>
             <g clip-path="url(#_clip1)">
                 <g transform="matrix(0.289062,0,0,0.235352,1029,-509.531)">
-                    <path d="M819.027,936.984C801.39,912.202 767.603,905.255 741.619,921.07C674.705,961.945 596.081,985.5 512,985.5C268.33,985.5 70.5,787.67 70.5,544C70.5,300.33 268.33,102.5 512,102.5C755.67,102.5 953.5,300.33 953.5,544C953.5,630.777 928.411,711.74 885.103,780.016C868.645,806.043 875.403,840.395 900.492,858.249C992.711,924.079 1188.65,1068.66 1215.53,1127.5C1240.22,1181.54 1143.51,1278.28 1089.51,1253.53C1030.31,1226.4 884.663,1028.94 819.027,936.984ZM512,160.5C723.659,160.5 895.5,332.341 895.5,544C895.5,755.659 723.659,927.5 512,927.5C300.341,927.5 128.5,755.659 128.5,544C128.5,332.341 300.341,160.5 512,160.5Z"/>
+                    <rect x="0" y="32" width="1035" height="1033" style="fill:rgb(102,102,102);"/>
                 </g>
             </g>
         </g>
