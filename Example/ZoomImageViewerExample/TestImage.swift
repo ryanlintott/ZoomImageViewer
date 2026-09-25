@@ -76,6 +76,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     /// The bundled image asset, with alt text for VoiceOver.
     ///
     /// `UIImage(named:)` caches, so this is cheap to read repeatedly.
+    @MainActor
     static var bundledImage: UIImage {
         let image = UIImage(named: "testImage") ?? UIImage()
         image.accessibilityLabel = "Medieval manuscript image of two eagles flying over a body of water. One eagle has a fish in its talons."
@@ -91,6 +92,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     }
     
     /// The size this image would be generated at when viewed in a frame of `frameSize`.
+    @MainActor
     func size(in frameSize: CGSize) -> CGSize {
         let frameSize = Self.resolvedFrameSize(frameSize)
         
@@ -108,6 +110,7 @@ enum TestImage: String, CaseIterable, Identifiable {
     /// An image sized for a frame of `frameSize`.
     ///
     /// Every call returns a new image, even for the same case, so showing one twice in a row is still a replacement as far as the viewer is concerned.
+    @MainActor
     func image(in frameSize: CGSize) -> UIImage {
         guard self != .bundled else { return Self.bundledImage }
         return Self.render(size: size(in: frameSize), title: name, color: uiColor)
