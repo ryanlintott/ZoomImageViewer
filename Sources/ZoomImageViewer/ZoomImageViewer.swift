@@ -99,12 +99,12 @@ public extension View {
     /// - Parameters:
     ///   - item: The item whose image is presented. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer.
     ///   - image: The item's image. It should return the same `UIImage` instance every time it is read, like a stored property does, as a different instance is shown as a replacement image.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame, or `nil` for where a system close button on a fullscreen sheet would go. Defaults to `nil`.
     ///   - wrapper: A type that places this viewer in another view, or `nil` to place it directly over the modified view. Defaults to `nil`.
     func zoomImageViewer<Item: Identifiable & Equatable>(
         item: Binding<Item?>,
         image: KeyPath<Item, UIImage>,
-        closeButtonPosition: Alignment = .topTrailing,
+        closeButtonPosition: Alignment? = nil,
         wrapper: (any ZoomImageViewerWrapper.Type)? = nil
     ) -> some View {
         zoomImageViewer(item: item, image: image, wrapper: wrapper) { _ in
@@ -158,11 +158,11 @@ public extension View {
     /// Use it with ``ZoomImageDefaultOverlay`` to add other views alongside the close button.
     /// - Parameters:
     ///   - uiImage: The image to present. Closing the viewer sets it to `nil`, and setting it to `nil` closes the viewer, fading it out. Setting another image while the viewer is open replaces the one on screen.
-    ///   - closeButtonPosition: The close button position within the entire viewable frame. Defaults to the top trailing corner.
+    ///   - closeButtonPosition: The close button position within the entire viewable frame, or `nil` for where a system close button on a fullscreen sheet would go. Defaults to `nil`.
     ///   - wrapper: A type that places this viewer in another view, or `nil` to place it directly over the modified view. Defaults to `nil`.
     func zoomImageViewer(
         uiImage: Binding<UIImage?>,
-        closeButtonPosition: Alignment = .topTrailing,
+        closeButtonPosition: Alignment? = nil,
         wrapper: (any ZoomImageViewerWrapper.Type)? = nil
     ) -> some View {
         zoomImageViewer(uiImage: uiImage, wrapper: wrapper) { _ in

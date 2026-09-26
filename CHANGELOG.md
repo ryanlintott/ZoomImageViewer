@@ -15,6 +15,7 @@
 - `zoomImageSource(id:)` so that a viewer with an `Identifiable` item's image grows from its source view, usually a thumbnail, and shrinks back when the viewer closes.
 - An overlay closure for replacing everything shown over the image, such as the close button, other controls or captions. The overlay fades in and out with the image and can be reached with VoiceOver.
 - `ZoomImageDefaultOverlay`, the default overlay, for keeping the default close button in a custom overlay. Restyle it with `buttonStyle(_:)` while keeping its localized label and position.
+- With no `closeButtonPosition`, the default close button goes where a system close button on a fullscreen sheet would. On iOS 27.1 and up it avoids the system UI the container reserves: at the top of a vertical bar, like on iPhone Duo, beside a status bar in a top corner, and otherwise concentric with the top trailing corner, following a wrapper that turns the viewer. Earlier versions keep it in the top trailing corner. `closeButtonPosition` is now an optional `Alignment` that defaults to `nil`, and passing a position works as before.
 - `ZoomImageCloseButton`, the built-in close button without a position, for placing yourself.
 - `dismissZoomImage`, an environment action of type `ZoomImageDismissAction` that dismisses the viewer, for making your own close button in an overlay.
 - `ZoomImageDefaultButtonStyle` now has an init so it can be used outside the package.

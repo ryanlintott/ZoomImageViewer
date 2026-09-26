@@ -106,7 +106,7 @@ There are three ways to give the viewer a close button, depending on how much yo
 | The standard close button, placed and padded yourself, or restyled | `ZoomImageCloseButton` |
 | Your own button with your own label | `dismissZoomImage` |
 
-The default overlay is a close button in the top trailing corner. To move it, pass another `Alignment` as the close button position.
+The default overlay is a close button in the top trailing corner. On iOS 27.1 and up it sits where a system close button on a fullscreen sheet would, clear of the system UI the container reserves: at the top of a vertical bar, like on iPhone Duo, beside a status bar in a top corner, and otherwise concentric with the top trailing corner. It follows a wrapper that turns the viewer, like `AutoRotatingView` from FrameUp. To fix it in one place, pass an `Alignment` as the close button position.
 
 ```swift
 .zoomImageViewer(uiImage: $uiImage, closeButtonPosition: .topLeading)
